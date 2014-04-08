@@ -46,6 +46,8 @@ The project has been tested with Chrome 33, Safari 7 and Firefox 27.
 
 The API currently supports five type of commands: digital, analog, and mode, variables, and user-defined functions.
 
+### Digital
+
 Digital is to write or read on digital pins on the Arduino. For example:
   * /digital/8/0 sets pin number 8 to a low state
   * /digital/8/1 sets pin number 8 to a high state
@@ -62,6 +64,10 @@ Mode is to change the mode on a pin. For example:
 You can also directly call variables that are defined in your sketch. At the moment only integer variables are supported by the library. To access a variable in your sketch, you have to declare it first, and then call it from with a REST call. For example, if your aREST instance is called "rest" and the variable "temperature":
   * rest.variable("temperature",&temperature); declares the temperature in the Arduino sketch
   * /temperature returns the value of the variable in JSON format
+
+You can also define your own functions in your sketch that can be called using the REST API. To access a function defined in your sketch, you have to declare it first, and then call it from with a REST call. Note that all functions needs to take a String as the unique argument (for parameters to be passed to the function) and return an integer. For example, if your aREST instance is called "rest" and the function "ledControl":
+  * rest.function("led",ledControl); declares the function in the Arduino sketch
+  * /led?params=0 executes the function
 
 ## Troubleshooting
 
