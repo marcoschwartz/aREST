@@ -59,9 +59,8 @@ Mode is to change the mode on a pin. For example:
   * /mode/8/o sets pin number 8 as an output
   * /mode/8/i sets pin number 8 as an input
 
-You can also directly call variables that are defined in your sketch. At the moment only integer variables are supported by the library. To access a variable in your sketch, you have to declare it first. For example, if your aREST instance is called "rest" and the variable "temperature":
-  * rest.variable("temperature",&temperature);
-You can then call the variable using a REST call:
+You can also directly call variables that are defined in your sketch. At the moment only integer variables are supported by the library. To access a variable in your sketch, you have to declare it first, and then call it from with a REST call. For example, if your aREST instance is called "rest" and the variable "temperature":
+  * rest.variable("temperature",&temperature); declares the temperature in the Arduino sketch
   * /temperature returns the value of the variable in JSON format
 
 ## Troubleshooting
