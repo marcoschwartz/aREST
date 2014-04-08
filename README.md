@@ -2,13 +2,15 @@
 
 ## Overview
 
-A simple REST API for Arduino and the CC3000 WiFi chip. It allows to make REST calls from a web browser or a webserver to control the pins of an Arduino board.
+A simple library that implements a REST API for Arduino. It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip) and via the Serial port (using the USB serial connection, Bluetooth, and XBee).
 
 ## Supported hardware
 
-The project is at the moment compatible with the following Arduino boards: Uno, Mega, Due, Teensy 3.0.
+The library is at the moment compatible with the following Arduino boards: Uno, Mega, Due, Teensy 3.0.
 
-It is also compatible with most CC3000 breakout boards, and was tested with the Adafruit CC3000 breakout board and CC3000 WiFi shield.
+For the HTTP part, the library is compatible with most CC3000 breakout boards, and was tested with the Adafruit CC3000 breakout board and CC3000 WiFi shield.
+
+For the Serial part, it has been tested with the direct USB serial connection on an Arduino Uno board, with the Adafruit BlueFruit EZ-Link Bluetooth module, and with XBee Series 1 devices.
 
 ## Supported browsers
 
