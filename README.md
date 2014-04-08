@@ -25,6 +25,10 @@ The project has been tested with Chrome 33, Safari 7 and Firefox 27.
   - For Linux, you need to install [Avahi](http://avahi.org/).
   - For Windows, you need to install [Bonjour](http://www.apple.com/support/bonjour/).
 
+## Setup
+
+To install the library, simply clone this repository in the /libraries folder of your Arduino folder.
+
 ## Quick test (HTTP)
 
 1. Connect a LED & resistor to pin number 8 of your Arduino board
