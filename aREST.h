@@ -55,7 +55,7 @@ void handle(Adafruit_CC3000_ClientRef client) {
 
 void handle(HardwareSerial serial){
 
-  if (Serial.available()) {
+  if (serial.available()) {
 
     // Handle request
     handle_proto(serial,false);
@@ -80,18 +80,21 @@ void handle_proto(T serial, bool headers)
        
     // Get the server answer
     char c = serial.read();
+    delay(1);
     answer = answer + c;
-    // Serial.print(c);  
+    //Serial.print(c); 
         
     // Check if we are receveing useful data and process it
     if ((c == '/' || c == '\r') && state_selected == false) {
+
+      //Serial.println(answer); 
       
       // If the command is mode, and the pin is already selected    
       if (command == "mode" && pin_selected == true && state_selected == false) {
     
         // Trim answer      
         answer.trim();
-               
+
         // Input command received ?     
         if (answer.startsWith("i")) {
          
@@ -137,7 +140,7 @@ void handle_proto(T serial, bool headers)
           
          // Send feedback to client
          if (headers) {send_http_headers(serial);}
-         serial.print(F("{\"value\": "));
+         serial.print(F("{\"return_value\": "));
          serial.print(value);
          serial.print(F(", \"id\": \""));
          serial.print(id);
@@ -150,7 +153,7 @@ void handle_proto(T serial, bool headers)
          
          // Get value we want to apply to the pin        
          value = answer.toInt();
-         //serial.println("State " + answer + " set");
+         //Serial.println("State " + answer + " set");
          
          // Apply on the pin      
          digitalWrite(pin,value);
@@ -182,7 +185,7 @@ void handle_proto(T serial, bool headers)
           
          // Send feedback to client
          if (headers) {send_http_headers(serial);}
-         serial.print(F("{\"value\": "));
+         serial.print(F("{\"return_value\": "));
          serial.print(value);
          serial.print(F(", \"id\": \""));
          serial.print(id);
@@ -196,7 +199,7 @@ void handle_proto(T serial, bool headers)
          
          // Get value to apply to the output
          value = answer.toInt();
-         //serial.println("Value " + answer + " set");
+         //Serial.println("Value " + answer + " set");
                
          // Write output value
          analogWrite(pin,value);
@@ -215,28 +218,30 @@ void handle_proto(T serial, bool headers)
      
      // If the command is already selected, get the pin     
      if (command_selected == true && pin_selected == false) {
+       
+       // Get pin
        pin = answer.toInt();
-       //serial.println("Pin " + String(pin) + " selected");
+       // Serial.println("Pin " + String(pin) + " selected");
        pin_selected = true;
      }
      
      // Digital command received ?    
      if (answer.startsWith("digital")) {
-       //serial.println("Digital command received");
+       //Serial.println("Digital command received");
        command = "digital";
        command_selected = true;
      }
           
      // Mode command received ?
      if (answer.startsWith("mode")) {
-       //serial.println("Mode command received");
+       //Serial.println("Mode command received");
        command = "mode";
        command_selected = true;
      }
           
      // Analog command received ?
      if (answer.startsWith("analog")) {
-       //serial.println("Analog command received");
+       //Serial.println("Analog command received");
        command = "analog";
        command_selected = true;
      }
@@ -247,7 +252,7 @@ void handle_proto(T serial, bool headers)
        // Check if variable name is in array
        for (int i = 0; i < variables_index; i++){
          if(answer.startsWith(int_variables_names[i])) {
-           //serial.println("Variable found");
+           // Serial.println(F("Variable found")); 
            command_selected = true;
            pin_selected = true;
            state_selected = true;
@@ -270,7 +275,7 @@ void handle_proto(T serial, bool headers)
        // Check if function name is in array
        for (int i = 0; i < functions_index; i++){
          if(answer.startsWith(functions_names[i])) {
-           //serial.println("Function found");
+           //Serial.println(F("Function found"));
            command_selected = true;
            pin_selected = true;
            state_selected = true;
@@ -292,6 +297,7 @@ void handle_proto(T serial, bool headers)
 
        // If the command is "id", return device id, name and status
        if (answer.startsWith("id")){
+           //Serial.println(F("id command found"));
            if (headers) {send_http_headers(serial);}
            serial.print(F("{\"id\": \""));
            serial.print(id);
@@ -303,7 +309,8 @@ void handle_proto(T serial, bool headers)
            state_selected = true;
        }
      }
-          
+     
+     //Serial.println("Answer reset");     
      answer = "";
      
      }
