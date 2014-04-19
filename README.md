@@ -4,6 +4,12 @@
 
 A simple library that implements a REST API for Arduino. It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip) and via the Serial port (using the USB serial connection, Bluetooth, and XBee).
 
+## Contents
+
+- aREST.h: the library file.
+- examples: two examples using the library, one for the CC3000 WiFi chip, one for Serial communications.
+- gui: a simple graphical user interface to completely control an Arduino Uno board using the library. Works fine with the CC3000 chip, still have some issues with Serial communications.
+
 ## Supported hardware
 
 The library is at the moment compatible with the following Arduino boards: Uno, Mega, Due, Teensy 3.0.
