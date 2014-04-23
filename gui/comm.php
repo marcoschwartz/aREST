@@ -47,7 +47,12 @@
       exec('stty -F '. $serial_port .' -hupcl');
       usleep(100000);
 
+      // Open
       $serial->deviceOpen();
+
+      // Send dummy command to clear previous commands
+      $serial->sendMessage("dummy" . "\r");
+      $dummy = $serial->readPort();
 
       // Send command
       $serial->sendMessage($command . "\r");
@@ -57,8 +62,9 @@
       if ($answer == "") {
         sleep(1);
         $serial->sendMessage($command . "\r");
-        $answer = $serial->readPort();  
+        $answer = $answer . $serial->readPort();  
       }
+
       $serial->deviceClose();
 
       // Return JSON

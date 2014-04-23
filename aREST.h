@@ -59,10 +59,10 @@ void handle(HardwareSerial serial){
 
     // Handle request
     handle_proto(serial,false);
-    
-    // Give the web browser time to receive the data
+
+    // Wait for data to be sent
     delay(5);
-   
+
     // Reset variables for the next command
     answer = "";
     command = "";
