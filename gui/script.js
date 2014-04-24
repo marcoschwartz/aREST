@@ -65,13 +65,49 @@ $(document).ready ( function () {
     comm_target = $("#commTarget").val();
 
     // Replace by simple text
-    $("#commTarget").replaceWith("<div id='commTarget'>" + comm_target + "</div>");
+    $("#commTarget").replaceWith("<div><span id='commTarget'>" + comm_target + "</span><span id='cancelTarget'> &#10007;</span></div>");
     $("#commTarget").css("color","red");
 
     // Remove check button
     $("#targetSelector").html("");
 
   });
+
+  // Handle click on change target
+  $(document).on("click", "#cancelTarget", function(e){
+    
+    // Replace by text input
+    $("#commTarget").replaceWith("<input type='text' value='arduino.local' id='commTarget'></input>" + "<span id='targetSelector'>&#10003</span>");
+
+    // Remove cross button
+    $("#cancelTarget").html("");
+
+  });
+
+  // Handle double click on a pin
+  $(document).on("mousedown",".pin", function(e) {
+
+    clearTimeout(this.downTimer);
+
+    this.downTimer = setTimeout(function() {
+    
+      // Already set ?
+      if (pinsCommand[e.target.id] != "notSet"){
+
+      // Reset pin status
+      pinsCommand[e.target.id] = "notSet";
+
+      // Reset color
+      $("#" + e.target.id).css("border-color","white");
+      $("#" + e.target.id).css("background-color","#AAAAAA");
+
+      // Reset indicator
+      $("#text" + e.target.id).html("");
+
+    } }, 2000);
+    }).on("mouseup",".pin", function(e) {
+      clearTimeout(this.downTimer);
+    });
 
   // Handle click on a pin
   $(document).on("click", ".pin", function(e){
