@@ -27,7 +27,7 @@ public:
 template <typename T>
 void send_http_headers(T client){
   client.println(F("HTTP/1.1 200 OK"));
-  client.println(F("Content-Type: text/html"));
+  client.println(F("Content-Type: application/json"));
   client.println(F("Connection: close"));
   client.println();  
 }
@@ -82,7 +82,7 @@ void handle_proto(T serial, bool headers)
     char c = serial.read();
     delay(1);
     answer = answer + c;
-    //Serial.print(c); 
+    //Serial.print(c);
         
     // Check if we are receveing useful data and process it
     if ((c == '/' || c == '\r') && state_selected == false) {
@@ -103,9 +103,15 @@ void handle_proto(T serial, bool headers)
               
           // Send feedback to client
           if (headers) {send_http_headers(serial);}
+          serial.print(F("{\"message\": \""));
           serial.print(F("Setting pin D"));
           serial.print(pin);
-          serial.println(F(" to input"));
+          serial.print(F(" to input\""));
+          serial.print(F(", \"id\": \""));
+          serial.print(id);
+          serial.print(F("\", \"name\": \""));
+          serial.print(name);
+          serial.println(F("\", \"connected\": true}"));
        }
        
        // Output command received ?     
@@ -116,9 +122,15 @@ void handle_proto(T serial, bool headers)
               
          // Send feedback to client
          if (headers) {send_http_headers(serial);}
+         serial.print(F("{\"message\": \""));
          serial.print(F("Setting pin D"));
          serial.print(pin);
-         serial.println(F(" to output"));
+         serial.print(F(" to output\""));
+         serial.print(F(", \"id\": \""));
+         serial.print(id);
+         serial.print(F("\", \"name\": \""));
+         serial.print(name);
+         serial.println(F("\", \"connected\": true}"));
        }
        
        // Indicate that the state has been selected     
@@ -160,10 +172,16 @@ void handle_proto(T serial, bool headers)
  
          // Send feedback to client
          if (headers) {send_http_headers(serial);}
+         serial.print(F("{\"message\": \""));
          serial.print(F("Pin D"));
          serial.print(pin);
          serial.print(F(" set to "));
-         serial.println(value);
+         serial.print(value);
+         serial.print(F("\", \"id\": \""));
+         serial.print(id);
+         serial.print(F("\", \"name\": \""));
+         serial.print(name);
+         serial.println(F("\", \"connected\": true}"));
        }
        
        // Declare that the state has been selected         
@@ -206,10 +224,16 @@ void handle_proto(T serial, bool headers)
  
          // Send feedback to client
          if (headers) {send_http_headers(serial);}
+         serial.print(F("{\"message\": \""));
          serial.print(F("Pin D"));
          serial.print(pin);
-         serial.print(F(" set to analog value "));
-         serial.println(value);
+         serial.print(F(" set to "));
+         serial.print(value);
+         serial.print(F("\", \"id\": \""));
+         serial.print(id);
+         serial.print(F("\", \"name\": \""));
+         serial.print(name);
+         serial.println(F("\", \"connected\": true}"));
        }
                
        state_selected = true;
@@ -219,10 +243,52 @@ void handle_proto(T serial, bool headers)
      // If the command is already selected, get the pin     
      if (command_selected == true && pin_selected == false) {
        
+       answer.trim();
        // Get pin
        pin = answer.toInt();
-       // Serial.println("Pin " + String(pin) + " selected");
+       //Serial.println("Pin " + String(pin) + " selected");
        pin_selected = true;
+
+       // Nothing more ?
+       if (command == "digital" && (answer.length() != 2)) {
+        
+        // Read from pin
+        value = digitalRead(pin);
+          
+        // Send feedback to client
+        if (headers) {send_http_headers(serial);}
+        serial.print(F("{\"return_value\": "));
+        serial.print(value);
+        serial.print(F(", \"id\": \""));
+        serial.print(id);
+        serial.print(F("\", \"name\": \""));
+        serial.print(name);
+        serial.println(F("\", \"connected\": true}"));
+
+        // End there
+        state_selected = true;
+       }
+
+       // Nothing more ?
+       if (command == "analog" && (answer.length() != 2)) {
+        
+        // Read from pin
+        value = analogRead(pin);
+          
+        // Send feedback to client
+        if (headers) {send_http_headers(serial);}
+        serial.print(F("{\"return_value\": "));
+        serial.print(value);
+        serial.print(F(", \"id\": \""));
+        serial.print(id);
+        serial.print(F("\", \"name\": \""));
+        serial.print(name);
+        serial.println(F("\", \"connected\": true}"));
+
+        // End there
+        state_selected = true;
+       }  
+
      }
      
      // Digital command received ?    

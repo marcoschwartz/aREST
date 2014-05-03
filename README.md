@@ -61,13 +61,13 @@ The API currently supports five type of commands: digital, analog, and mode, var
 Digital is to write or read on digital pins on the Arduino. For example:
   * /digital/8/0 sets pin number 8 to a low state
   * /digital/8/1 sets pin number 8 to a high state
-  * /digital/8/r reads value from pin number 8 in JSON format
+  * /digital/8 reads value from pin number 8 in JSON format (note that for compatibility reasons, /digital/8/r produces the same result)
 
 ### Analog
 
 Analog is to write or read on analog pins on the Arduino. Note that you can only write on PWM pins for the Arduino Uno, and only read analog values from analog pins 0 to 5. For example:
   * /analog/6/123 sets pin number 6 to 123 using PWM
-  * /analog/0/r returns analog value from pin number A0 in JSON format
+  * /analog/0 returns analog value from pin number A0 in JSON format (note that for compatibility reasons, /analog/0/r produces the same result)
 
 ### Mode
 
