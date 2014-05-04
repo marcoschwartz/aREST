@@ -14,7 +14,7 @@ A simple library that implements a REST API for Arduino. It is designed to be un
 
 The library is at the moment compatible with the following Arduino boards: Uno, Mega, Due, Teensy 3.0.
 
-For the HTTP part, the library is compatible with most CC3000 breakout boards, and was tested with the Adafruit CC3000 breakout board and CC3000 WiFi shield.
+For the HTTP part, the library is compatible with most CC3000 breakout boards, and was tested with the Adafruit CC3000 breakout board and the CC3000 WiFi shield. It was also tested with the Tiny Circuit WiFi shield (but in that case, you will have to change the pins configuration inside the example WiFi sketch. See the Tiny Circuit WiFi shield documentation for more details).
 
 For the Serial part, it has been tested with the direct USB serial connection on an Arduino Uno board, with the Adafruit BlueFruit EZ-Link Bluetooth module, and with XBee Series 1 devices.
 
