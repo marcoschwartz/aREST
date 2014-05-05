@@ -6,7 +6,7 @@
 */
 
 #include "Arduino.h"
-
+  
 #define NUMBER_VARIABLES 2
 #define NUMBER_FUNCTIONS 2
 
@@ -51,6 +51,27 @@ void handle(Adafruit_CC3000_ClientRef client) {
     pin_selected = false;
     state_selected = false;    
   } 
+}
+
+void handle(EthernetClient client){
+
+  if (client.available()) {
+
+    // Handle request
+    handle_proto(client,true);
+
+    // Give the web browser time to receive the data
+    delay(5);
+
+    client.stop();  
+   
+    // Reset variables for the next command
+    answer = "";
+    command = "";
+    command_selected = false;
+    pin_selected = false;
+    state_selected = false;     
+  }
 }
 
 void handle(HardwareSerial serial){

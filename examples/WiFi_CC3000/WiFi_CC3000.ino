@@ -8,6 +8,7 @@
 // Import required libraries
 #include <Adafruit_CC3000.h>
 #include <SPI.h>
+#include <Ethernet.h>
 #include <CC3000_MDNS.h>
 #include <aREST.h>
 
@@ -19,7 +20,7 @@
 // Create CC3000 instance
 Adafruit_CC3000 cc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS, ADAFRUIT_CC3000_IRQ, ADAFRUIT_CC3000_VBAT,
                                          SPI_CLOCK_DIV2);
-// Create ArduREST instance
+// Create aREST instance
 aREST rest = aREST();
 
 // Your WiFi SSID and password                                         

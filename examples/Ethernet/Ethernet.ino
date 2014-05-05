@@ -1,6 +1,7 @@
 /* 
   This a simple example of the aREST Library for Arduino (Uno/Mega/Due/Teensy)
-  using the Serial port. See the README file for more details.
+  using the Ethernet library (for example to be used with the Ethernet shield). 
+  See the README file for more details.
  
   Written in 2014 by Marco Schwartz under a GPL license. 
 */
@@ -10,6 +11,16 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include <aREST.h>
+
+// MAC address of the board
+byte mac[] = { 
+  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+
+// IP address of the board
+IPAddress ip(192,168,2,2);
+
+// Ethernet server
+EthernetServer server(80);
 
 // Create aREST instance
 aREST rest = aREST();
@@ -35,12 +46,19 @@ void setup(void)
   // Give name and ID to device
   rest.set_id("008");
   rest.set_name("dapper_drake");
+
+  // Start the Ethernet connection and the server
+  Ethernet.begin(mac, ip);
+  server.begin();
+  Serial.print("server is at ");
+  Serial.println(Ethernet.localIP());
 }
 
 void loop() {  
   
-  // Handle REST calls
-  rest.handle(Serial);  
+  // listen for incoming clients
+  EthernetClient client = server.available();
+  rest.handle(client);
   
 }
 
