@@ -2,7 +2,7 @@
 
 ## Overview
 
-A simple library that implements a REST API for Arduino. It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip) and via the Serial port (using the USB serial connection, Bluetooth, and XBee).
+A simple library that implements a REST API for Arduino. It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip or the Ethernet shield) and via the Serial port (using the USB serial connection, Bluetooth, and XBee).
 
 ## Contents
 
