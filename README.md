@@ -8,7 +8,7 @@ A simple library that implements a REST API for Arduino. It is designed to be un
 
 - aREST.h: the library file.
 - examples: two examples using the library, one for the CC3000 WiFi chip, one for Serial communications.
-- gui: a simple graphical user interface to completely control an Arduino Uno board using the library. Works fine with the CC3000 chip, still have some issues with Serial communications.
+- gui: a simple graphical user interface to completely control an Arduino Uno board using the library. Works fine with the CC3000 chip, still have some issues with Serial communications. You can find the documentation in this README file.
 
 ## Supported hardware
 
@@ -96,6 +96,10 @@ You can also directly call variables that are defined in your sketch. At the mom
 You can also define your own functions in your sketch that can be called using the REST API. To access a function defined in your sketch, you have to declare it first, and then call it from with a REST call. Note that all functions needs to take a String as the unique argument (for parameters to be passed to the function) and return an integer. For example, if your aREST instance is called "rest" and the function "ledControl":
   * rest.function("led",ledControl); declares the function in the Arduino sketch
   * /led?params=0 executes the function
+
+## GUI
+
+The repository includes a web-based Graphical User Interface to control an Arduino Uno board from a web browser. To use it, simply put the gui folder at the root of a web server running on your computer, and open the HTML file. You will then be able to select the communication type (WiFi or Serial) and the target (for example, arduino.local if you are using the example WiFi sketch for your board).
 
 ## Troubleshooting
 
