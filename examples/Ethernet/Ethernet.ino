@@ -12,11 +12,10 @@
 #include <Ethernet.h>
 #include <aREST.h>
 
-// MAC address of the board
-byte mac[] = { 
-  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+// Enter a MAC address for your controller below.
+byte mac[] = { 0x90, 0xA2, 0xDA, 0x0E, 0xFE, 0x40 };
 
-// IP address of the board
+// IP address in case DHCP fails
 IPAddress ip(192,168,2,2);
 
 // Ethernet server
@@ -48,7 +47,12 @@ void setup(void)
   rest.set_name("dapper_drake");
 
   // Start the Ethernet connection and the server
-  Ethernet.begin(mac, ip);
+  if (Ethernet.begin(mac) == 0) {
+    Serial.println("Failed to configure Ethernet using DHCP");
+    // no point in carrying on, so do nothing forevermore:
+    // try to congifure using IP address instead of DHCP:
+    Ethernet.begin(mac, ip);
+  }
   server.begin();
   Serial.print("server is at ");
   Serial.println(Ethernet.localIP());

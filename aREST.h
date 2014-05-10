@@ -6,7 +6,7 @@
 */
 
 #include "Arduino.h"
-  
+
 #define NUMBER_VARIABLES 2
 #define NUMBER_FUNCTIONS 2
 
@@ -267,11 +267,14 @@ void handle_proto(T serial, bool headers)
        answer.trim();
        // Get pin
        pin = answer.toInt();
-       //Serial.println("Pin " + String(pin) + " selected");
+       // Serial.println("Pin " + String(pin) + " selected");
+       //Serial.println(answer);
        pin_selected = true;
 
        // Nothing more ?
-       if (command == "digital" && (answer.length() != 2)) {
+       if (answer.length() == String(pin).length() || answer[String(pin).length()] != '/') {
+
+        if (command == "digital") {
         
         // Read from pin
         value = digitalRead(pin);
@@ -291,7 +294,7 @@ void handle_proto(T serial, bool headers)
        }
 
        // Nothing more ?
-       if (command == "analog" && (answer.length() != 2)) {
+       if (command == "analog") {
         
         // Read from pin
         value = analogRead(pin);
@@ -308,6 +311,8 @@ void handle_proto(T serial, bool headers)
 
         // End there
         state_selected = true;
+       }
+
        }  
 
      }
@@ -412,16 +417,21 @@ void variable(String variable_name, int *variable){
   variables_index++;
 
 }
-  void function(String function_name, int (*f)(String)){
+
+void function(String function_name, int (*f)(String)){
 
   functions_names[functions_index] = function_name;
   functions[functions_index] = f;
   functions_index++;
 }
-  void set_id(String device_id){
+
+void set_id(String device_id){
+
   id = device_id;
 }
-  void set_name(String device_name){
+
+void set_name(String device_name){
+  
   name = device_name;
 }
   
