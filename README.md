@@ -97,6 +97,13 @@ You can also define your own functions in your sketch that can be called using t
   * rest.function("led",ledControl); declares the function in the Arduino sketch
   * /led?params=0 executes the function
 
+### Authentification
+
+You can define an API key to add more security to your projects, so only someone with the key can access to the devices using aREST. The authentification works only with HTTP requests (WiFi and Ethernet). You simply need to define a key in the Arduino sketch with:
+ * rest.set_api_key("K9gs1wbodW");
+Then, you need to send this key in the HTTP header of the request:
+ * "X-ApiKey: K9gs1wbodW"
+
 ## GUI
 
 The repository includes a web-based Graphical User Interface to control an Arduino Uno board from a web browser. To use it, simply put the gui folder at the root of a web server running on your computer, and open the HTML file. You will then be able to select the communication type (WiFi or Serial) and the target (for example, arduino.local if you are using the example WiFi sketch for your board).
