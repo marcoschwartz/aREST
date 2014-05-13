@@ -68,8 +68,6 @@ void reset_status() {
   api_key_received = false;
   api_key_match = false;
 
-  // API key needed ?
-  if (api_key == "") {api_key_received = true;}
 }
 
 void handle(Adafruit_CC3000_ClientRef client) {
@@ -124,6 +122,9 @@ template <typename T>
 void handle_proto(T serial, bool headers) 
 {
 
+  // API key needed ?
+  if (api_key == "") {api_key_received = true;}
+
   // Check if there is data available to read
   while (serial.available()) {
        
@@ -131,7 +132,7 @@ void handle_proto(T serial, bool headers)
     char c = serial.read();
     delay(1);
     answer = answer + c;
-    Serial.print(c);
+    //Serial.print(c);
 
     // Check for API key or end of request
     if ((c == '\n' || c == '\r')) {
@@ -472,10 +473,12 @@ void handle_proto(T serial, bool headers)
       if (command == "function") {
 
         // Execute function
-        functions[value](arguments);
+        int result = functions[value](arguments);
            
         // Send feedback to client
-        serial.print(F("{\"message\": \""));
+        serial.print(F("{\"return_value\": "));
+        serial.print(result);
+        serial.print(F(", \"message\": \""));
         serial.print(F("Function "));
         serial.print(functions_names[value]);
         serial.print(F(" has been executed\", "));
@@ -552,8 +555,6 @@ private:
   String id;
   String api_key;
   String arguments;
-  boolean end_of_line;
-  boolean end_of_request;
 
   // Variables arrays
   uint8_t variables_index;
