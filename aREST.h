@@ -1,8 +1,18 @@
 /* 
-  aREST Library for Arduino (Uno/Mega/Due/Teensy).
+  aREST Library for Arduino
   See the README file for more details.
  
   Written in 2014 by Marco Schwartz under a GPL license. 
+
+  Version 1.4
+
+  Changelog:
+  Version 1.4: Added authentification with API key
+  Version 1.3: Added support for the Ethernet shield
+  Version 1.2: Added support of Serial communications
+  Version 1.1: Added variables & functions support
+  Version 1.0: First working version of the library
+
 */
 
 #include "Arduino.h"
@@ -18,10 +28,14 @@ public:
   pin_selected = false;
   state_selected = false;
   command_selected = false;
+  api_key_received = false;
+  api_key_match = false;
+
   variables_index = 0;
   functions_index = 0;
   //name = "default_name";
   //id = "001";
+  api_key = "";
 }
 
 template <typename T>
@@ -30,6 +44,32 @@ void send_http_headers(T client){
   client.println(F("Content-Type: application/json"));
   client.println(F("Connection: close"));
   client.println();  
+}
+
+template <typename T>
+void send_end_answer(T client){
+  client.print(F("\"id\": \""));
+  client.print(id);
+  client.print(F("\", \"name\": \""));
+  client.print(name);
+  client.println(F("\", \"connected\": true}"));
+}
+
+// Reset variables after a request
+void reset_status() {
+  answer = "";
+  command = "";
+  command_selected = false;
+  pin_selected = false;
+  state_selected = false;
+  command_sent = false;
+  state = 'u';
+  arguments = "";
+  api_key_received = false;
+  api_key_match = false;
+
+  // API key needed ?
+  if (api_key == "") {api_key_received = true;}
 }
 
 void handle(Adafruit_CC3000_ClientRef client) {
@@ -41,15 +81,10 @@ void handle(Adafruit_CC3000_ClientRef client) {
     
     // Give the web browser time to receive the data
     delay(5);
-
     client.close();  
    
     // Reset variables for the next command
-    answer = "";
-    command = "";
-    command_selected = false;
-    pin_selected = false;
-    state_selected = false;    
+    reset_status();
   } 
 }
 
@@ -66,11 +101,7 @@ void handle(EthernetClient client){
     client.stop();  
    
     // Reset variables for the next command
-    answer = "";
-    command = "";
-    command_selected = false;
-    pin_selected = false;
-    state_selected = false;     
+    reset_status();   
   }
 }
 
@@ -85,26 +116,50 @@ void handle(HardwareSerial serial){
     delay(5);
 
     // Reset variables for the next command
-    answer = "";
-    command = "";
-    command_selected = false;
-    pin_selected = false;
-    state_selected = false;    
+    reset_status();     
   }
 }
 
 template <typename T>
 void handle_proto(T serial, bool headers) 
-{ 
-    // Check if there is data available to read
-    while (serial.available()) {
+{
+
+  // Check if there is data available to read
+  while (serial.available()) {
        
     // Get the server answer
     char c = serial.read();
     delay(1);
     answer = answer + c;
-    //Serial.print(c);
-        
+    Serial.print(c);
+
+    // Check for API key or end of request
+    if ((c == '\n' || c == '\r')) {
+
+      // API key ?
+      if(!api_key_received){
+
+        // Check for API key
+        if(answer.startsWith("X-ApiKey")) {
+          String received_key = answer.substring(10);
+          received_key.trim();
+
+          if (received_key == api_key) {
+            api_key_match = true;
+            //Serial.println("API key match");
+          }
+
+          //Serial.println("API key received");
+          api_key_received = true;
+        }
+
+      }
+
+      // Reset answer
+      answer = "";
+
+    }  
+
     // Check if we are receveing useful data and process it
     if ((c == '/' || c == '\r') && state_selected == false) {
 
@@ -118,40 +173,18 @@ void handle_proto(T serial, bool headers)
 
         // Input command received ?     
         if (answer.startsWith("i")) {
-         
-          // Set pin to Input     
-          pinMode(pin,INPUT);
-              
-          // Send feedback to client
-          if (headers) {send_http_headers(serial);}
-          serial.print(F("{\"message\": \""));
-          serial.print(F("Setting pin D"));
-          serial.print(pin);
-          serial.print(F(" to input\""));
-          serial.print(F(", \"id\": \""));
-          serial.print(id);
-          serial.print(F("\", \"name\": \""));
-          serial.print(name);
-          serial.println(F("\", \"connected\": true}"));
+
+          // Set state to input
+          state = 'i';
+
        }
        
        // Output command received ?     
        if (answer.startsWith("o")) {
-         
-         // Set to Output  
-         pinMode(pin,OUTPUT);
-              
-         // Send feedback to client
-         if (headers) {send_http_headers(serial);}
-         serial.print(F("{\"message\": \""));
-         serial.print(F("Setting pin D"));
-         serial.print(pin);
-         serial.print(F(" to output\""));
-         serial.print(F(", \"id\": \""));
-         serial.print(id);
-         serial.print(F("\", \"name\": \""));
-         serial.print(name);
-         serial.println(F("\", \"connected\": true}"));
+
+         // Set state to output
+         state = 'o';
+
        }
        
        // Indicate that the state has been selected     
@@ -167,42 +200,18 @@ void handle_proto(T serial, bool headers)
                 
        // If it's a read command, read from the pin and send data back
        if (answer.startsWith("r")) {
-         
-         // Read from pin
-         value = digitalRead(pin);
-          
-         // Send feedback to client
-         if (headers) {send_http_headers(serial);}
-         serial.print(F("{\"return_value\": "));
-         serial.print(value);
-         serial.print(F(", \"id\": \""));
-         serial.print(id);
-         serial.print(F("\", \"name\": \""));
-         serial.print(name);
-         serial.println(F("\", \"connected\": true}"));
+
+         // Save state
+         state = 'r';
+        
        }
                
        else {
          
          // Get value we want to apply to the pin        
          value = answer.toInt();
+
          //Serial.println("State " + answer + " set");
-         
-         // Apply on the pin      
-         digitalWrite(pin,value);
- 
-         // Send feedback to client
-         if (headers) {send_http_headers(serial);}
-         serial.print(F("{\"message\": \""));
-         serial.print(F("Pin D"));
-         serial.print(pin);
-         serial.print(F(" set to "));
-         serial.print(value);
-         serial.print(F("\", \"id\": \""));
-         serial.print(id);
-         serial.print(F("\", \"name\": \""));
-         serial.print(name);
-         serial.println(F("\", \"connected\": true}"));
        }
        
        // Declare that the state has been selected         
@@ -218,19 +227,10 @@ void handle_proto(T serial, bool headers)
                 
        // If it's a read, read from the correct pin
        if (answer.startsWith("r")) {
+
+         // Save state
+         state = 'r';
          
-         // Read analog value
-         value = analogRead(pin);
-          
-         // Send feedback to client
-         if (headers) {send_http_headers(serial);}
-         serial.print(F("{\"return_value\": "));
-         serial.print(value);
-         serial.print(F(", \"id\": \""));
-         serial.print(id);
-         serial.print(F("\", \"name\": \""));
-         serial.print(name);
-         serial.println(F("\", \"connected\": true}"));
        }
        
        // Else, write analog value        
@@ -240,21 +240,6 @@ void handle_proto(T serial, bool headers)
          value = answer.toInt();
          //Serial.println("Value " + answer + " set");
                
-         // Write output value
-         analogWrite(pin,value);
- 
-         // Send feedback to client
-         if (headers) {send_http_headers(serial);}
-         serial.print(F("{\"message\": \""));
-         serial.print(F("Pin D"));
-         serial.print(pin);
-         serial.print(F(" set to "));
-         serial.print(value);
-         serial.print(F("\", \"id\": \""));
-         serial.print(id);
-         serial.print(F("\", \"name\": \""));
-         serial.print(name);
-         serial.println(F("\", \"connected\": true}"));
        }
                
        state_selected = true;
@@ -276,18 +261,8 @@ void handle_proto(T serial, bool headers)
 
         if (command == "digital") {
         
-        // Read from pin
-        value = digitalRead(pin);
-          
-        // Send feedback to client
-        if (headers) {send_http_headers(serial);}
-        serial.print(F("{\"return_value\": "));
-        serial.print(value);
-        serial.print(F(", \"id\": \""));
-        serial.print(id);
-        serial.print(F("\", \"name\": \""));
-        serial.print(name);
-        serial.println(F("\", \"connected\": true}"));
+        // Save state
+        state = 'r';
 
         // End there
         state_selected = true;
@@ -296,18 +271,8 @@ void handle_proto(T serial, bool headers)
        // Nothing more ?
        if (command == "analog") {
         
-        // Read from pin
-        value = analogRead(pin);
-          
-        // Send feedback to client
-        if (headers) {send_http_headers(serial);}
-        serial.print(F("{\"return_value\": "));
-        serial.print(value);
-        serial.print(F(", \"id\": \""));
-        serial.print(id);
-        serial.print(F("\", \"name\": \""));
-        serial.print(name);
-        serial.println(F("\", \"connected\": true}"));
+        // Save state
+        state = 'r';
 
         // End there
         state_selected = true;
@@ -345,21 +310,15 @@ void handle_proto(T serial, bool headers)
        for (int i = 0; i < variables_index; i++){
          if(answer.startsWith(int_variables_names[i])) {
            // Serial.println(F("Variable found")); 
+           
+           // End here
            command_selected = true;
            pin_selected = true;
            state_selected = true;
-         
-           // Send feedback to client
-           if (headers) {send_http_headers(serial);}
-           serial.print(F("{\""));
-           serial.print(int_variables_names[i]);
-           serial.print(F("\": "));
-           serial.print(*int_variables[i]);
-           serial.print(F(", \"id\": \""));
-           serial.print(id);
-           serial.print(F("\", \"name\": \""));
-           serial.print(name);
-           serial.println(F("\", \"connected\": true}"));
+
+           // Set state
+           command = "variable";
+           value = i;
            
          }
        }
@@ -368,34 +327,31 @@ void handle_proto(T serial, bool headers)
        for (int i = 0; i < functions_index; i++){
          if(answer.startsWith(functions_names[i])) {
            //Serial.println(F("Function found"));
+           
+           // End here
            command_selected = true;
            pin_selected = true;
            state_selected = true;
 
+           // Set state
+           command = "function";
+           value = i;
+
            // Get command
            int header_length = functions_names[i].length() + 8;
-           String command = answer.substring(header_length);
+           arguments = answer.substring(header_length);
 
-           // Execute function
-           functions[i](command);
-         
-           // Send feedback to client
-           if (headers) {send_http_headers(serial);}
-           serial.print(F("Function "));
-           serial.print(functions_names[i]);
-           serial.println(F(" has been executed"));
          }
        }
 
        // If the command is "id", return device id, name and status
        if (answer.startsWith("id")){
            //Serial.println(F("id command found"));
-           if (headers) {send_http_headers(serial);}
-           serial.print(F("{\"id\": \""));
-           serial.print(id);
-           serial.print(F("\", \"name\": \""));
-           serial.print(name);
-           serial.println(F("\", \"connected\": true}")); 
+
+           // Set state
+           command = "id";
+
+           // End here
            command_selected = true;
            pin_selected = true;
            state_selected = true;
@@ -406,6 +362,146 @@ void handle_proto(T serial, bool headers)
      answer = "";
      
      }
+     
+     // Send commands
+     if (command_selected && pin_selected && state_selected && !command_sent && api_key_received) {
+       //Serial.println("Sending command: " + command + String(pin) + state);
+       
+       // Is the API key needed ?
+       if (api_key == "" || api_key_match){
+
+       // Start of message
+       if (headers) {send_http_headers(serial);}
+
+       // Mode selected
+       if (command == "mode"){
+
+         serial.print(F("{\"message\": \""));
+         serial.print(F("Setting pin D"));
+         serial.print(pin);
+         
+         // Input
+         if (state == 'i'){
+          
+          // Set pin to Input     
+          pinMode(pin,INPUT);
+              
+          // Send feedback to client
+          serial.print(F(" to input\", "));
+         }
+
+         // Output
+         if (state == 'o'){
+
+           // Set to Output  
+           pinMode(pin,OUTPUT);
+              
+           // Send feedback to client
+           serial.print(F(" to output\", "));
+         }
+
+       }
+
+       // Digital selected
+       if (command == "digital") {
+         if (state == 'r'){
+
+           // Read from pin
+           value = digitalRead(pin);
+
+           // Send answer
+           serial.print(F("{\"return_value\": "));
+           serial.print(value);
+           serial.print(F(", "));
+         }
+         else {
+
+           // Apply on the pin      
+           digitalWrite(pin,value);
+ 
+           // Send feedback to client
+           serial.print(F("{\"message\": \""));
+           serial.print(F("Pin D"));
+           serial.print(pin);
+           serial.print(F(" set to "));
+           serial.print(value);
+           serial.print(F("\", "));
+         }
+       }
+
+       // Analog selected
+       if (command == "analog") {
+         if (state == 'r'){
+           
+           // Read analog value
+           value = analogRead(pin);
+          
+           // Send feedback to client
+           serial.print(F("{\"return_value\": "));
+           serial.print(value);
+           serial.print(F(", "));
+       }
+       else {
+
+         // Write output value
+         analogWrite(pin,value);
+ 
+         // Send feedback to client
+         serial.print(F("{\"message\": \""));
+         serial.print(F("Pin D"));
+         serial.print(pin);
+         serial.print(F(" set to "));
+         serial.print(value);
+         serial.print(F("\", "));
+
+       }
+      }
+
+      // Variable selected
+      if (command == "variable") {
+
+           // Send feedback to client
+           serial.print(F("{\""));
+           serial.print(int_variables_names[value]);
+           serial.print(F("\": "));
+           serial.print(*int_variables[value]);
+           serial.print(F(", "));
+      }
+
+      // Function selected
+      if (command == "function") {
+
+        // Execute function
+        functions[value](arguments);
+           
+        // Send feedback to client
+        serial.print(F("{\"message\": \""));
+        serial.print(F("Function "));
+        serial.print(functions_names[value]);
+        serial.print(F(" has been executed\", "));
+      }
+
+      if (command == "id") {
+        serial.print(F("{"));
+      }
+
+       // End of message
+       send_end_answer(serial);
+
+       // End here
+       command_sent = true;
+      }
+      else {
+
+        // Send message
+        if (headers) {send_http_headers(serial);}
+        serial.println(F("{\"message\": \"API key invalid.\"}"));
+
+        // End here
+        command_sent = true;
+      }
+
+     } 
        
    }
 }
@@ -434,17 +530,30 @@ void set_name(String device_name){
   
   name = device_name;
 }
+
+void set_api_key(String the_api_key){
+  
+  api_key = the_api_key;
+}
   
 private:
   String answer;
   String command;
   uint8_t pin;
+  char state;
   int value;
   boolean pin_selected;
   boolean state_selected;
   boolean command_selected;
+  boolean command_sent;
+  boolean api_key_received;
+  boolean api_key_match;
   String name;
   String id;
+  String api_key;
+  String arguments;
+  boolean end_of_line;
+  boolean end_of_request;
 
   // Variables arrays
   uint8_t variables_index;

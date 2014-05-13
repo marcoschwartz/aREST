@@ -1,4 +1,4 @@
-# Test for the aREST library using the CC3000 chip
+# Test for the aREST library using HTTP
 
 # Imports
 import pycurl
@@ -8,6 +8,7 @@ import unittest
 import StringIO
 
 # Target
+# target = '192.168.1.104'
 target = 'arduino.local'
 
 # Function to make cURL call

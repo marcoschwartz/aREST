@@ -8,7 +8,7 @@ import unittest
 
 # Serial port parameters
 serial_speed = 9600
-serial_port = '/dev/tty.usbmodem1a12121'
+serial_port = '/dev/tty.usbmodem1411'
 
 class TestSequenceFunctions(unittest.TestCase):
 
