@@ -101,6 +101,7 @@ You can also define your own functions in your sketch that can be called using t
 
 You can define an API key to add more security to your projects, so only someone with the key can access to the devices using aREST. The authentification works only with HTTP requests (WiFi and Ethernet). You simply need to define a key in the Arduino sketch with:
  * rest.set_api_key("K9gs1wbodW");
+ 
 Then, you need to send this key in the HTTP header of the request:
  * "X-ApiKey: K9gs1wbodW"
 
