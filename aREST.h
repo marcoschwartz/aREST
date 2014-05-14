@@ -135,7 +135,7 @@ void handle_proto(T serial, bool headers)
     //Serial.print(c);
 
     // Check for API key or end of request
-    if ((c == '\n' || c == '\r')) {
+    if (c == '\n') {
 
       // API key ?
       if(!api_key_received){
@@ -212,7 +212,7 @@ void handle_proto(T serial, bool headers)
          // Get value we want to apply to the pin        
          value = answer.toInt();
 
-         //Serial.println("State " + answer + " set");
+         //Serial.println(answer);
        }
        
        // Declare that the state has been selected         
