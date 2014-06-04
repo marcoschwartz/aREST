@@ -6,9 +6,7 @@
 */
 
 // Libraries
-#include <Adafruit_CC3000.h>
 #include <SPI.h>
-#include <Ethernet.h>
 #include <aREST.h>
 
 // Create aREST instance

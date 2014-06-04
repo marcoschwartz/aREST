@@ -70,6 +70,8 @@ void reset_status() {
 
 }
 
+// Handle request with the CC3000 WiFi chip
+#ifdef ADAFRUIT_CC3000_H
 void handle(Adafruit_CC3000_ClientRef client) {
   
   if (client.available()) {
@@ -85,7 +87,10 @@ void handle(Adafruit_CC3000_ClientRef client) {
     reset_status();
   } 
 }
+#endif
 
+// Handle request for the Arduino Ethernet shield
+#ifdef ethernet_h
 void handle(EthernetClient client){
 
   if (client.available()) {
@@ -102,7 +107,9 @@ void handle(EthernetClient client){
     reset_status();   
   }
 }
+#endif
 
+// Handle request on the Serial port
 void handle(HardwareSerial serial){
 
   if (serial.available()) {

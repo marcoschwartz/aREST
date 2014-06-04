@@ -8,7 +8,6 @@
 // Import required libraries
 #include <Adafruit_CC3000.h>
 #include <SPI.h>
-#include <Ethernet.h>
 #include <CC3000_MDNS.h>
 #include <aREST.h>
 
