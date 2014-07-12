@@ -227,7 +227,7 @@ void handle_proto(T& serial, bool headers)
       answer.trim();
 
       // Debug output
-      Serial.println(answer); 
+      // Serial.println(answer); 
       
       // If the command is mode, and the pin is already selected    
       if (command == "mode" && pin_selected == true && state_selected == false) {
