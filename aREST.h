@@ -20,8 +20,8 @@
 
 #include "Arduino.h"
 
-#define NUMBER_VARIABLES 9
-#define NUMBER_FUNCTIONS 9
+#define NUMBER_VARIABLES 5
+#define NUMBER_FUNCTIONS 5
 
 class aREST {
 
@@ -227,7 +227,7 @@ void handle_proto(T& serial, bool headers)
       answer.trim();
 
       // Debug output
-      //Serial.println(answer); 
+      Serial.println(answer); 
       
       // If the command is mode, and the pin is already selected    
       if (command == "mode" && pin_selected == true && state_selected == false) {
