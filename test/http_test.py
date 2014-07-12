@@ -31,11 +31,11 @@ class TestSequenceFunctions(unittest.TestCase):
       
     # Input
     answer = json.loads(curl_call(target,"/mode/6/i"))
-    self.assertEqual(answer['message'],"Setting pin D6 to input")
+    self.assertEqual(answer['message'],"Pin D6 set to input")
 
     # Output
     answer = json.loads(curl_call(target,"/mode/6/o"))
-    self.assertEqual(answer['message'],"Setting pin D6 to output")
+    self.assertEqual(answer['message'],"Pin D6 set to output")
 
   # Digital write basic test
   def test_digital_write(self):

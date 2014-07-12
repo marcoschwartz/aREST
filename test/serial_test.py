@@ -7,8 +7,8 @@ import json
 import unittest
 
 # Serial port parameters
-serial_speed = 9600
-serial_port = '/dev/tty.usbmodem1411'
+serial_speed = 115200
+serial_port = '/dev/tty.usbmodem1a12121'
 
 class TestSequenceFunctions(unittest.TestCase):
 
@@ -25,12 +25,12 @@ class TestSequenceFunctions(unittest.TestCase):
     # Input
     self.serial.write("/mode/6/i\r")
     answer = json.loads(self.serial.readline())
-    self.assertEqual(answer['message'],"Setting pin D6 to input")
+    self.assertEqual(answer['message'],"Pin D6 set to input")
 
     # Output
     self.serial.write("/mode/6/o\r")
     answer = json.loads(self.serial.readline())
-    self.assertEqual(answer['message'],"Setting pin D6 to output")
+    self.assertEqual(answer['message'],"Pin D6 set to output")
 
   # Digital write basic test
   def test_digital_write(self):
