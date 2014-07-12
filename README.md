@@ -2,23 +2,23 @@
 
 ## Overview
 
-A simple library that implements a REST API for Arduino. It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip, the Ethernet shield or the Arduino Yun), via the Serial port (using the USB serial connection, Bluetooth, and XBee) and also via Bluetooth Low Energy. 
+A simple library that implements a REST API for Arduino. It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip or the Ethernet shield) and via the Serial port (using the USB serial connection, Bluetooth, and XBee).
 
 ## Contents
 
 - aREST.h: the library file.
-- examples: several examples using the aREST library
-- test: Python-based unit tests of the library
+- examples: two examples using the library, one for the CC3000 WiFi chip, one for Serial communications.
+- gui: a simple graphical user interface to completely control an Arduino Uno board using the library. Works fine with the CC3000 chip, still have some issues with Serial communications. You can find the documentation in this README file.
 
 ## Supported hardware
 
-The library is at the moment compatible with the following Arduino boards: Uno, Mega, Due, Yun and Teensy 3.x
+The library is at the moment compatible with the following Arduino boards: Uno, Mega, Due, Teensy 3.0.
 
-For the HTTP part, the library is compatible with most CC3000 breakout boards, and was tested with the Adafruit CC3000 breakout board and the CC3000 WiFi shield. It was also tested with the Tiny Circuit WiFi shield (but in that case, you will have to change the pins configuration inside the example WiFi sketch. See the Tiny Circuit WiFi shield documentation for more details). The library is also compatible with the official Arduino Ethernet shield, and with the Arduino Yun via the embedded WiFi connection.
+For the WiFi part, the library is compatible with most CC3000 breakout boards, and was tested with the Adafruit CC3000 breakout board and the CC3000 WiFi shield. It was also tested with the Tiny Circuit WiFi shield (but in that case, you will have to change the pins configuration inside the example WiFi sketch. See the Tiny Circuit WiFi shield documentation for more details). The library was successfully tested with firmware versions 1.11 and 1.12 of the CC3000 chip.
+
+For the Ethernet part, the library is compatible with the official Arduino Ethernet shield.
 
 For the Serial part, it has been tested with the direct USB serial connection on an Arduino Uno board, with the Adafruit BlueFruit EZ-Link Bluetooth module, and with XBee Series 1 devices.
-
-For the Bluetooth Low Energy part, the library has been tested with the Adafruit BLE nRF8001 breakout board.
 
 ## Supported browsers
 
@@ -26,22 +26,12 @@ The project has been tested with Chrome 33, Safari 7 and Firefox 27.
 
 ## Requirements
 
-### For WiFi using the CC3000 chip
-
 - [Adafruit CC3000 Library](https://github.com/adafruit/Adafruit_CC3000_Library)
 - [Adafruit MDNS Library](https://github.com/adafruit/CC3000_MDNS)
 - MDNS support in your operating system:
   - For OS X it is supported through Bonjour, you don't have anything to install.
   - For Linux, you need to install [Avahi](http://avahi.org/).
   - For Windows, you need to install [Bonjour](http://www.apple.com/support/bonjour/).
-
-### For the Arduino Yun
-
-- [Arduino IDE 1.5.x Beta](http://arduino.cc/en/main/software)
-
-### For Bluetooth Low Energy
-
-- [Adafruit nRF8001 Library](https://github.com/adafruit/Adafruit_nRF8001)
 
 ## Setup
 
@@ -70,16 +60,7 @@ To install the library, simply clone this repository in the /libraries folder of
 3. Upload the sketch
 4. Go to a the Serial monitor and set the options to "Carriage return" and "115200 bauds"
 5. Type /mode/8/o to set the pin as an output
-6. Now type /digital/8/1 and the LED should turn on
-
-## Quick test (BLE)
-
-1. Connect a LED & resistor to pin number 8 of your Arduino board
-2. Open the BLE example sketch
-3. Upload the sketch
-4. Use the [BlueFruit LE Connect app](https://itunes.apple.com/fr/app/adafruit-bluefruit-le-connect/id830125974?mt=8) to connect to the BLE chip 
-5. Type /mode/8/o / to set the pin as an output
-6. Now type /digital/8/1 / and the LED should turn on
+6. Now type arduino.local/digital/8/1 and the LED should turn on
 
 ## API documentation
 
@@ -123,6 +104,10 @@ You can define an API key to add more security to your projects, so only someone
  
 Then, you need to send this key in the HTTP header of the request:
  * "X-ApiKey: K9gs1wbodW"
+
+## GUI
+
+The repository includes a web-based Graphical User Interface to control an Arduino Uno board from a web browser. To use it, simply put the gui folder at the root of a web server running on your computer, and open the HTML file. You will then be able to select the communication type (WiFi or Serial) and the target (for example, arduino.local if you are using the example WiFi sketch for your board).
 
 ## Troubleshooting
 
