@@ -20,8 +20,8 @@
 
 #include "Arduino.h"
 
-#define NUMBER_VARIABLES 4
-#define NUMBER_FUNCTIONS 6
+#define NUMBER_VARIABLES 9
+#define NUMBER_FUNCTIONS 9
 
 class aREST {
 
