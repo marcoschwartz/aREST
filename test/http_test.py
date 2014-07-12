@@ -88,7 +88,34 @@ class TestSequenceFunctions(unittest.TestCase):
 
     # Read
     answer = json.loads(curl_call(target,"/digital/6"))
-    self.assertEqual(answer['return_value'],1)  
+    self.assertEqual(answer['return_value'],1)
+
+  # Variable write check
+  def test_variable(self):
+
+    # Get variable
+    answer = json.loads(curl_call(target,"/temperature"))
+    self.assertGreaterEqual(answer['temperature'],0)
+    self.assertLessEqual(answer['temperature'],40)
+
+  # Function call check
+  def test_function(self):
+
+    # Call function
+    answer = json.loads(curl_call(target,"/led?params=1"))
+    self.assertEqual(answer['return_value'],1)
+
+    # Read
+    answer = json.loads(curl_call(target,"/digital/6"))
+    self.assertEqual(answer['return_value'],1)
+
+    # Call function
+    answer = json.loads(curl_call(target,"/led?params=0"))
+    self.assertEqual(answer['return_value'],1)
+
+    # Read
+    answer = json.loads(curl_call(target,"/digital/6"))
+    self.assertEqual(answer['return_value'],0)    
 
 if __name__ == '__main__':
   unittest.main()

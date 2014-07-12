@@ -93,7 +93,39 @@ class TestSequenceFunctions(unittest.TestCase):
     # Read
     self.serial.write("/digital/6\r")
     answer = json.loads(self.serial.readline())
-    self.assertEqual(answer['return_value'],1)  
+    self.assertEqual(answer['return_value'],1)
+
+  # Variable write check
+  def test_variable(self):
+
+    # Get variable
+    self.serial.write("/temperature\r")
+    answer = json.loads(self.serial.readline())
+    self.assertGreaterEqual(answer['temperature'],0)
+    self.assertLessEqual(answer['temperature'],40)
+
+   # Function call check
+  def test_function(self):
+
+    # Call function
+    self.serial.write("/led?params=1\r")
+    answer = json.loads(self.serial.readline())
+    self.assertEqual(answer['return_value'],1)
+
+    # Read
+    self.serial.write("/digital/6\r")
+    answer = json.loads(self.serial.readline())
+    self.assertEqual(answer['return_value'],1)
+
+    # Call function
+    self.serial.write("/led?params=0\r")
+    answer = json.loads(self.serial.readline())
+    self.assertEqual(answer['return_value'],1)
+
+    # Read
+    self.serial.write("/digital/6\r")
+    answer = json.loads(self.serial.readline())
+    self.assertEqual(answer['return_value'],0)
 
 if __name__ == '__main__':
     unittest.main()
