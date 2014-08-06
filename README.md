@@ -120,16 +120,26 @@ You can also define your own functions in your sketch that can be called using t
   * rest.function("led",ledControl); declares the function in the Arduino sketch
   * /led?params=0 executes the function
 
-### Authentification
+### Authentication (BETA)
 
-You can define an API key to add more security to your projects, so only someone with the key can access to the devices using aREST. The authentification works only with HTTP requests (WiFi and Ethernet). You simply need to define a key in the Arduino sketch with:
+You can define an API key to add more security to your projects, so only someone with the key can access to the devices using aREST. The authentication works only with HTTP requests (WiFi and Ethernet). You simply need to define a key in the Arduino sketch with:
  * rest.set_api_key("K9gs1wbodW");
  
 Then, you need to send this key in the HTTP header of the request:
  * "X-ApiKey: K9gs1wbodW"
 
+### Status LED (BETA)
+
+### Lightweight mode (BETA)
+
+There is the possibility to use a lightweight mode for aREST. This means that for commands to control the Arduino board (like digitalWrite commands), no data is returned at all. For commands that ask for data to be sent back (like asking for a variable), in this mode the library will only return the value of the data that was requested. This mode was made for cases where the memory footprint of the aREST library has to be as small as possible, or with devices that can't send/receive a lot of data at the same time, like Bluetooth LE. To enable this lightweight mode, simply start your sketch with:
+
+```
+#define LIGHTWEIGHT 1
+```
+
 ## Troubleshooting
 
-In case you cannot access your Arduino board via the mDNS service (by typing arduino.local in your browser), you need to get the IP address of the board. Upload the sketch to the Arduino board, and then open the Serial monitor. The IP address of the board should be printed out. Simply copy it on a web browser, and you can make REST call like:
+In case you cannot access your Arduino board via the CC3000 mDNS service (by typing arduino.local in your browser), you need to get the IP address of the board. Upload the sketch to the Arduino board, and then open the Serial monitor. The IP address of the board should be printed out. Simply copy it on a web browser, and you can make REST call like:
 
 192.168.1.104/digital/8/1
