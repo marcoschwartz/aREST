@@ -126,7 +126,7 @@ You can define an API key to add more security to your projects, so only someone
  * `rest.set_api_key("K9gs1wbodW");`
  
 Then, you need to send this key in the HTTP header of the request:
- * "X-ApiKey: K9gs1wbodW"
+ * `"X-ApiKey: K9gs1wbodW"`
 
 ### Status LED (BETA)
 
@@ -142,4 +142,6 @@ There is the possibility to use a lightweight mode for aREST. This means that fo
 
 In case you cannot access your Arduino board via the CC3000 mDNS service (by typing arduino.local in your browser), you need to get the IP address of the board. Upload the sketch to the Arduino board, and then open the Serial monitor. The IP address of the board should be printed out. Simply copy it on a web browser, and you can make REST call like:
 
+```
 192.168.1.104/digital/8/1
+```
