@@ -28,10 +28,6 @@ For Serial communications, the library has been tested with the direct USB seria
 
 For Bluetooth Low Energy communications, the library has been tested with the Adafruit BLE nRF8001 breakout board.
 
-## Supported browsers
-
-The project has been tested with Chrome 36, Safari 7 and Firefox 27.
-
 ## Requirements
 
 ### For WiFi using the CC3000 chip
