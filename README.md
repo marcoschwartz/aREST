@@ -12,21 +12,25 @@ A simple library that implements a REST API for Arduino. It is designed to be un
 
 ## Supported hardware
 
-The library is at the moment compatible with the following Arduino boards: Uno, Mega, Due, Yun and Teensy 3.x
+### Arduino boards
 
-For the HTTP part, the library is compatible with most CC3000 breakout boards, and was tested with the Adafruit CC3000 breakout board and the CC3000 WiFi shield. It was also tested with the Tiny Circuit WiFi shield (but in that case, you will have to change the pins configuration inside the example WiFi sketch. See the Tiny Circuit WiFi shield documentation for more details). The library is also compatible with the official Arduino Ethernet shield, and with the Arduino Yun via the embedded WiFi connection.
+The library is at the moment compatible with the following Arduino boards: Uno, Mega, Due, Yun and Teensy 3.x.
 
-For the WiFi part, the library is compatible with most CC3000 breakout boards, and was tested with the Adafruit CC3000 breakout board and the CC3000 WiFi shield. It was also tested with the Tiny Circuit WiFi shield (but in that case, you will have to change the pins configuration inside the example WiFi sketch. See the Tiny Circuit WiFi shield documentation for more details). The library was successfully tested with firmware versions 1.11 and 1.12 of the CC3000 chip.
+### HTTP
 
-For the Ethernet part, the library is compatible with the official Arduino Ethernet shield.
+For HTTP communications, the library is compatible with most CC3000 breakout boards, and was tested with the Adafruit CC3000 breakout board and the CC3000 WiFi shield. It was also tested with the Tiny Circuit WiFi shield (but in that case, you will have to change the pins configuration inside the example WiFi sketch. See the Tiny Circuit WiFi shield documentation for more details). The library is also compatible with the official Arduino Ethernet shield, and with the Arduino Yun via the embedded WiFi connection.
 
-For the Serial part, it has been tested with the direct USB serial connection on an Arduino Uno board, with the Adafruit BlueFruit EZ-Link Bluetooth module, and with XBee Series 1 devices.
+### Serial
 
-For the Bluetooth Low Energy part, the library has been tested with the Adafruit BLE nRF8001 breakout board.
+For Serial communications, the library has been tested with the direct USB serial connection on an Arduino Uno board, with the Adafruit BlueFruit EZ-Link Bluetooth module, and with XBee Series 1 devices.
+
+### Bluetooth LE (BETA)
+
+For Bluetooth Low Energy communications, the library has been tested with the Adafruit BLE nRF8001 breakout board.
 
 ## Supported browsers
 
-The project has been tested with Chrome 33, Safari 7 and Firefox 27.
+The project has been tested with Chrome 36, Safari 7 and Firefox 27.
 
 ## Requirements
 
@@ -56,16 +60,16 @@ To install the library, simply clone this repository in the /libraries folder of
 1. Connect a LED & resistor to pin number 8 of your Arduino board
 2. Open the WiFi_CC3000 example sketch and modify the WiFi SSID, password & security
 3. Upload the sketch
-4. Go to a web browser and type arduino.local/mode/8/o to set the pin as an output
-5. Now type arduino.local/digital/8/1 and the LED should turn on
+4. Go to a web browser and type `arduino.local/mode/8/o` to set the pin as an output
+5. Now type `arduino.local/digital/8/1` and the LED should turn on
 
 ## Quick test (Ethernet)
 
 1. Connect a LED & resistor to pin number 8 of your Arduino board
 2. Make sure your computer is connected via Ethernet to the board and has the IP address 192.168.2.x
 3. Upload the sketch
-4. Go to a web browser and type 192.168.2.2/mode/8/o to set the pin as an output
-5. Now type 192.168.2.2/digital/8/1 and the LED should turn on
+4. Go to a web browser and type `192.168.2.2/mode/8/o` to set the pin as an output
+5. Now type `192.168.2.2/digital/8/1` and the LED should turn on
 
 ## Quick test (Serial)
 
@@ -73,8 +77,8 @@ To install the library, simply clone this repository in the /libraries folder of
 2. Open the Serial example sketch
 3. Upload the sketch
 4. Go to a the Serial monitor and set the options to "Carriage return" and "115200 bauds"
-5. Type /mode/8/o to set the pin as an output
-6. Now type /digital/8/1 and the LED should turn on
+5. Type `/mode/8/o` to set the pin as an output
+6. Now type `/digital/8/1` and the LED should turn on
 
 ## Quick test (BLE)
 
@@ -82,8 +86,8 @@ To install the library, simply clone this repository in the /libraries folder of
 2. Open the BLE example sketch
 3. Upload the sketch
 4. Use the [BlueFruit LE Connect app](https://itunes.apple.com/fr/app/adafruit-bluefruit-le-connect/id830125974?mt=8) to connect to the BLE chip 
-5. Type /mode/8/o / to set the pin as an output
-6. Now type /digital/8/1 / and the LED should turn on
+5. Type `/mode/8/o /` to set the pin as an output
+6. Now type `/digital/8/1 /` and the LED should turn on
 
 ## API documentation
 
@@ -92,33 +96,33 @@ The API currently supports five type of commands: digital, analog, and mode, var
 ### Digital
 
 Digital is to write or read on digital pins on the Arduino. For example:
-  * /digital/8/0 sets pin number 8 to a low state
-  * /digital/8/1 sets pin number 8 to a high state
-  * /digital/8 reads value from pin number 8 in JSON format (note that for compatibility reasons, /digital/8/r produces the same result)
+  * `/digital/8/0` sets pin number 8 to a low state
+  * `/digital/8/1` sets pin number 8 to a high state
+  * `/digital/8` reads value from pin number 8 in JSON format (note that for compatibility reasons, `/digital/8/r` produces the same result)
 
 ### Analog
 
 Analog is to write or read on analog pins on the Arduino. Note that you can only write on PWM pins for the Arduino Uno, and only read analog values from analog pins 0 to 5. For example:
-  * /analog/6/123 sets pin number 6 to 123 using PWM
-  * /analog/0 returns analog value from pin number A0 in JSON format (note that for compatibility reasons, /analog/0/r produces the same result)
+  * `/analog/6/123` sets pin number 6 to 123 using PWM
+  * `/analog/0` returns analog value from pin number A0 in JSON format (note that for compatibility reasons, `/analog/0/r` produces the same result)
 
 ### Mode
 
 Mode is to change the mode on a pin. For example:
-  * /mode/8/o sets pin number 8 as an output
-  * /mode/8/i sets pin number 8 as an input
+  * `/mode/8/o` sets pin number 8 as an output
+  * `/mode/8/i` sets pin number 8 as an input
 
 ### Variables
 
 You can also directly call variables that are defined in your sketch. At the moment only integer variables are supported by the library. To access a variable in your sketch, you have to declare it first, and then call it from with a REST call. For example, if your aREST instance is called "rest" and the variable "temperature":
-  * rest.variable("temperature",&temperature); declares the temperature in the Arduino sketch
-  * /temperature returns the value of the variable in JSON format
+  * `rest.variable("temperature",&temperature);` declares the temperature in the Arduino sketch
+  * `/temperature` returns the value of the variable in JSON format
 
 ### Functions
 
 You can also define your own functions in your sketch that can be called using the REST API. To access a function defined in your sketch, you have to declare it first, and then call it from with a REST call. Note that all functions needs to take a String as the unique argument (for parameters to be passed to the function) and return an integer. For example, if your aREST instance is called "rest" and the function "ledControl":
-  * rest.function("led",ledControl); declares the function in the Arduino sketch
-  * /led?params=0 executes the function
+  * `rest.function("led",ledControl);` declares the function in the Arduino sketch
+  * `/led?params=0` executes the function
 
 ### Authentication (BETA)
 
@@ -129,6 +133,12 @@ Then, you need to send this key in the HTTP header of the request:
  * `"X-ApiKey: K9gs1wbodW"`
 
 ### Status LED (BETA)
+
+To know the activity of the library while the sketch is running, there is the possibility to connect a LED to a pin to show this activity in real-time. Simply connect a 220 Ohm resistor in series with a 5mm LED to the pin of your choice, and enter this line in the setup() function of your Arduino sketch:
+
+```c
+rest.set_status_led(led_pin);
+```
 
 ### Lightweight mode (BETA)
 
