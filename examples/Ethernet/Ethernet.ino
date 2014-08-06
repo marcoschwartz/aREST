@@ -10,6 +10,7 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include <aREST.h>
+#include <avr/wdt.h>
 
 // Enter a MAC address for your controller below.
 byte mac[] = { 0x90, 0xA2, 0xDA, 0x0E, 0xFE, 0x40 };
@@ -55,6 +56,9 @@ void setup(void)
   server.begin();
   Serial.print("server is at ");
   Serial.println(Ethernet.localIP());
+
+  // Start watchdog
+  wdt_enable(WDTO_4S);
 }
 
 void loop() {  
@@ -62,6 +66,7 @@ void loop() {
   // listen for incoming clients
   EthernetClient client = server.available();
   rest.handle(client);
+  wdt_reset();
   
 }
 
@@ -71,6 +76,6 @@ int ledControl(String command) {
   // Get state from command
   int state = command.toInt();
   
-  digitalWrite(7,state);
+  digitalWrite(6,state);
   return 1;
 }

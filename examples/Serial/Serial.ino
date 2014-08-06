@@ -8,6 +8,7 @@
 // Libraries
 #include <SPI.h>
 #include <aREST.h>
+#include <avr/wdt.h>
 
 // Create aREST instance
 aREST rest = aREST();
@@ -33,13 +34,17 @@ void setup(void)
   // Give name and ID to device
   rest.set_id("008");
   rest.set_name("dapper_drake");
+
+  // Start watchdog
+  wdt_enable(WDTO_4S);
 }
 
 void loop() {  
   
   // Handle REST calls
   rest.handle(Serial);  
-  
+  wdt_reset();
+
 }
 
 // Custom function accessible by the API
@@ -48,6 +53,6 @@ int ledControl(String command) {
   // Get state from command
   int state = command.toInt();
   
-  digitalWrite(7,state);
+  digitalWrite(6,state);
   return 1;
 }

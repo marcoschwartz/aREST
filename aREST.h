@@ -4,24 +4,47 @@
  
   Written in 2014 by Marco Schwartz under a GPL license. 
 
-  Version 1.7
+  Version 1.7.3
 
   Changelog:
+  Version 1.7.3: Added LIGHTWEIGHT mode to only send limited data back
+  Version 1.7.2: Added possibility to assign a status pin connected to a LED
+  Version 1.7.1: Added possibility to change number of exposed variables & functions
   Version 1.7: Added compatibility with the Arduino Due & Teensy 3.x
+
   Version 1.6: Added compatibility with the Arduino Yun
+  
   Version 1.5: Size reduction, and added compatibility with Adafruit BLE
+  
   Version 1.4: Added authentification with API key
+  
   Version 1.3: Added support for the Ethernet shield
+  
   Version 1.2: Added support of Serial communications
+  
   Version 1.1: Added variables & functions support
+  
   Version 1.0: First working version of the library
 
 */
 
+// Include Arduino header
 #include "Arduino.h"
 
+// Use light answer mode
+#ifndef LIGHTWEIGHT
+#define LIGHTWEIGHT 0
+#endif
+
+// Default number of max. exposed variables
+#ifndef NUMBER_VARIABLES
 #define NUMBER_VARIABLES 5
+#endif
+
+// Default number of max. exposed functions
+#ifndef NUMBER_FUNCTIONS
 #define NUMBER_FUNCTIONS 5
+#endif
 
 class aREST {
 
@@ -34,6 +57,8 @@ public:
   api_key_received = false;
   api_key_match = false;
 
+  status_led_set = false;
+
   variables_index = 0;
   functions_index = 0;
   //name = "default_name";
@@ -41,6 +66,28 @@ public:
   api_key = "";
 }
 
+// Set status LED
+void set_status_led(int pin){
+  
+  // Set variables
+  status_led_set = true;
+  status_led_pin = pin;
+  
+  // Set pin as output
+  pinMode(status_led_pin,OUTPUT);
+}
+
+// Flash status LED
+void flash_led(){
+
+  if(status_led_set){
+    digitalWrite(status_led_pin,HIGH);
+    delay(10);
+    digitalWrite(status_led_pin,LOW);  
+  }
+}
+
+// Send HTTP headers for Ethernet & WiFi
 template <typename T>
 void send_http_headers(T& client){
   client.print(F("HTTP/1.1 200 OK"));
@@ -68,9 +115,28 @@ void reset_status() {
 
 }
 
-// Handle request with the CC3000 WiFi chip
+// Handle request with the Adafruit CC3000 WiFi library
 #ifdef ADAFRUIT_CC3000_H
 void handle(Adafruit_CC3000_ClientRef& client) {
+  
+  if (client.available()) {
+
+    // Handle request
+    handle_proto(client,true);
+    
+    // Give the web browser time to receive the data
+    delay(5);
+    client.close();  
+   
+    // Reset variables for the next command
+    reset_status();
+  } 
+}
+#endif
+
+// Handle request with the SparkFun CC3000 WiFi library
+#ifdef SFE_CC3000_H
+void handle(SFE_CC3000_Client& client) {
   
   if (client.available()) {
 
@@ -180,6 +246,9 @@ void handle(HardwareSerial& serial){
 template <typename T>
 void handle_proto(T& serial, bool headers) 
 {
+
+  // Flash LED when request is received
+  flash_led();
 
   // API key needed ?
   if (api_key == "") {api_key_received = true;}
@@ -403,8 +472,10 @@ void handle_proto(T& serial, bool headers)
        if (command == "mode"){
 
          // Send feedback to client 
-         serial.print("{\"message\": \"Pin D");
-         serial.print(pin);
+         if (!LIGHTWEIGHT){
+           serial.print(F("{\"message\": \"Pin D"));
+           serial.print(pin); 
+         } 
          
          // Input
          if (state == 'i'){
@@ -413,7 +484,7 @@ void handle_proto(T& serial, bool headers)
           pinMode(pin,INPUT);
               
           // Send feedback to client
-          serial.print(" set to input\", ");
+          if (!LIGHTWEIGHT){serial.print(F(" set to input\", "));}
          }
 
          // Output
@@ -423,7 +494,7 @@ void handle_proto(T& serial, bool headers)
            pinMode(pin,OUTPUT);
               
            // Send feedback to client
-           serial.print(" set to output\", ");
+           if (!LIGHTWEIGHT){serial.print(F(" set to output\", "));}
          }
 
        }
@@ -436,9 +507,12 @@ void handle_proto(T& serial, bool headers)
            value = digitalRead(pin);
 
            // Send answer
-           serial.print(F("{\"return_value\": "));
-           serial.print(value);
-           serial.print(F(", "));
+           if (LIGHTWEIGHT){serial.print(value);}
+           else {
+            serial.print(F("{\"return_value\": "));
+            serial.print(value);
+            serial.print(F(", "));
+          }
          }
          else {
 
@@ -446,11 +520,13 @@ void handle_proto(T& serial, bool headers)
            digitalWrite(pin,value);
 
            // Send feedback to client
-           serial.print(F("{\"message\": \"Pin D"));
-           serial.print(pin);
-           serial.print(F(" set to "));
-           serial.print(value);
-           serial.print(F("\", "));
+           if (!LIGHTWEIGHT){
+            serial.print(F("{\"message\": \"Pin D"));
+            serial.print(pin);
+            serial.print(F(" set to "));
+            serial.print(value);
+            serial.print(F("\", "));
+           }
          }
        }
 
@@ -462,9 +538,12 @@ void handle_proto(T& serial, bool headers)
            value = analogRead(pin);
           
            // Send feedback to client
-           serial.print(F("{\"return_value\": "));
-           serial.print(value);
-           serial.print(F(", "));
+           if (LIGHTWEIGHT){serial.print(value);}
+           else {
+            serial.print(F("{\"return_value\": "));
+            serial.print(value);
+            serial.print(F(", "));
+           }
        }
        else {
 
@@ -485,11 +564,14 @@ void handle_proto(T& serial, bool headers)
       if (command == "variable") {          
 
            // Send feedback to client
-           serial.print(F("{\""));
-           serial.print(int_variables_names[value]);
-           serial.print(F("\": "));
-           serial.print(*int_variables[value]);
-           serial.print(F(", "));
+           if (LIGHTWEIGHT){serial.print(*int_variables[value]);}
+           else {
+            serial.print(F("{\""));
+            serial.print(int_variables_names[value]);
+            serial.print(F("\": "));
+            serial.print(*int_variables[value]);
+            serial.print(F(", ")); 
+           }
       }
 
       // Function selected
@@ -499,25 +581,34 @@ void handle_proto(T& serial, bool headers)
         int result = functions[value](arguments);
 
         // Send feedback to client
-        serial.print(F("{\"return_value\": "));
-        serial.print(result);
-        serial.print(F(", \"message\": \""));
-        serial.print(functions_names[value]);
-        serial.print(F(" executed\", "));
+        if (!LIGHTWEIGHT) {
+         serial.print(F("{\"return_value\": "));
+         serial.print(result);
+         serial.print(F(", \"message\": \""));
+         serial.print(functions_names[value]);
+         serial.print(F(" executed\", "));
+        }
       }
 
       if (command == "id") {
-        serial.print("{");
+        if (LIGHTWEIGHT) {serial.print(id);}
+        else {serial.print(F("{"));}
       }
 
        // End of message
-       serial.print(F("\"id\": \""));
-       serial.print(id);
-       serial.print(F("\", \"name\": \""));
-       serial.print(name);
-       serial.print(F("\", ")); 
-       serial.print(F("\"connected\": true}"));
-       serial.print(F("\r\n"));
+       if (LIGHTWEIGHT){
+         serial.print(F("\r\n"));
+       }
+
+       else {
+         serial.print(F("\"id\": \""));
+         serial.print(id);
+         serial.print(F("\", \"name\": \""));
+         serial.print(name);
+         serial.print(F("\", ")); 
+         serial.print(F("\"connected\": true}"));
+         serial.print(F("\r\n"));
+       }
 
        // End here
        command_sent = true;
@@ -553,16 +644,19 @@ void function(String function_name, int (*f)(String)){
   functions_index++;
 }
 
+// Set device ID
 void set_id(String device_id){
 
   id = device_id;
 }
 
+// Set device name
 void set_name(String device_name){
   
   name = device_name;
 }
 
+// Set API key
 void set_api_key(String the_api_key){
   
   api_key = the_api_key;
@@ -584,6 +678,10 @@ private:
   String id;
   String api_key;
   String arguments;
+
+  // Status LED
+  int status_led_pin;
+  boolean status_led_set;
 
   // Variables arrays
   uint8_t variables_index;

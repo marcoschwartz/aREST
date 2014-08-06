@@ -10,6 +10,7 @@
 #include <SPI.h>
 #include <CC3000_MDNS.h>
 #include <aREST.h>
+#include <avr/wdt.h>
 
 // These are the pins for the CC3000 chip if you are using a breakout board
 #define ADAFRUIT_CC3000_IRQ   3
@@ -85,6 +86,9 @@ void setup(void)
   // Start server
   restServer.begin();
   Serial.println(F("Listening for connections..."));
+
+  // Enable watchdog
+  wdt_enable(WDTO_4S);
 }
 
 void loop() {
@@ -95,6 +99,11 @@ void loop() {
   // Handle REST calls
   Adafruit_CC3000_ClientRef client = restServer.available();
   rest.handle(client);
+  wdt_reset();
+
+  // Check connection, reset if connection is lost
+  if(!cc3000.checkConnected()){while(1){}}
+  wdt_reset();
  
 }
 
@@ -126,6 +135,6 @@ int ledControl(String command) {
   // Get state from command
   int state = command.toInt();
   
-  digitalWrite(7,state);
+  digitalWrite(6,state);
   return 1;
 }

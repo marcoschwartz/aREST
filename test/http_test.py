@@ -8,8 +8,8 @@ import unittest
 import StringIO
 
 # Target
-# target = '192.168.1.104'
-target = 'arduino.local'
+target = '192.168.1.105'
+# target = 'arduino.local'
 
 # Function to make cURL call
 def curl_call(target, command):
@@ -20,6 +20,7 @@ def curl_call(target, command):
   c.setopt(c.URL, target + command)
   c.setopt(c.WRITEFUNCTION, buf.write)
   c.perform()
+  c.close()
 
   return buf.getvalue()
 
@@ -39,7 +40,7 @@ class TestSequenceFunctions(unittest.TestCase):
 
   # Digital write basic test
   def test_digital_write(self):
-      
+
     # HIGH
     answer = json.loads(curl_call(target,"/digital/6/1"))
     self.assertEqual(answer['message'],"Pin D6 set to 1")
