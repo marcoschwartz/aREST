@@ -4,9 +4,10 @@
  
   Written in 2014 by Marco Schwartz under a GPL license. 
 
-  Version 1.7.3
+  Version 1.7.4
 
   Changelog:
+  Version 1.7.4: Added a function to read all analog inputs at once
   Version 1.7.3: Added LIGHTWEIGHT mode to only send limited data back
   Version 1.7.2: Added possibility to assign a status pin connected to a LED
   Version 1.7.1: Added possibility to change number of exposed variables & functions
@@ -334,7 +335,7 @@ void handle_proto(T& serial, bool headers)
        if (answer.startsWith("r")) {state = 'r';}
        
        // Else, write analog value        
-       else {value = answer.toInt();}
+       else {value = answer.toInt(); state = 'w';}
        
        // Declare that the state has been selected        
        state_selected = true;
@@ -362,10 +363,18 @@ void handle_proto(T& serial, bool headers)
 
        // Nothing more & analog ?
        if (command == "analog") {
+
+         // Read all analog ?
+         if (answer.startsWith("a")) {
+           state = 'a';
+           state_selected = true; 
+         }
         
          // Save state & end there
-         state = 'r';
-         state_selected = true;
+         else {
+          state = 'r';
+          state_selected = true;
+         }
        }
      }  
 
@@ -544,8 +553,30 @@ void handle_proto(T& serial, bool headers)
             serial.print(value);
             serial.print(F(", "));
            }
+         }
+         if (state == 'a') {
+           if (!LIGHTWEIGHT) {serial.print(F("{"));}
+           
+           for (int i = 0; i < 6; i++) {       
+             
+             // Read analog value
+             value = analogRead(i);
+          
+             // Send feedback to client
+             if (LIGHTWEIGHT){
+               serial.print(value);
+               serial.print(F(","));
+             }
+             else {
+               serial.print(F("\"A"));
+               serial.print(i);
+               serial.print(F("\": "));
+               serial.print(value);
+               serial.print(F(", "));
+             } 
+         }
        }
-       else {
+       if (state == 'w') {
 
          // Write output value
          analogWrite(pin,value);
