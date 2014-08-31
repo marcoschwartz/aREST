@@ -8,8 +8,8 @@ import unittest
 import StringIO
 
 # Target
-target = '192.168.1.105'
-# target = 'arduino.local'
+#target = '192.168.1.102'
+target = 'arduino.local'
 
 # Function to make cURL call
 def curl_call(target, command):

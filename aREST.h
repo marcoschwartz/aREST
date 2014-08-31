@@ -4,11 +4,14 @@
  
   Written in 2014 by Marco Schwartz under a GPL license. 
 
-  Version 1.7.5
+  Version 1.8
 
   Changelog:
-  Version 1.7.5: Reduce memory footprint of the library
-  Version 1.7.4: Added a function to read all analog inputs at once
+
+  Version 1.8: Speedup of the library (answers 2.5x faster with the CC3000 WiFi chip)
+
+  Version 1.7.5: Reduced memory footprint of the library
+  Version 1.7.4: Added a function to read all analog & digital inputs at once
   Version 1.7.3: Added LIGHTWEIGHT mode to only send limited data back
   Version 1.7.2: Added possibility to assign a status pin connected to a LED
   Version 1.7.1: Added possibility to change number of exposed variables & functions
@@ -66,25 +69,20 @@ public:
   aREST() {
   command = 'u';
   pin_selected = false;
-  state_selected = false;
-  command_selected = false;
   api_key_received = false;
   api_key_match = false;
-
-  status_led_set = false;
-
+  status_led_pin = 255;
+  state = 'u';
   variables_index = 0;
   functions_index = 0;
-  //name = "default_name";
-  //id = "001";
   api_key = "";
+  index = 0;
 }
 
 // Set status LED
 void set_status_led(uint8_t pin){
   
   // Set variables
-  status_led_set = true;
   status_led_pin = pin;
   
   // Set pin as output
@@ -94,7 +92,7 @@ void set_status_led(uint8_t pin){
 // Flash status LED
 void flash_led(){
 
-  if(status_led_set){
+  if(status_led_pin != 255){
     digitalWrite(status_led_pin,HIGH);
     delay(10);
     digitalWrite(status_led_pin,LOW);  
@@ -104,28 +102,23 @@ void flash_led(){
 // Send HTTP headers for Ethernet & WiFi
 template <typename T>
 void send_http_headers(T& client){
-  client.print(F("HTTP/1.1 200 OK"));
-  client.print(F("\r\n"));
-  client.print(F("Content-Type: application/json"));
-  client.print(F("\r\n"));
-  client.print(F("Connection: close"));
-  client.print(F("\r\n"));
-  client.print(F(""));
-  client.print(F("\r\n"));  
+
+  addToBuffer(F("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
 }
 
 // Reset variables after a request
 void reset_status() {
   answer = "";
   command = 'u';
-  command_selected = false;
   pin_selected = false;
-  state_selected = false;
   command_sent = false;
   state = 'u';
   arguments = "";
   api_key_received = false;
   api_key_match = false;
+
+  index = 0;
+  memset(&buffer[0], 0, sizeof(buffer));
 
 }
 
@@ -137,28 +130,24 @@ void handle(Adafruit_CC3000_ClientRef& client) {
 
     // Handle request
     handle_proto(client,true);
+        
+    // Answer
     
-    // Give the web browser time to receive the data
-    delay(5);
-    client.close();  
-   
-    // Reset variables for the next command
-    reset_status();
-  } 
-}
-#endif
+    // Max iteration
+    uint8_t chunkSize = 25;
+    uint8_t max_iteration = (int)(index/chunkSize) + 1;
 
-// Handle request with the SparkFun CC3000 WiFi library
-#ifdef SFE_CC3000_H
-void handle(SFE_CC3000_Client& client) {
-  
-  if (client.available()) {
-
-    // Handle request
-    handle_proto(client,true);
+    // Send data
+    for (uint8_t i = 0; i < max_iteration; i++) {
+      char intermediate_buffer[chunkSize+1];
+      memcpy(intermediate_buffer, buffer + i*chunkSize, chunkSize);
+      intermediate_buffer[chunkSize] = '\0';
+      client.fastrprint(intermediate_buffer);
+    }
     
-    // Give the web browser time to receive the data
-    delay(5);
+    // Wait for the client to get data
+    if(LIGHTWEIGHT){delay(25);} 
+    else{delay(50);}
     client.close();  
    
     // Reset variables for the next command
@@ -176,9 +165,9 @@ void handle(YunClient& client) {
     // Handle request
     handle_proto(client,true);
     
-    // Give the web browser time to receive the data
-    delay(5);
-    client.stop();  
+    // Answer
+    sendBuffer(client,25,50);
+    client.stop();
    
     // Reset variables for the next command
     reset_status();
@@ -195,8 +184,8 @@ void handle(Adafruit_BLE_UART& serial) {
     // Handle request
     handle_proto(serial,false);
     
-    // Wait for data to be sent
-    delay(5);
+    // Answer
+    sendBuffer(serial,100,5);
 
     // Reset variables for the next command
     reset_status();
@@ -213,8 +202,8 @@ void handle(EthernetClient& client){
     // Handle request
     handle_proto(client,true);
 
-    // Give the web browser time to receive the data and stop connection
-    delay(5);
+    // Answer
+    sendBuffer(client,50,5);
     client.stop();  
    
     // Reset variables for the next command
@@ -232,8 +221,8 @@ void handle(usb_serial_class& serial){
     // Handle request
     handle_proto(serial,false);
 
-    // Wait for data to be sent
-    delay(10);
+    // Answer
+    sendBuffer(serial,25,10);
 
     // Reset variables for the next command
     reset_status();     
@@ -249,8 +238,8 @@ void handle(HardwareSerial& serial){
     // Handle request
     handle_proto(serial,false);
 
-    // Wait for data to be sent
-    delay(10);
+    // Answer
+    sendBuffer(serial,25,10);
 
     // Reset variables for the next command
     reset_status();     
@@ -284,10 +273,8 @@ void handle_proto(T& serial, bool headers)
 
         // Check for API key
         if(answer.startsWith("X-ApiKey")) {
-          //String received_key = answer.substring(10);
           char * received_key;
           strcpy(received_key, answer.substring(10).c_str());
-          //received_key.trim();
 
           if (received_key == api_key) {
           api_key_match = true;
@@ -296,7 +283,7 @@ void handle_proto(T& serial, bool headers)
 
           //Serial.println("API key received");
           api_key_received = true;
-          free(received_key);
+          //free(received_key);
         }
 
       }
@@ -307,149 +294,102 @@ void handle_proto(T& serial, bool headers)
     }  
 
     // Check if we are receveing useful data and process it
-    if ((c == '/' || c == '\r') && !state_selected) {
+    if ((c == '/' || c == '\r') && state == 'u') {
 
-      // Trim answer
-      //answer.trim();
-
-      // Debug output
-      // Serial.println(answer); 
-      
       // If the command is mode, and the pin is already selected    
-      if (command == 'm' && pin_selected && !state_selected) {
+      if (command == 'm' && pin_selected && state == 'u') {
         
         // Get state
         state = answer[0];
-       
-        // Indicate that the state has been selected     
-        state_selected = true;
             
      }
      
      // If a digital command has been received, process the data accordingly     
-     if (command == 'd' && pin_selected && !state_selected) {
+     if (command == 'd' && pin_selected && state == 'u') {
                 
-       //Serial.println("Digital command, finding nature");
-
        // If it's a read command, read from the pin and send data back
        if (answer[0] == 'r') {state = 'r';}
        
        // If not, get value we want to apply to the pin        
        else {value = answer.toInt(); state = 'w';}
-       
-       // Declare that the state has been selected         
-       state_selected = true;
      }
      
      // If analog command has been selected, process the data accordingly     
-     if (command == 'a' && pin_selected && !state_selected) {
+     if (command == 'a' && pin_selected && state == 'u') {
                 
        // If it's a read, read from the correct pin
        if (answer[0] == 'r') {state = 'r';}
        
        // Else, write analog value        
        else {value = answer.toInt(); state = 'w';}
-       
-       // Declare that the state has been selected        
-       state_selected = true;
      }
      
      // If the command is already selected, get the pin     
-     if (command_selected == true && pin_selected == false) {
+     if (command != 'u' && pin_selected == false) {
        
        // Get pin
        pin = answer.toInt();
-       // Serial.println("Pin " + String(pin) + " selected");
        pin_selected = true;
 
        // Nothing more ?
-       if (answer.length() == String(pin).length() || answer[String(pin).length()] != '/') {
-
+       if (answer[1] != '/' && answer[2] != '/') {
+     
         // Nothing more & digital ?
         if (command == 'd') {
 
           // Read all digital ?
-          if (answer[0] == 'a') {
-            state = 'a';
-            state_selected = true; 
-          }
+          if (answer[0] == 'a') {state = 'a';}
 
-          else {
-            // Save state & end there
-            state = 'r';
-            state_selected = true;
-          }
+          // Save state & end there
+          else {state = 'r';}
         }
 
        // Nothing more & analog ?
        if (command == 'a') {
 
          // Read all analog ?
-         if (answer[0] == 'a') {
-           state = 'a';
-           state_selected = true; 
-         }
+         if (answer[0] == 'a') {state = 'a';}
         
          // Save state & end there
-         else {
-          state = 'r';
-          state_selected = true;
-         }
+         else {state = 'r';}
        }
      }  
 
    }
      
      // Digital command received ?    
-     if (answer.startsWith("digital")) {
-       // Serial.println("Digital command received");
-       command = 'd';
-       command_selected = true;
-     }
+     if (answer.startsWith("digital")) {command = 'd';}
           
      // Mode command received ?
-     if (answer.startsWith("mode")) {
-       //Serial.println("Mode command received");
-       command = 'm';
-       command_selected = true;
-     }
+     if (answer.startsWith("mode")) {command = 'm';}
           
      // Analog command received ?
-     if (answer.startsWith("analog")) {
-       //Serial.println("Analog command received");
-       command = 'a';
-       command_selected = true;
-     }
+     if (answer.startsWith("analog")) {command = 'a';}
 
      // Variable or function request received ?
-     if (command_selected == false) {
+     if (command == 'u') {
        
        // Check if variable name is in array
        for (uint8_t i = 0; i < variables_index; i++){
          if(answer.startsWith(int_variables_names[i])) {
-           //Serial.println(F("Variable found")); 
            
            // End here
-           command_selected = true;
            pin_selected = true;
-           state_selected = true;
+           state = 'x';
 
            // Set state
            command = 'v';
            value = i;
-           
          }
        }
 
        // Check if function name is in array
        for (uint8_t i = 0; i < functions_index; i++){
          if(answer.startsWith(functions_names[i])) {
-           //Serial.println(F("Function found"));
            
            // End here
-           command_selected = true;
            pin_selected = true;
-           state_selected = true;
+           state = 'x';
 
            // Set state
            command = 'f';
@@ -459,38 +399,26 @@ void handle_proto(T& serial, bool headers)
            uint8_t header_length = strlen(functions_names[i]) + 8;
            //strcpy(arguments, answer.substring(header_length).c_str());
            arguments = answer.substring(header_length);
-
          }
        }
 
        // If the command is "id", return device id, name and status
        if (answer.startsWith("id")){
-           //Serial.println(F("id command found"));
 
            // Set state
            command = 'i';
 
            // End here
-           command_selected = true;
            pin_selected = true;
-           state_selected = true;
+           state = 'x';
        }
      }
-     
-     //Serial.println("Answer reset");  
-     //Serial.print("Command selected:");   
-     //Serial.println(command_selected);
-     //Serial.print("Pin selected:");   
-     //Serial.println(pin_selected);
-     //Serial.print("State selected:");   
-     //Serial.println(state_selected);   
+
      answer = "";
-     
      }
      
      // Send commands
-     if (command_selected && pin_selected && state_selected && !command_sent && api_key_received) {
-       //Serial.println("Sending command: " + command + String(pin) + state);
+     if (command != 'u' && pin_selected && state != 'u' && !command_sent && api_key_received) {
         
        // Is the API key needed ?
        if (api_key == "" || api_key_match){
@@ -503,8 +431,8 @@ void handle_proto(T& serial, bool headers)
 
          // Send feedback to client 
          if (!LIGHTWEIGHT){
-           serial.print(F("{\"message\": \"Pin D"));
-           serial.print(pin); 
+           addToBuffer(F("{\"message\": \"Pin D"));
+           addToBuffer(pin); 
          } 
          
          // Input
@@ -514,7 +442,7 @@ void handle_proto(T& serial, bool headers)
           pinMode(pin,INPUT);
               
           // Send feedback to client
-          if (!LIGHTWEIGHT){serial.print(F(" set to input\", "));}
+          if (!LIGHTWEIGHT){addToBuffer(F(" set to input\", "));}
          }
 
          // Output
@@ -524,7 +452,7 @@ void handle_proto(T& serial, bool headers)
            pinMode(pin,OUTPUT);
               
            // Send feedback to client
-           if (!LIGHTWEIGHT){serial.print(F(" set to output\", "));}
+           if (!LIGHTWEIGHT){addToBuffer(F(" set to output\", "));}
          }
 
        }
@@ -537,15 +465,15 @@ void handle_proto(T& serial, bool headers)
            value = digitalRead(pin);
 
            // Send answer
-           if (LIGHTWEIGHT){serial.print(value);}
+           if (LIGHTWEIGHT){addToBuffer(value);}
            else {
-            serial.print(F("{\"return_value\": "));
-            serial.print(value);
-            serial.print(F(", "));
+            addToBuffer(F("{\"return_value\": "));
+            addToBuffer(value);
+            addToBuffer(F(", "));
           }
          }
          if (state == 'a') {
-           if (!LIGHTWEIGHT) {serial.print(F("{"));}
+           if (!LIGHTWEIGHT) {addToBuffer(F("{"));}
            
            for (uint8_t i = 0; i < NUMBER_DIGITAL_PINS; i++) {       
              
@@ -554,15 +482,15 @@ void handle_proto(T& serial, bool headers)
           
              // Send feedback to client
              if (LIGHTWEIGHT){
-               serial.print(value);
-               serial.print(F(","));
+               addToBuffer(value);
+               addToBuffer(F(","));
              }
              else {
-               serial.print(F("\"D"));
-               serial.print(i);
-               serial.print(F("\": "));
-               serial.print(value);
-               serial.print(F(", "));
+               addToBuffer(F("\"D"));
+               addToBuffer(i);
+               addToBuffer(F("\": "));
+               addToBuffer(value);
+               addToBuffer(F(", "));
              } 
          }
         }
@@ -573,11 +501,11 @@ void handle_proto(T& serial, bool headers)
 
            // Send feedback to client
            if (!LIGHTWEIGHT){
-            serial.print(F("{\"message\": \"Pin D"));
-            serial.print(pin);
-            serial.print(F(" set to "));
-            serial.print(value);
-            serial.print(F("\", "));
+            addToBuffer(F("{\"message\": \"Pin D"));
+            addToBuffer(pin);
+            addToBuffer(F(" set to "));
+            addToBuffer(value);
+            addToBuffer(F("\", "));
            }
          }
        }
@@ -590,15 +518,15 @@ void handle_proto(T& serial, bool headers)
            value = analogRead(pin);
           
            // Send feedback to client
-           if (LIGHTWEIGHT){serial.print(value);}
+           if (LIGHTWEIGHT){addToBuffer(value);}
            else {
-            serial.print(F("{\"return_value\": "));
-            serial.print(value);
-            serial.print(F(", "));
+            addToBuffer(F("{\"return_value\": "));
+            addToBuffer(value);
+            addToBuffer(F(", "));
            }
          }
          if (state == 'a') {
-           if (!LIGHTWEIGHT) {serial.print(F("{"));}
+           if (!LIGHTWEIGHT) {addToBuffer(F("{"));}
            
            for (uint8_t i = 0; i < NUMBER_ANALOG_PINS; i++) {       
              
@@ -607,15 +535,15 @@ void handle_proto(T& serial, bool headers)
           
              // Send feedback to client
              if (LIGHTWEIGHT){
-               serial.print(value);
-               serial.print(F(","));
+               addToBuffer(value);
+               addToBuffer(F(","));
              }
              else {
-               serial.print(F("\"A"));
-               serial.print(i);
-               serial.print(F("\": "));
-               serial.print(value);
-               serial.print(F(", "));
+               addToBuffer(F("\"A"));
+               addToBuffer(i);
+               addToBuffer(F("\": "));
+               addToBuffer(value);
+               addToBuffer(F(", "));
              } 
          }
        }
@@ -625,11 +553,11 @@ void handle_proto(T& serial, bool headers)
          analogWrite(pin,value);
  
          // Send feedback to client
-         serial.print(F("{\"message\": \"Pin D"));
-         serial.print(pin);
-         serial.print(F(" set to "));
-         serial.print(value);
-         serial.print(F("\", "));
+         addToBuffer(F("{\"message\": \"Pin D"));
+         addToBuffer(pin);
+         addToBuffer(F(" set to "));
+         addToBuffer(value);
+         addToBuffer(F("\", "));
 
        }
       }
@@ -638,13 +566,13 @@ void handle_proto(T& serial, bool headers)
       if (command == 'v') {          
 
            // Send feedback to client
-           if (LIGHTWEIGHT){serial.print(*int_variables[value]);}
+           if (LIGHTWEIGHT){addToBuffer(*int_variables[value]);}
            else {
-            serial.print(F("{\""));
-            serial.print(int_variables_names[value]);
-            serial.print(F("\": "));
-            serial.print(*int_variables[value]);
-            serial.print(F(", ")); 
+            addToBuffer(F("{\""));
+            addToBuffer(int_variables_names[value]);
+            addToBuffer(F("\": "));
+            addToBuffer(*int_variables[value]);
+            addToBuffer(F(", ")); 
            }
       }
 
@@ -656,43 +584,44 @@ void handle_proto(T& serial, bool headers)
 
         // Send feedback to client
         if (!LIGHTWEIGHT) {
-         serial.print(F("{\"return_value\": "));
-         serial.print(result);
-         serial.print(F(", \"message\": \""));
-         serial.print(functions_names[value]);
-         serial.print(F(" executed\", "));
+         addToBuffer(F("{\"return_value\": "));
+         addToBuffer(result);
+         addToBuffer(F(", \"message\": \""));
+         addToBuffer(functions_names[value]);
+         addToBuffer(F(" executed\", "));
         }
       }
 
       if (command == 'i') {
-        if (LIGHTWEIGHT) {serial.print(id);}
-        else {serial.print(F("{"));}
+        if (LIGHTWEIGHT) {addToBuffer(id);}
+        else {
+          addToBuffer(F("{"));
+        }
       }
 
        // End of message
        if (LIGHTWEIGHT){
-         serial.print(F("\r\n"));
+         addToBuffer(F("\r\n"));
        }
 
        else {
-         serial.print(F("\"id\": \""));
-         serial.print(id);
-         serial.print(F("\", \"name\": \""));
-         serial.print(name);
-         serial.print(F("\", ")); 
-         serial.print(F("\"connected\": true}"));
-         serial.print(F("\r\n"));
+
+         addToBuffer(F("\"id\": \""));
+         addToBuffer(id);
+         addToBuffer(F("\", \"name\": \""));
+         addToBuffer(name);
+         addToBuffer(F("\", \"connected\": true}\r\n"));
        }
 
        // End here
+       // Serial.println("End, sending command")
        command_sent = true;
       }
       else {
 
         // Send message
         if (headers) {send_http_headers(serial);}
-        serial.print(F("{\"message\": \"API key invalid.\"}"));
-        serial.print(F("\r\n"));
+        addToBuffer(F("{\"message\": \"API key invalid.\"}\r\n"));
 
         // End here
         command_sent = true;
@@ -735,6 +664,57 @@ void set_api_key(char * the_api_key){
   
   api_key = the_api_key;
 }
+
+// Add to output buffer
+void addToBuffer(char * toAdd){
+  
+  for (int i = 0; i < strlen(toAdd); i++){
+    buffer[index+i] = toAdd[i];  
+  }
+  index = index + strlen(toAdd);
+}
+
+// Add to output buffer
+void addToBuffer(int toAdd){
+  
+  char number[10];
+  itoa(toAdd,number,10);
+  
+  addToBuffer(number);
+}
+
+// Add to output buffer
+void addToBuffer(const __FlashStringHelper *toAdd){
+
+  uint8_t idx = 0;
+
+  const char PROGMEM *p = (const char PROGMEM *)toAdd;
+  while (1) {
+    unsigned char c = pgm_read_byte(p++);
+    if (c == 0) break;
+    buffer[index + idx] = c;
+    idx++;
+  }
+  index = index + idx;
+}
+
+template <typename T>
+void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
+  
+  // Max iteration
+  uint8_t max_iteration = (int)(index/chunkSize) + 1;
+
+  // Send data
+  for (uint8_t i = 0; i < max_iteration; i++) {
+    char intermediate_buffer[chunkSize+1];
+    memcpy(intermediate_buffer, buffer + i*chunkSize, chunkSize);
+    intermediate_buffer[chunkSize] = '\0';
+    client.print(intermediate_buffer);
+  }
+    
+    // Wait for the client to get data
+    delay(wait_time);
+}
   
 private:
   String answer;
@@ -743,8 +723,6 @@ private:
   char state;
   uint16_t value;
   boolean pin_selected;
-  boolean state_selected;
-  boolean command_selected;
   boolean command_sent;
   boolean api_key_received;
   boolean api_key_match;
@@ -753,9 +731,12 @@ private:
   char * api_key;
   String arguments;
 
+  // Output uffer
+  char buffer[250];
+  uint8_t index;
+
   // Status LED
   uint8_t status_led_pin;
-  boolean status_led_set;
 
   // Variables arrays
   uint8_t variables_index;
