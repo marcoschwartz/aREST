@@ -3,7 +3,10 @@
 ## Overview
 
 A simple library that implements a REST API for Arduino. It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip, the Ethernet shield or the Arduino Yun), via the Serial port (using the USB serial connection, Bluetooth, and XBee) and also via Bluetooth Low Energy.
-If you want to know more about aREST, visit us at [http://arest.io/](http://arest.io/).
+
+The library now requires the latest version of the Arduino IDE (1.5.x) to work correctly, as this version of the IDE comes with a lot of optimizations in the compiler.
+
+If you want to know more about aREST, go over to [http://arest.io/](http://arest.io/).
 
 ## Contents
 
@@ -25,11 +28,13 @@ For HTTP communications, the library is compatible with most CC3000 breakout boa
 
 For Serial communications, the library has been tested with the direct USB serial connection on an Arduino Uno board, with the Adafruit BlueFruit EZ-Link Bluetooth module, and with XBee Series 1 devices.
 
-### Bluetooth LE (BETA)
+### Bluetooth LE
 
 For Bluetooth Low Energy communications, the library has been tested with the Adafruit BLE nRF8001 breakout board.
 
 ## Requirements
+
+- [Arduino IDE 1.5.x Beta](http://arduino.cc/en/main/software)
 
 ### For WiFi using the CC3000 chip
 
@@ -39,10 +44,6 @@ For Bluetooth Low Energy communications, the library has been tested with the Ad
   - For OS X it is supported through Bonjour, you don't have anything to install.
   - For Linux, you need to install [Avahi](http://avahi.org/).
   - For Windows, you need to install [Bonjour](http://www.apple.com/support/bonjour/).
-
-### For the Arduino Yun
-
-- [Arduino IDE 1.5.x Beta](http://arduino.cc/en/main/software)
 
 ### For Bluetooth Low Energy
 

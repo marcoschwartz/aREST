@@ -4,9 +4,11 @@
  
   Written in 2014 by Marco Schwartz under a GPL license. 
 
-  Version 1.8
+  Version 1.9
 
   Changelog:
+
+  Version 1.9: New speedup of the library (answers 2x faster in HTTP compared to version 1.8)
 
   Version 1.8: Speedup of the library (answers 2.5x faster with the CC3000 WiFi chip)
 
@@ -40,12 +42,15 @@
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
 #define NUMBER_ANALOG_PINS 16
 #define NUMBER_DIGITAL_PINS 54
+#define OUTPUT_BUFFER_SIZE 500
 #elif defined(__AVR_ATmega328P__)
 #define NUMBER_ANALOG_PINS 6
 #define NUMBER_DIGITAL_PINS 14
+#define OUTPUT_BUFFER_SIZE 250
 #else
 #define NUMBER_ANALOG_PINS 6
 #define NUMBER_DIGITAL_PINS 14
+#define OUTPUT_BUFFER_SIZE 250
 #endif
 
 // Use light answer mode
@@ -89,19 +94,19 @@ void set_status_led(uint8_t pin){
   pinMode(status_led_pin,OUTPUT);
 }
 
-// Flash status LED
-void flash_led(){
+// Glow status LED
+void glow_led() {
 
   if(status_led_pin != 255){
-    digitalWrite(status_led_pin,HIGH);
-    delay(10);
-    digitalWrite(status_led_pin,LOW);  
-  }
+    unsigned long i = millis();
+    int j = i % 4096;
+    if (j > 2048) { j = 4096 - j;}
+      analogWrite(status_led_pin,j/8);
+    }
 }
 
 // Send HTTP headers for Ethernet & WiFi
-template <typename T>
-void send_http_headers(T& client){
+void send_http_headers(){
 
   addToBuffer(F("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
 }
@@ -118,7 +123,7 @@ void reset_status() {
   api_key_match = false;
 
   index = 0;
-  memset(&buffer[0], 0, sizeof(buffer));
+  //memset(&buffer[0], 0, sizeof(buffer));
 
 }
 
@@ -129,41 +134,25 @@ void handle(Adafruit_CC3000_ClientRef& client) {
   if (client.available()) {
 
     // Handle request
-    handle_proto(client,true);
+    handle_proto(client,true,0);
         
     // Answer
-    
-    // Max iteration
-    uint8_t chunkSize = 25;
-    uint8_t max_iteration = (int)(index/chunkSize) + 1;
+    sendBuffer(client,32,100);
+    client.stop();  
 
-    // Send data
-    for (uint8_t i = 0; i < max_iteration; i++) {
-      char intermediate_buffer[chunkSize+1];
-      memcpy(intermediate_buffer, buffer + i*chunkSize, chunkSize);
-      intermediate_buffer[chunkSize] = '\0';
-      client.fastrprint(intermediate_buffer);
-    }
-    
-    // Wait for the client to get data
-    if(LIGHTWEIGHT){delay(25);} 
-    else{delay(50);}
-    client.close();  
-   
     // Reset variables for the next command
     reset_status();
   } 
 }
-#endif
 
 // Handle request with the Arduino Yun
-#ifdef _YUN_CLIENT_H_
+#elif defined(_YUN_CLIENT_H_) 
 void handle(YunClient& client) {
   
   if (client.available()) {
 
     // Handle request
-    handle_proto(client,true);
+    handle_proto(client,false,0);
     
     // Answer
     sendBuffer(client,25,50);
@@ -173,16 +162,15 @@ void handle(YunClient& client) {
     reset_status();
   } 
 }
-#endif
 
 // Handle request with the Adafruit BLE board
-#ifdef _ADAFRUIT_BLE_UART_H_
+#elif defined(_ADAFRUIT_BLE_UART_H_)
 void handle(Adafruit_BLE_UART& serial) {
   
   if (serial.available()) {
 
     // Handle request
-    handle_proto(serial,false);
+    handle_proto(serial,false,0);
     
     // Answer
     sendBuffer(serial,100,5);
@@ -191,16 +179,15 @@ void handle(Adafruit_BLE_UART& serial) {
     reset_status();
   } 
 }
-#endif
 
 // Handle request for the Arduino Ethernet shield
-#ifdef ethernet_h
+#elif defined(ethernet_h)
 void handle(EthernetClient& client){
 
   if (client.available()) {
 
     // Handle request
-    handle_proto(client,true);
+    handle_proto(client,true,0);
 
     // Answer
     sendBuffer(client,50,5);
@@ -210,16 +197,32 @@ void handle(EthernetClient& client){
     reset_status();   
   }
 }
-#endif
 
-#if defined(CORE_TEENSY)
+#elif defined(CORE_TEENSY)
 // Handle request on the Serial port
 void handle(usb_serial_class& serial){
 
   if (serial.available()) {
 
     // Handle request
-    handle_proto(serial,false);
+    handle_proto(serial,false,1);
+
+    // Answer
+    sendBuffer(serial,25,10);
+
+    // Reset variables for the next command
+    reset_status();     
+  }
+}
+
+#else
+// Handle request on the Serial port
+void handle(HardwareSerial& serial){
+
+  if (serial.available()) {
+
+    // Handle request
+    handle_proto(serial,false,1);
 
     // Answer
     sendBuffer(serial,25,10);
@@ -230,28 +233,37 @@ void handle(usb_serial_class& serial){
 }
 #endif
 
-// Handle request on the Serial port
-void handle(HardwareSerial& serial){
+void handle(char * string) {
 
-  if (serial.available()) {
+  // Process String
+  handle_proto(string);
 
-    // Handle request
-    handle_proto(serial,false);
+  // Reset variables for the next command
+  reset_status();     
+}
 
-    // Answer
-    sendBuffer(serial,25,10);
+void handle_proto(char * string) {
 
-    // Reset variables for the next command
-    reset_status();     
+  // API key needed ?
+  if (api_key == "") {api_key_received = true;}
+
+  // Check if there is data available to read
+  for (int i = 0; i < strlen(string); i++){
+
+    char c = string[i];
+    answer = answer + c;
+
+    // Process data
+    process(c);
+
+    // Send command
+    send_command(false);
   }
 }
 
 template <typename T>
-void handle_proto(T& serial, bool headers) 
+void handle_proto(T& serial, bool headers, uint8_t read_delay) 
 {
-
-  // Flash LED when request is received
-  flash_led();
 
   // API key needed ?
   if (api_key == "") {api_key_received = true;}
@@ -261,40 +273,48 @@ void handle_proto(T& serial, bool headers)
        
     // Get the server answer
     char c = serial.read();
-    delay(1);
+    delay(read_delay);
     answer = answer + c;
-    //Serial.print(c);
 
-    // Check for API key or end of request
-    if (c == '\n') {
+    // Process data
+    process(c);
+     
+    // Send command
+    send_command(headers);  
+   }
+}
 
-      // API key ?
-      if(!api_key_received){
+void process(char c){
 
-        // Check for API key
-        if(answer.startsWith("X-ApiKey")) {
-          char * received_key;
-          strcpy(received_key, answer.substring(10).c_str());
+  // Check for API key or end of request
+  if (c == '\n') {
 
-          if (received_key == api_key) {
+    // API key ?
+    if(!api_key_received){
+
+      // Check for API key
+      if(answer.startsWith("X-ApiKey")) {
+        char * received_key;
+        strcpy(received_key, answer.substring(10).c_str());
+
+        if (received_key == api_key) {
           api_key_match = true;
-            //Serial.println("API key match");
-          }
-
-          //Serial.println("API key received");
-          api_key_received = true;
-          //free(received_key);
+          //Serial.println("API key match");
         }
 
+        //Serial.println("API key received");
+        api_key_received = true;
+        //free(received_key);
       }
+    }
 
-      // Reset answer
-      answer = "";
+    // Reset answer
+    answer = "";
 
-    }  
+  }  
 
-    // Check if we are receveing useful data and process it
-    if ((c == '/' || c == '\r') && state == 'u') {
+  // Check if we are receveing useful data and process it
+  if ((c == '/' || c == '\r') && state == 'u') {
 
       // If the command is mode, and the pin is already selected    
       if (command == 'm' && pin_selected && state == 'u') {
@@ -332,7 +352,9 @@ void handle_proto(T& serial, bool headers)
        pin_selected = true;
 
        // Nothing more ?
-       if (answer[1] != '/' && answer[2] != '/') {
+       if ((answer[1] != '/' && answer[2] != '/') 
+        || (answer[1] == ' ' && answer[2] == '/')
+        || (answer[2] == ' ' && answer[3] == '/')) {
      
         // Nothing more & digital ?
         if (command == 'd') {
@@ -416,15 +438,16 @@ void handle_proto(T& serial, bool headers)
 
      answer = "";
      }
-     
-     // Send commands
-     if (command != 'u' && pin_selected && state != 'u' && !command_sent && api_key_received) {
+}
+
+void send_command(bool headers) {
+  if (command != 'u' && pin_selected && state != 'u' && !command_sent && api_key_received) {
         
        // Is the API key needed ?
        if (api_key == "" || api_key_match){
 
        // Start of message
-       if (headers) {send_http_headers(serial);}
+       if (headers) {send_http_headers();}
 
        // Mode selected
        if (command == 'm'){
@@ -614,22 +637,19 @@ void handle_proto(T& serial, bool headers)
        }
 
        // End here
-       // Serial.println("End, sending command")
        command_sent = true;
       }
       else {
 
         // Send message
-        if (headers) {send_http_headers(serial);}
+        if (headers) {send_http_headers();}
         addToBuffer(F("{\"message\": \"API key invalid.\"}\r\n"));
 
         // End here
         command_sent = true;
       }
 
-     } 
-       
-   }
+     }
 }
 
 void variable(char * variable_name, int *variable){
@@ -709,11 +729,26 @@ void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
     char intermediate_buffer[chunkSize+1];
     memcpy(intermediate_buffer, buffer + i*chunkSize, chunkSize);
     intermediate_buffer[chunkSize] = '\0';
+
+    // Send intermediate buffer
+    #ifdef ADAFRUIT_CC3000_H
+    client.fastrprint(intermediate_buffer);
+    #else
     client.print(intermediate_buffer);
+    #endif
   }
     
     // Wait for the client to get data
     delay(wait_time);
+    resetBuffer();
+}
+
+char * getBuffer() {
+  return buffer;
+}
+
+void resetBuffer(){
+  memset(&buffer[0], 0, sizeof(buffer));
 }
   
 private:
@@ -732,8 +767,8 @@ private:
   String arguments;
 
   // Output uffer
-  char buffer[250];
-  uint8_t index;
+  char buffer[OUTPUT_BUFFER_SIZE];
+  uint16_t index;
 
   // Status LED
   uint8_t status_led_pin;
