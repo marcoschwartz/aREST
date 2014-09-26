@@ -4,10 +4,11 @@
  
   Written in 2014 by Marco Schwartz under a GPL license. 
 
-  Version 1.9
+  Version 1.9.1
 
   Changelog:
 
+  Version 1.9.1: Added compatibility with CORS
   Version 1.9: New speedup of the library (answers 2x faster in HTTP compared to version 1.8)
 
   Version 1.8: Speedup of the library (answers 2.5x faster with the CC3000 WiFi chip)
@@ -42,15 +43,15 @@
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
 #define NUMBER_ANALOG_PINS 16
 #define NUMBER_DIGITAL_PINS 54
-#define OUTPUT_BUFFER_SIZE 500
+#define OUTPUT_BUFFER_SIZE 600
 #elif defined(__AVR_ATmega328P__)
 #define NUMBER_ANALOG_PINS 6
 #define NUMBER_DIGITAL_PINS 14
-#define OUTPUT_BUFFER_SIZE 250
+#define OUTPUT_BUFFER_SIZE 275
 #else
 #define NUMBER_ANALOG_PINS 6
 #define NUMBER_DIGITAL_PINS 14
-#define OUTPUT_BUFFER_SIZE 250
+#define OUTPUT_BUFFER_SIZE 275
 #endif
 
 // Use light answer mode
@@ -108,7 +109,7 @@ void glow_led() {
 // Send HTTP headers for Ethernet & WiFi
 void send_http_headers(){
 
-  addToBuffer(F("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
+  addToBuffer(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
 }
 
 // Reset variables after a request
@@ -116,7 +117,6 @@ void reset_status() {
   answer = "";
   command = 'u';
   pin_selected = false;
-  command_sent = false;
   state = 'u';
   arguments = "";
   api_key_received = false;
@@ -278,10 +278,11 @@ void handle_proto(T& serial, bool headers, uint8_t read_delay)
 
     // Process data
     process(c);
-     
-    // Send command
-    send_command(headers);  
+    
    }
+
+   // Send command
+   send_command(headers);  
 }
 
 void process(char c){
@@ -440,8 +441,7 @@ void process(char c){
      }
 }
 
-void send_command(bool headers) {
-  if (command != 'u' && pin_selected && state != 'u' && !command_sent && api_key_received) {
+bool send_command(bool headers) {
         
        // Is the API key needed ?
        if (api_key == "" || api_key_match){
@@ -637,7 +637,7 @@ void send_command(bool headers) {
        }
 
        // End here
-       command_sent = true;
+       return true;
       }
       else {
 
@@ -646,10 +646,8 @@ void send_command(bool headers) {
         addToBuffer(F("{\"message\": \"API key invalid.\"}\r\n"));
 
         // End here
-        command_sent = true;
+        return true;
       }
-
-     }
 }
 
 void variable(char * variable_name, int *variable){
@@ -758,7 +756,6 @@ private:
   char state;
   uint16_t value;
   boolean pin_selected;
-  boolean command_sent;
   boolean api_key_received;
   boolean api_key_match;
   char *name;
