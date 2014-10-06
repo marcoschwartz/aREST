@@ -13,12 +13,22 @@ If you want to know more about aREST, go over to [http://arest.io/](http://arest
 - aREST.h: the library file.
 - examples: several examples using the aREST library
 - test: Python-based unit tests of the library
+- lib4Galileo: Libraries needed to be added for aREST to work with the Intel Galileo
 
 ## Supported hardware
 
 ### Arduino boards
 
 The library is at the moment compatible with the following Arduino boards: Uno, Mega, Due, Yun and Teensy 3.x.
+
+### Intel Galileo Gen 2
+
+The library has been modified to become compatible with the Intel Galileo, but for it to fully work the libs inside the folder lib4Galileo must replace their original counterparts in the Intel Galileo IDE folders.
+
+The files paths are as follows:
+-pgmspace.h replaces the file pgmspace.h located in \Intel_Galileo_Arduino_SW_1.5.3_on_Windows\hardware\arduino\x86\cores\arduino\avr\
+
+-WString.cpp & WString.h replaces the files Wstring.cpp & WString.h in \Intel_Galileo_Arduino_SW_1.5.3_on_Windows\hardware\arduino\x86\cores\arduino\
 
 ### HTTP
 
@@ -68,6 +78,8 @@ To install the library, simply clone this repository in the /libraries folder of
 3. Upload the sketch
 4. Go to a web browser and type `192.168.2.2/mode/8/o` to set the pin as an output
 5. Now type `192.168.2.2/digital/8/1` and the LED should turn on
+
+-For Intel Galileo make sure to comment out the lines referencing wdt. The wdt libraries are not supported in the Intel Galileo. 
 
 ## Quick test (Serial)
 
