@@ -7,6 +7,7 @@
   Version 1.9.2
 
   Changelog:
+
   Version 1.9.2: Added compatibility for Intel Galileo.
   Version 1.9.1: Added compatibility with CORS
   Version 1.9: New speedup of the library (answers 2x faster in HTTP compared to version 1.8)
@@ -109,7 +110,7 @@ void glow_led() {
 // Send HTTP headers for Ethernet & WiFi
 void send_http_headers(){
 
-  addToBuffer("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n");
+  addToBuffer(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
 }
 
 // Reset variables after a request
@@ -454,7 +455,7 @@ bool send_command(bool headers) {
 
          // Send feedback to client 
          if (!LIGHTWEIGHT){
-           addToBuffer("{\"message\": \"Pin D");
+           addToBuffer(F("{\"message\": \"Pin D"));
            addToBuffer(pin); 
          } 
          
@@ -465,7 +466,7 @@ bool send_command(bool headers) {
           pinMode(pin,INPUT);
               
           // Send feedback to client
-          if (!LIGHTWEIGHT){addToBuffer(" set to input\", ");}
+          if (!LIGHTWEIGHT){addToBuffer(F(" set to input\", "));}
          }
 
          // Output
@@ -475,7 +476,7 @@ bool send_command(bool headers) {
            pinMode(pin,OUTPUT);
               
            // Send feedback to client
-           if (!LIGHTWEIGHT){addToBuffer(" set to output\", ");}
+           if (!LIGHTWEIGHT){addToBuffer(F(" set to output\", "));}
          }
 
        }
@@ -490,13 +491,13 @@ bool send_command(bool headers) {
            // Send answer
            if (LIGHTWEIGHT){addToBuffer(value);}
            else {
-            addToBuffer("{\"return_value\": ");
+            addToBuffer(F("{\"return_value\": "));
             addToBuffer(value);
-            addToBuffer(", ");
+            addToBuffer(F(", "));
           }
          }
          if (state == 'a') {
-           if (!LIGHTWEIGHT) {addToBuffer("{");}
+           if (!LIGHTWEIGHT) {addToBuffer(F("{"));}
            
            for (uint8_t i = 0; i < NUMBER_DIGITAL_PINS; i++) {       
              
@@ -506,14 +507,14 @@ bool send_command(bool headers) {
              // Send feedback to client
              if (LIGHTWEIGHT){
                addToBuffer(value);
-               addToBuffer(",");
+               addToBuffer(F(","));
              }
              else {
-               addToBuffer("\"D");
+               addToBuffer(F("\"D"));
                addToBuffer(i);
-               addToBuffer("\": ");
+               addToBuffer(F("\": "));
                addToBuffer(value);
-               addToBuffer(", ");
+               addToBuffer(F(", "));
              } 
          }
         }
@@ -524,11 +525,11 @@ bool send_command(bool headers) {
 
            // Send feedback to client
            if (!LIGHTWEIGHT){
-            addToBuffer("{\"message\": \"Pin D");
+            addToBuffer(F("{\"message\": \"Pin D"));
             addToBuffer(pin);
-            addToBuffer(" set to ");
+            addToBuffer(F(" set to "));
             addToBuffer(value);
-            addToBuffer("\", ");
+            addToBuffer(F("\", "));
            }
          }
        }
@@ -543,13 +544,13 @@ bool send_command(bool headers) {
            // Send feedback to client
            if (LIGHTWEIGHT){addToBuffer(value);}
            else {
-            addToBuffer("{\"return_value\": ");
+            addToBuffer(F("{\"return_value\": "));
             addToBuffer(value);
-            addToBuffer(", ");
+            addToBuffer(F(", "));
            }
          }
          if (state == 'a') {
-           if (!LIGHTWEIGHT) {addToBuffer("{");}
+           if (!LIGHTWEIGHT) {addToBuffer(F("{"));}
            
            for (uint8_t i = 0; i < NUMBER_ANALOG_PINS; i++) {       
              
@@ -559,14 +560,14 @@ bool send_command(bool headers) {
              // Send feedback to client
              if (LIGHTWEIGHT){
                addToBuffer(value);
-               addToBuffer(",");
+               addToBuffer(F(","));
              }
              else {
-               addToBuffer("\"A");
+               addToBuffer(F("\"A"));
                addToBuffer(i);
-               addToBuffer("\": ");
+               addToBuffer(F("\": "));
                addToBuffer(value);
-               addToBuffer(", ");
+               addToBuffer(F(", "));
              } 
          }
        }
@@ -576,11 +577,11 @@ bool send_command(bool headers) {
          analogWrite(pin,value);
  
          // Send feedback to client
-         addToBuffer("{\"message\": \"Pin D");
+         addToBuffer(F("{\"message\": \"Pin D"));
          addToBuffer(pin);
-         addToBuffer(" set to ");
+         addToBuffer(F(" set to "));
          addToBuffer(value);
-         addToBuffer("\", ");
+         addToBuffer(F("\", "));
 
        }
       }
@@ -591,11 +592,11 @@ bool send_command(bool headers) {
            // Send feedback to client
            if (LIGHTWEIGHT){addToBuffer(*int_variables[value]);}
            else {
-            addToBuffer("{\"");
+            addToBuffer(F("{\""));
             addToBuffer(int_variables_names[value]);
-            addToBuffer("\": ");
+            addToBuffer(F("\": "));
             addToBuffer(*int_variables[value]);
-            addToBuffer(", "); 
+            addToBuffer(F(", ")); 
            }
       }
 
@@ -607,33 +608,33 @@ bool send_command(bool headers) {
 
         // Send feedback to client
         if (!LIGHTWEIGHT) {
-         addToBuffer("{\"return_value\": ");
+         addToBuffer(F("{\"return_value\": "));
          addToBuffer(result);
-         addToBuffer(", \"message\": \"");
+         addToBuffer(F(", \"message\": \""));
          addToBuffer(functions_names[value]);
-         addToBuffer(" executed\", ");
+         addToBuffer(F(" executed\", "));
         }
       }
 
       if (command == 'i') {
         if (LIGHTWEIGHT) {addToBuffer(id);}
         else {
-          addToBuffer("{");
+          addToBuffer(F("{"));
         }
       }
 
        // End of message
        if (LIGHTWEIGHT){
-         addToBuffer("\r\n");
+         addToBuffer(F("\r\n"));
        }
 
        else {
 
-         addToBuffer("\"id\": \"");
+         addToBuffer(F("\"id\": \""));
          addToBuffer(id);
-         addToBuffer("\", \"name\": \"");
+         addToBuffer(F("\", \"name\": \""));
          addToBuffer(name);
-         addToBuffer("\", \"connected\": true}\r\n");
+         addToBuffer(F("\", \"connected\": true}\r\n"));
        }
 
        // End here
@@ -643,7 +644,7 @@ bool send_command(bool headers) {
 
         // Send message
         if (headers) {send_http_headers();}
-        addToBuffer("{\"message\": \"API key invalid.\"}\r\n");
+        addToBuffer(F("{\"message\": \"API key invalid.\"}\r\n"));
 
         // End here
         return true;
@@ -697,8 +698,9 @@ void addToBuffer(int toAdd){
   
   char number[10];
   //Intel Galileo does not use the depreceated itoa.h lib instead we are trying the sprintf funciton
-  //This is only 70 more bytes compared to using itoa.h lib
+  //itoa(toAdd,number,10);
   sprintf(number,"%d",toAdd);
+  
   addToBuffer(number);
 }
 
