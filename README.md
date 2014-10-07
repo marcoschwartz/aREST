@@ -26,6 +26,7 @@ The library is at the moment compatible with the following Arduino boards: Uno, 
 The library has been modified to become compatible with the Intel Galileo, but for it to fully work the libs inside the folder lib4Galileo must replace their original counterparts in the Intel Galileo IDE folders.
 
 The files paths are as follows:
+
 -pgmspace.h replaces the file pgmspace.h located in \Intel_Galileo_Arduino_SW_1.5.3_on_Windows\hardware\arduino\x86\cores\arduino\avr\
 
 -WString.cpp & WString.h replaces the files Wstring.cpp & WString.h in \Intel_Galileo_Arduino_SW_1.5.3_on_Windows\hardware\arduino\x86\cores\arduino\
