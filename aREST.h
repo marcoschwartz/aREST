@@ -4,10 +4,11 @@
  
   Written in 2014 by Marco Schwartz under a GPL license. 
 
-  Version 1.9.1
+  Version 1.9.2
 
   Changelog:
 
+  Version 1.9.2: Added compatibility for Intel Galileo.
   Version 1.9.1: Added compatibility with CORS
   Version 1.9: New speedup of the library (answers 2x faster in HTTP compared to version 1.8)
 
@@ -696,7 +697,9 @@ void addToBuffer(char * toAdd){
 void addToBuffer(int toAdd){
   
   char number[10];
-  itoa(toAdd,number,10);
+  //Intel Galileo does not use the depreceated itoa.h lib instead we are trying the sprintf funciton
+  //itoa(toAdd,number,10);
+  sprintf(number,"%d",toAdd);
   
   addToBuffer(number);
 }

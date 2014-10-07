@@ -10,7 +10,7 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include <aREST.h>
-#include <avr/wdt.h>
+//#include <avr/wdt.h>
 
 // Enter a MAC address for your controller below.
 byte mac[] = { 0x90, 0xA2, 0xDA, 0x0E, 0xFE, 0x40 };
@@ -58,7 +58,7 @@ void setup(void)
   Serial.println(Ethernet.localIP());
 
   // Start watchdog
-  wdt_enable(WDTO_4S);
+  //wdt_enable(WDTO_4S);
 }
 
 void loop() {  
@@ -66,7 +66,7 @@ void loop() {
   // listen for incoming clients
   EthernetClient client = server.available();
   rest.handle(client);
-  wdt_reset();
+  //wdt_reset();
   
 }
 
