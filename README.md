@@ -1,5 +1,7 @@
 # aREST
 
+Version 1.9.2
+
 ## Overview
 
 A simple library that implements a REST API for Arduino. It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip, the Ethernet shield or the Arduino Yun), via the Serial port (using the USB serial connection, Bluetooth, and XBee) and also via Bluetooth Low Energy.
@@ -22,7 +24,7 @@ The library is at the moment compatible with the following Arduino boards: Uno, 
 
 ### HTTP
 
-For HTTP communications, the library is compatible with most CC3000 breakout boards, and was tested with the Adafruit CC3000 breakout board and the CC3000 WiFi shield. It was also tested with the Tiny Circuit WiFi shield (but in that case, you will have to change the pins configuration inside the example WiFi sketch. See the Tiny Circuit WiFi shield documentation for more details). The library is also compatible with the official Arduino Ethernet shield, and with the Arduino Yun via the embedded WiFi connection.
+For HTTP communications, the library is compatible with most CC3000 breakout boards, and was tested with the Adafruit CC3000 breakout board and the CC3000 WiFi shield. It was also tested with the Tiny Circuit WiFi shield (but in that case, you will have to change the pins configuration inside the example WiFi sketch. See the Tiny Circuit WiFi shield documentation for more details). The library is also compatible with the official Arduino Ethernet shield, with the official Arduino WiFi shield, and with the Arduino Yun via the embedded WiFi connection.
 
 ### Serial
 

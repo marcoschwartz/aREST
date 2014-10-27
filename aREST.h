@@ -4,10 +4,11 @@
  
   Written in 2014 by Marco Schwartz under a GPL license. 
 
-  Version 1.9.1
+  Version 1.9.2
 
   Changelog:
 
+  Version 1.9.2: Added compatibility with the Arduino WiFi library
   Version 1.9.1: Added compatibility with CORS
   Version 1.9: New speedup of the library (answers 2x faster in HTTP compared to version 1.8)
 
@@ -52,6 +53,11 @@
 #define NUMBER_ANALOG_PINS 6
 #define NUMBER_DIGITAL_PINS 14
 #define OUTPUT_BUFFER_SIZE 275
+#endif
+
+// Debug mode
+#ifndef DEBUG_MODE
+#define DEBUG_MODE 0
 #endif
 
 // Use light answer mode
@@ -198,6 +204,24 @@ void handle(EthernetClient& client){
   }
 }
 
+// Handle request for the Arduino Ethernet shield
+#elif defined(WiFi_h)
+void handle(WiFiClient& client){
+
+  if (client.available()) {
+
+    // Handle request
+    handle_proto(client,true,0);
+
+    // Answer
+    sendBuffer(client,50,5);
+    client.stop();  
+   
+    // Reset variables for the next command
+    reset_status();   
+  }
+}
+
 #elif defined(CORE_TEENSY)
 // Handle request on the Serial port
 void handle(usb_serial_class& serial){
@@ -255,10 +279,11 @@ void handle_proto(char * string) {
 
     // Process data
     process(c);
-
-    // Send command
-    send_command(false);
+    
   }
+
+  // Send command
+  send_command(false);
 }
 
 template <typename T>
@@ -275,6 +300,7 @@ void handle_proto(T& serial, bool headers, uint8_t read_delay)
     char c = serial.read();
     delay(read_delay);
     answer = answer + c;
+    //if (DEBUG_MODE) {Serial.print(c);}
 
     // Process data
     process(c);
@@ -316,6 +342,8 @@ void process(char c){
 
   // Check if we are receveing useful data and process it
   if ((c == '/' || c == '\r') && state == 'u') {
+
+      if (DEBUG_MODE) {Serial.println(answer);}
 
       // If the command is mode, and the pin is already selected    
       if (command == 'm' && pin_selected && state == 'u') {
@@ -442,6 +470,16 @@ void process(char c){
 }
 
 bool send_command(bool headers) {
+
+       if (DEBUG_MODE) {
+         Serial.println(F("Sending command"));
+         Serial.print(F("Command: "));
+         Serial.println(command);
+         Serial.print(F("State: "));
+         Serial.println(state);
+         Serial.print(F("State of buffer at the start: "));
+         Serial.println(buffer);
+       }
         
        // Is the API key needed ?
        if (api_key == "" || api_key_match){
@@ -495,6 +533,7 @@ bool send_command(bool headers) {
             addToBuffer(F(", "));
           }
          }
+         
          if (state == 'a') {
            if (!LIGHTWEIGHT) {addToBuffer(F("{"));}
            
@@ -517,6 +556,7 @@ bool send_command(bool headers) {
              } 
          }
         }
+  
          if (state == 'w') {
 
            // Apply on the pin      
@@ -636,6 +676,11 @@ bool send_command(bool headers) {
          addToBuffer(F("\", \"connected\": true}\r\n"));
        }
 
+       if (DEBUG_MODE) {
+         Serial.print(F("State of buffer at the end: "));
+         Serial.println(buffer);
+       }
+       
        // End here
        return true;
       }
@@ -685,6 +730,11 @@ void set_api_key(char * the_api_key){
 
 // Add to output buffer
 void addToBuffer(char * toAdd){
+
+  if (DEBUG_MODE) {
+    Serial.print(F("Added to buffer: "));
+    Serial.println(toAdd);
+  }
   
   for (int i = 0; i < strlen(toAdd); i++){
     buffer[index+i] = toAdd[i];  
@@ -694,7 +744,7 @@ void addToBuffer(char * toAdd){
 
 // Add to output buffer
 void addToBuffer(int toAdd){
-  
+
   char number[10];
   itoa(toAdd,number,10);
   
@@ -703,6 +753,11 @@ void addToBuffer(int toAdd){
 
 // Add to output buffer
 void addToBuffer(const __FlashStringHelper *toAdd){
+
+  if (DEBUG_MODE) {
+    Serial.print(F("Added to buffer: "));
+    Serial.println(toAdd);
+  }
 
   uint8_t idx = 0;
 
@@ -718,6 +773,11 @@ void addToBuffer(const __FlashStringHelper *toAdd){
 
 template <typename T>
 void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
+
+  if (DEBUG_MODE) {
+    Serial.print(F("Sending buffer: "));
+    Serial.println(buffer);
+  }  
   
   // Max iteration
   uint8_t max_iteration = (int)(index/chunkSize) + 1;
