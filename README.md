@@ -1,12 +1,12 @@
 # aREST
 
-Version 1.9.2
+Version 1.9.3
 
 ## Overview
 
 A simple library that implements a REST API for Arduino. It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip, the Ethernet shield or the Arduino Yun), via the Serial port (using the USB serial connection, Bluetooth, and XBee) and also via Bluetooth Low Energy.
 
-The library now requires the latest version of the Arduino IDE (1.5.x) to work correctly, as this version of the IDE comes with a lot of optimizations in the compiler.
+The library now requires the latest version of the Arduino IDE (1.5.7) to work correctly, as this version of the IDE comes with a lot of optimizations in the compiler.
 
 If you want to know more about aREST, go over to [http://arest.io/](http://arest.io/).
 
@@ -36,7 +36,7 @@ For Bluetooth Low Energy communications, the library has been tested with the Ad
 
 ## Requirements
 
-- [Arduino IDE 1.5.x Beta](http://arduino.cc/en/main/software)
+- [Arduino IDE 1.5.7 Beta](http://arduino.cc/en/Main/OldSoftwareReleases)
 
 ### For WiFi using the CC3000 chip
 
@@ -124,13 +124,11 @@ You can also define your own functions in your sketch that can be called using t
   * `rest.function("led",ledControl);` declares the function in the Arduino sketch
   * `/led?params=0` executes the function
 
-### Authentication (BETA)
+### Get data about the board
 
-You can define an API key to add more security to your projects, so only someone with the key can access to the devices using aREST. The authentication works only with HTTP requests (WiFi and Ethernet). You simply need to define a key in the Arduino sketch with:
- * `rest.set_api_key("K9gs1wbodW");`
- 
-Then, you need to send this key in the HTTP header of the request:
- * `"X-ApiKey: K9gs1wbodW"`
+You can also access a description of all the variables that were declared on the board with a single command. This is useful to automatically build graphical interfaces based on the variables exposed to the API. This can be done via the following calls:
+  * `/` or `/id`
+  * The names & types of the variables will then be stored in the variables field of the returned JSON object
 
 ### Status LED (BETA)
 

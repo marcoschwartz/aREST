@@ -4,10 +4,11 @@
  
   Written in 2014 by Marco Schwartz under a GPL license. 
 
-  Version 1.9.2
+  Version 1.9.3
 
   Changelog:
 
+  Version 1.9.3: Added description of available variables for the /id and / routes
   Version 1.9.2: Added compatibility with the Arduino WiFi library
   Version 1.9.1: Added compatibility with CORS
   Version 1.9: New speedup of the library (answers 2x faster in HTTP compared to version 1.8)
@@ -81,8 +82,7 @@ public:
   aREST() {
   command = 'u';
   pin_selected = false;
-  api_key_received = false;
-  api_key_match = false;
+ 
   status_led_pin = 255;
   state = 'u';
   variables_index = 0;
@@ -125,8 +125,6 @@ void reset_status() {
   pin_selected = false;
   state = 'u';
   arguments = "";
-  api_key_received = false;
-  api_key_match = false;
 
   index = 0;
   //memset(&buffer[0], 0, sizeof(buffer));
@@ -267,10 +265,6 @@ void handle(char * string) {
 }
 
 void handle_proto(char * string) {
-
-  // API key needed ?
-  if (api_key == "") {api_key_received = true;}
-
   // Check if there is data available to read
   for (int i = 0; i < strlen(string); i++){
 
@@ -289,9 +283,6 @@ void handle_proto(char * string) {
 template <typename T>
 void handle_proto(T& serial, bool headers, uint8_t read_delay) 
 {
-
-  // API key needed ?
-  if (api_key == "") {api_key_received = true;}
 
   // Check if there is data available to read
   while (serial.available()) {
@@ -312,33 +303,6 @@ void handle_proto(T& serial, bool headers, uint8_t read_delay)
 }
 
 void process(char c){
-
-  // Check for API key or end of request
-  if (c == '\n') {
-
-    // API key ?
-    if(!api_key_received){
-
-      // Check for API key
-      if(answer.startsWith("X-ApiKey")) {
-        char * received_key;
-        strcpy(received_key, answer.substring(10).c_str());
-
-        if (received_key == api_key) {
-          api_key_match = true;
-          //Serial.println("API key match");
-        }
-
-        //Serial.println("API key received");
-        api_key_received = true;
-        //free(received_key);
-      }
-    }
-
-    // Reset answer
-    answer = "";
-
-  }  
 
   // Check if we are receveing useful data and process it
   if ((c == '/' || c == '\r') && state == 'u') {
@@ -454,7 +418,7 @@ void process(char c){
        }
 
        // If the command is "id", return device id, name and status
-       if (answer.startsWith("id")){
+       if ((answer[0] == 'i' && answer[1] == 'd') || answer[0] == ' '){
 
            // Set state
            command = 'i';
@@ -471,228 +435,230 @@ void process(char c){
 
 bool send_command(bool headers) {
 
-       if (DEBUG_MODE) {
-         Serial.println(F("Sending command"));
-         Serial.print(F("Command: "));
-         Serial.println(command);
-         Serial.print(F("State: "));
-         Serial.println(state);
-         Serial.print(F("State of buffer at the start: "));
-         Serial.println(buffer);
-       }
-        
-       // Is the API key needed ?
-       if (api_key == "" || api_key_match){
+   if (DEBUG_MODE) {
+     Serial.println(F("Sending command"));
+     Serial.print(F("Command: "));
+     Serial.println(command);
+     Serial.print(F("State: "));
+     Serial.println(state);
+     Serial.print(F("State of buffer at the start: "));
+     Serial.println(buffer);
+   }
 
-       // Start of message
-       if (headers) {send_http_headers();}
+   // Start of message
+   if (headers) {send_http_headers();}
 
-       // Mode selected
-       if (command == 'm'){
+   // Mode selected
+   if (command == 'm'){
 
-         // Send feedback to client 
-         if (!LIGHTWEIGHT){
-           addToBuffer(F("{\"message\": \"Pin D"));
-           addToBuffer(pin); 
-         } 
-         
-         // Input
-         if (state == 'i'){
+     // Send feedback to client 
+     if (!LIGHTWEIGHT){
+       addToBuffer(F("{\"message\": \"Pin D"));
+       addToBuffer(pin); 
+     } 
+     
+     // Input
+     if (state == 'i'){
+      
+      // Set pin to Input     
+      pinMode(pin,INPUT);
           
-          // Set pin to Input     
-          pinMode(pin,INPUT);
-              
-          // Send feedback to client
-          if (!LIGHTWEIGHT){addToBuffer(F(" set to input\", "));}
-         }
+      // Send feedback to client
+      if (!LIGHTWEIGHT){addToBuffer(F(" set to input\", "));}
+     }
 
-         // Output
-         if (state == 'o'){
+     // Output
+     if (state == 'o'){
 
-           // Set to Output  
-           pinMode(pin,OUTPUT);
-              
-           // Send feedback to client
-           if (!LIGHTWEIGHT){addToBuffer(F(" set to output\", "));}
-         }
-
-       }
-
-       // Digital selected
-       if (command == 'd') {
-         if (state == 'r'){
-
-           // Read from pin
-           value = digitalRead(pin);
-
-           // Send answer
-           if (LIGHTWEIGHT){addToBuffer(value);}
-           else {
-            addToBuffer(F("{\"return_value\": "));
-            addToBuffer(value);
-            addToBuffer(F(", "));
-          }
-         }
-         
-         if (state == 'a') {
-           if (!LIGHTWEIGHT) {addToBuffer(F("{"));}
-           
-           for (uint8_t i = 0; i < NUMBER_DIGITAL_PINS; i++) {       
-             
-             // Read analog value
-             value = digitalRead(i);
+       // Set to Output  
+       pinMode(pin,OUTPUT);
           
-             // Send feedback to client
-             if (LIGHTWEIGHT){
-               addToBuffer(value);
-               addToBuffer(F(","));
-             }
-             else {
-               addToBuffer(F("\"D"));
-               addToBuffer(i);
-               addToBuffer(F("\": "));
-               addToBuffer(value);
-               addToBuffer(F(", "));
-             } 
-         }
-        }
-  
-         if (state == 'w') {
+       // Send feedback to client
+       if (!LIGHTWEIGHT){addToBuffer(F(" set to output\", "));}
+     }
 
-           // Apply on the pin      
-           digitalWrite(pin,value);
+   }
 
-           // Send feedback to client
-           if (!LIGHTWEIGHT){
-            addToBuffer(F("{\"message\": \"Pin D"));
-            addToBuffer(pin);
-            addToBuffer(F(" set to "));
-            addToBuffer(value);
-            addToBuffer(F("\", "));
-           }
-         }
-       }
+   // Digital selected
+   if (command == 'd') {
+     if (state == 'r'){
 
-       // Analog selected
-       if (command == 'a') {
-         if (state == 'r'){
-           
-           // Read analog value
-           value = analogRead(pin);
-          
-           // Send feedback to client
-           if (LIGHTWEIGHT){addToBuffer(value);}
-           else {
-            addToBuffer(F("{\"return_value\": "));
-            addToBuffer(value);
-            addToBuffer(F(", "));
-           }
-         }
-         if (state == 'a') {
-           if (!LIGHTWEIGHT) {addToBuffer(F("{"));}
-           
-           for (uint8_t i = 0; i < NUMBER_ANALOG_PINS; i++) {       
-             
-             // Read analog value
-             value = analogRead(i);
-          
-             // Send feedback to client
-             if (LIGHTWEIGHT){
-               addToBuffer(value);
-               addToBuffer(F(","));
-             }
-             else {
-               addToBuffer(F("\"A"));
-               addToBuffer(i);
-               addToBuffer(F("\": "));
-               addToBuffer(value);
-               addToBuffer(F(", "));
-             } 
-         }
-       }
-       if (state == 'w') {
+       // Read from pin
+       value = digitalRead(pin);
 
-         // Write output value
-         analogWrite(pin,value);
- 
-         // Send feedback to client
-         addToBuffer(F("{\"message\": \"Pin D"));
-         addToBuffer(pin);
-         addToBuffer(F(" set to "));
-         addToBuffer(value);
-         addToBuffer(F("\", "));
-
-       }
-      }
-
-      // Variable selected
-      if (command == 'v') {          
-
-           // Send feedback to client
-           if (LIGHTWEIGHT){addToBuffer(*int_variables[value]);}
-           else {
-            addToBuffer(F("{\""));
-            addToBuffer(int_variables_names[value]);
-            addToBuffer(F("\": "));
-            addToBuffer(*int_variables[value]);
-            addToBuffer(F(", ")); 
-           }
-      }
-
-      // Function selected
-      if (command == 'f') {
-
-        // Execute function
-        uint8_t result = functions[value](arguments);
-
-        // Send feedback to client
-        if (!LIGHTWEIGHT) {
-         addToBuffer(F("{\"return_value\": "));
-         addToBuffer(result);
-         addToBuffer(F(", \"message\": \""));
-         addToBuffer(functions_names[value]);
-         addToBuffer(F(" executed\", "));
-        }
-      }
-
-      if (command == 'i') {
-        if (LIGHTWEIGHT) {addToBuffer(id);}
-        else {
-          addToBuffer(F("{"));
-        }
-      }
-
-       // End of message
-       if (LIGHTWEIGHT){
-         addToBuffer(F("\r\n"));
-       }
-
+       // Send answer
+       if (LIGHTWEIGHT){addToBuffer(value);}
        else {
-
-         addToBuffer(F("\"id\": \""));
-         addToBuffer(id);
-         addToBuffer(F("\", \"name\": \""));
-         addToBuffer(name);
-         addToBuffer(F("\", \"connected\": true}\r\n"));
-       }
-
-       if (DEBUG_MODE) {
-         Serial.print(F("State of buffer at the end: "));
-         Serial.println(buffer);
-       }
+        addToBuffer(F("{\"return_value\": "));
+        addToBuffer(value);
+        addToBuffer(F(", "));
+      }
+     }
+     
+     if (state == 'a') {
+       if (!LIGHTWEIGHT) {addToBuffer(F("{"));}
        
-       // End here
-       return true;
+       for (uint8_t i = 0; i < NUMBER_DIGITAL_PINS; i++) {       
+         
+         // Read analog value
+         value = digitalRead(i);
+      
+         // Send feedback to client
+         if (LIGHTWEIGHT){
+           addToBuffer(value);
+           addToBuffer(F(","));
+         }
+         else {
+           addToBuffer(F("\"D"));
+           addToBuffer(i);
+           addToBuffer(F("\": "));
+           addToBuffer(value);
+           addToBuffer(F(", "));
+         } 
+     }
+    }
+
+     if (state == 'w') {
+
+       // Apply on the pin      
+       digitalWrite(pin,value);
+
+       // Send feedback to client
+       if (!LIGHTWEIGHT){
+        addToBuffer(F("{\"message\": \"Pin D"));
+        addToBuffer(pin);
+        addToBuffer(F(" set to "));
+        addToBuffer(value);
+        addToBuffer(F("\", "));
+       }
+     }
+   }
+
+   // Analog selected
+   if (command == 'a') {
+     if (state == 'r'){
+       
+       // Read analog value
+       value = analogRead(pin);
+      
+       // Send feedback to client
+       if (LIGHTWEIGHT){addToBuffer(value);}
+       else {
+        addToBuffer(F("{\"return_value\": "));
+        addToBuffer(value);
+        addToBuffer(F(", "));
+       }
+     }
+     if (state == 'a') {
+       if (!LIGHTWEIGHT) {addToBuffer(F("{"));}
+       
+       for (uint8_t i = 0; i < NUMBER_ANALOG_PINS; i++) {       
+         
+         // Read analog value
+         value = analogRead(i);
+      
+         // Send feedback to client
+         if (LIGHTWEIGHT){
+           addToBuffer(value);
+           addToBuffer(F(","));
+         }
+         else {
+           addToBuffer(F("\"A"));
+           addToBuffer(i);
+           addToBuffer(F("\": "));
+           addToBuffer(value);
+           addToBuffer(F(", "));
+         } 
+     }
+   }
+   if (state == 'w') {
+
+     // Write output value
+     analogWrite(pin,value);
+
+     // Send feedback to client
+     addToBuffer(F("{\"message\": \"Pin D"));
+     addToBuffer(pin);
+     addToBuffer(F(" set to "));
+     addToBuffer(value);
+     addToBuffer(F("\", "));
+
+   }
+  }
+
+  // Variable selected
+  if (command == 'v') {          
+
+       // Send feedback to client
+       if (LIGHTWEIGHT){addToBuffer(*int_variables[value]);}
+       else {
+        addToBuffer(F("{\""));
+        addToBuffer(int_variables_names[value]);
+        addToBuffer(F("\": "));
+        addToBuffer(*int_variables[value]);
+        addToBuffer(F(", ")); 
+       }
+  }
+
+  // Function selected
+  if (command == 'f') {
+
+    // Execute function
+    uint8_t result = functions[value](arguments);
+
+    // Send feedback to client
+    if (!LIGHTWEIGHT) {
+     addToBuffer(F("{\"return_value\": "));
+     addToBuffer(result);
+     addToBuffer(F(", \"message\": \""));
+     addToBuffer(functions_names[value]);
+     addToBuffer(F(" executed\", "));
+    }
+  }
+
+  if (command == 'i') {
+    if (LIGHTWEIGHT) {addToBuffer(id);}
+    else {
+      addToBuffer(F("{\"variables\": {"));
+      if (variables_index > 0){
+        
+        for (uint8_t i = 0; i < variables_index-1; i++){
+          addToBuffer(F("\""));
+          addToBuffer(int_variables_names[i]);
+          addToBuffer(F("\": \"int32\", "));
+        }
+        addToBuffer(F("\""));
+        addToBuffer(int_variables_names[variables_index-1]);
+        addToBuffer(F("\": \"int32\"}, "));
       }
       else {
-
-        // Send message
-        if (headers) {send_http_headers();}
-        addToBuffer(F("{\"message\": \"API key invalid.\"}\r\n"));
-
-        // End here
-        return true;
+        addToBuffer(F(" }, "));
       }
+      
+    }
+  }
+
+   // End of message
+   if (LIGHTWEIGHT){
+     addToBuffer(F("\r\n"));
+   }
+
+   else {
+
+     addToBuffer(F("\"id\": \""));
+     addToBuffer(id);
+     addToBuffer(F("\", \"name\": \""));
+     addToBuffer(name);
+     addToBuffer(F("\", \"connected\": true}\r\n"));
+   }
+
+   if (DEBUG_MODE) {
+     Serial.print(F("State of buffer at the end: "));
+     Serial.println(buffer);
+   }
+   
+   // End here
+   return true;
 }
 
 void variable(char * variable_name, int *variable){
@@ -816,8 +782,7 @@ private:
   char state;
   uint16_t value;
   boolean pin_selected;
-  boolean api_key_received;
-  boolean api_key_match;
+
   char *name;
   char *id;
   char * api_key;
