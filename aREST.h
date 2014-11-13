@@ -4,10 +4,11 @@
  
   Written in 2014 by Marco Schwartz under a GPL license. 
 
-  Version 1.9.3
+  Version 1.9.4
 
   Changelog:
 
+  Version 1.9.4: Bug fixes & added support for configuring analog pints as digital outputs
   Version 1.9.3: Added description of available variables for the /id and / routes
   Version 1.9.2: Added compatibility with the Arduino WiFi library
   Version 1.9.1: Added compatibility with CORS
@@ -87,7 +88,6 @@ public:
   state = 'u';
   variables_index = 0;
   functions_index = 0;
-  api_key = "";
   index = 0;
 }
 
@@ -341,7 +341,16 @@ void process(char c){
      if (command != 'u' && pin_selected == false) {
        
        // Get pin
-       pin = answer.toInt();
+       if (answer[0] == 'A') {
+         pin = 14 + answer[1] - '0';  
+       }
+       else {
+         pin = answer.toInt();
+       }
+       if (DEBUG_MODE) {
+        Serial.print("Selected pin: ");
+        Serial.println(pin);
+       }
        pin_selected = true;
 
        // Nothing more ?
@@ -418,7 +427,7 @@ void process(char c){
        }
 
        // If the command is "id", return device id, name and status
-       if ((answer[0] == 'i' && answer[1] == 'd') || answer[0] == ' '){
+       if ( (answer[0] == 'i' && answer[1] == 'd') ){
 
            // Set state
            command = 'i';
@@ -427,6 +436,17 @@ void process(char c){
            pin_selected = true;
            state = 'x';
        }
+
+       if (answer[0] == ' '){
+
+           // Set state
+           command = 'r';
+
+           // End here
+           pin_selected = true;
+           state = 'x';
+       }
+
      }
 
      answer = "";
@@ -610,13 +630,14 @@ bool send_command(bool headers) {
     if (!LIGHTWEIGHT) {
      addToBuffer(F("{\"return_value\": "));
      addToBuffer(result);
-     addToBuffer(F(", \"message\": \""));
-     addToBuffer(functions_names[value]);
-     addToBuffer(F(" executed\", "));
+     addToBuffer(F(", "));
+     //addToBuffer(F(", \"message\": \""));
+     //addToBuffer(functions_names[value]);
+     //addToBuffer(F(" executed\", "));
     }
   }
 
-  if (command == 'i') {
+  if (command == 'r') {
     if (LIGHTWEIGHT) {addToBuffer(id);}
     else {
       addToBuffer(F("{\"variables\": {"));
@@ -635,6 +656,13 @@ bool send_command(bool headers) {
         addToBuffer(F(" }, "));
       }
       
+    }
+  }
+
+  if (command == 'i') {
+    if (LIGHTWEIGHT) {addToBuffer(id);}
+    else {
+      addToBuffer(F("{"));
     }
   }
 
@@ -688,10 +716,24 @@ void set_name(char *device_name){
   name = device_name;
 }
 
-// Set API key
-void set_api_key(char * the_api_key){
+// Set device name
+void set_name(String device_name){
+
+  int str_len = device_name.length() + 1; 
+  char char_array[str_len];
+  device_name.toCharArray(char_array, str_len);
   
-  api_key = the_api_key;
+  name = char_array;
+}
+
+// Set device ID
+void set_id(String device_id){
+
+  int str_len = device_id.length() + 1; 
+  char char_array[str_len];
+  device_id.toCharArray(char_array, str_len);
+
+  id = char_array;
 }
 
 // Add to output buffer
@@ -785,7 +827,6 @@ private:
 
   char *name;
   char *id;
-  char * api_key;
   String arguments;
 
   // Output uffer
