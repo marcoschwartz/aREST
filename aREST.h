@@ -57,6 +57,9 @@
 #define OUTPUT_BUFFER_SIZE 275
 #endif
 
+// Size of name & ID
+#define NAME_SIZE 15
+
 // Debug mode
 #ifndef DEBUG_MODE
 #define DEBUG_MODE 0
@@ -707,33 +710,25 @@ void function(char * function_name, int (*f)(String)){
 // Set device ID
 void set_id(char *device_id){
 
-  id = device_id;
+  strcpy(id,device_id);
 }
 
 // Set device name
 void set_name(char *device_name){
   
-  name = device_name;
+  strcpy(name, device_name);
 }
 
 // Set device name
 void set_name(String device_name){
 
-  int str_len = device_name.length() + 1; 
-  char char_array[str_len];
-  device_name.toCharArray(char_array, str_len);
-  
-  name = char_array;
+  device_name.toCharArray(name, NAME_SIZE);
 }
 
 // Set device ID
 void set_id(String device_id){
 
-  int str_len = device_id.length() + 1; 
-  char char_array[str_len];
-  device_id.toCharArray(char_array, str_len);
-
-  id = char_array;
+  device_id.toCharArray(id, NAME_SIZE);
 }
 
 // Add to output buffer
@@ -825,8 +820,8 @@ private:
   uint16_t value;
   boolean pin_selected;
 
-  char *name;
-  char *id;
+  char name[NAME_SIZE];
+  char id[NAME_SIZE];
   String arguments;
 
   // Output uffer
