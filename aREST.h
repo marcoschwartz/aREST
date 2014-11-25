@@ -58,7 +58,8 @@
 #endif
 
 // Size of name & ID
-#define NAME_SIZE 15
+#define NAME_SIZE 20
+#define ID_SIZE 10
 
 // Debug mode
 #ifndef DEBUG_MODE
@@ -89,9 +90,6 @@ public:
  
   status_led_pin = 255;
   state = 'u';
-  variables_index = 0;
-  functions_index = 0;
-  index = 0;
 }
 
 // Set status LED
@@ -518,6 +516,7 @@ bool send_command(bool headers) {
       }
      }
      
+     #if !defined(__AVR_ATmega32U4__)
      if (state == 'a') {
        if (!LIGHTWEIGHT) {addToBuffer(F("{"));}
        
@@ -540,6 +539,7 @@ bool send_command(bool headers) {
          } 
      }
     }
+    #endif
 
      if (state == 'w') {
 
@@ -572,6 +572,7 @@ bool send_command(bool headers) {
         addToBuffer(F(", "));
        }
      }
+     #if !defined(__AVR_ATmega32U4__)
      if (state == 'a') {
        if (!LIGHTWEIGHT) {addToBuffer(F("{"));}
        
@@ -594,6 +595,7 @@ bool send_command(bool headers) {
          } 
      }
    }
+   #endif
    if (state == 'w') {
 
      // Write output value
@@ -821,7 +823,7 @@ private:
   boolean pin_selected;
 
   char name[NAME_SIZE];
-  char id[NAME_SIZE];
+  char id[ID_SIZE];
   String arguments;
 
   // Output uffer
