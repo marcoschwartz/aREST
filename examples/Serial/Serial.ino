@@ -32,8 +32,8 @@ void setup(void)
   rest.function("led",ledControl);
   
   // Give name and ID to device
-  rest.set_id("008");
-  rest.set_name("dapper_drake");
+  rest.set_id("2");
+  rest.set_name("serial");
 
   // Start watchdog
   wdt_enable(WDTO_4S);
