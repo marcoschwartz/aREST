@@ -4,10 +4,11 @@
  
   Written in 2014 by Marco Schwartz under a GPL license. 
 
-  Version 1.9.4
+  Version 1.9.5
 
   Changelog:
 
+  Version 1.9.5: Added compatibility with Arduino IDE 1.5.8
   Version 1.9.4: Bug fixes & added support for configuring analog pints as digital outputs
   Version 1.9.3: Added description of available variables for the /id and / routes
   Version 1.9.2: Added compatibility with the Arduino WiFi library
@@ -142,7 +143,7 @@ void handle(Adafruit_CC3000_ClientRef& client) {
     handle_proto(client,true,0);
         
     // Answer
-    sendBuffer(client,32,100);
+    sendBuffer(client,32,10);
     client.stop();  
 
     // Reset variables for the next command
@@ -160,7 +161,7 @@ void handle(YunClient& client) {
     handle_proto(client,false,0);
     
     // Answer
-    sendBuffer(client,25,50);
+    sendBuffer(client,25,10);
     client.stop();
    
     // Reset variables for the next command
@@ -178,7 +179,7 @@ void handle(Adafruit_BLE_UART& serial) {
     handle_proto(serial,false,0);
     
     // Answer
-    sendBuffer(serial,100,5);
+    sendBuffer(serial,100,1);
 
     // Reset variables for the next command
     reset_status();
@@ -195,7 +196,7 @@ void handle(EthernetClient& client){
     handle_proto(client,true,0);
 
     // Answer
-    sendBuffer(client,50,5);
+    sendBuffer(client,50,0);
     client.stop();  
    
     // Reset variables for the next command
@@ -213,7 +214,7 @@ void handle(WiFiClient& client){
     handle_proto(client,true,0);
 
     // Answer
-    sendBuffer(client,50,5);
+    sendBuffer(client,50,1);
     client.stop();  
    
     // Reset variables for the next command
@@ -231,7 +232,7 @@ void handle(usb_serial_class& serial){
     handle_proto(serial,false,1);
 
     // Answer
-    sendBuffer(serial,25,10);
+    sendBuffer(serial,25,1);
 
     // Reset variables for the next command
     reset_status();     
@@ -248,7 +249,7 @@ void handle(HardwareSerial& serial){
     handle_proto(serial,false,1);
 
     // Answer
-    sendBuffer(serial,25,10);
+    sendBuffer(serial,25,1);
 
     // Reset variables for the next command
     reset_status();     
@@ -799,10 +800,17 @@ void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
     #else
     client.print(intermediate_buffer);
     #endif
+
+    // Wait for client to get data
+    delay(wait_time);
+
+    if (DEBUG_MODE) {
+      Serial.print(F("Sent buffer: "));
+      Serial.println(intermediate_buffer);
+    }
   }
     
-    // Wait for the client to get data
-    delay(wait_time);
+    // Reset the buffer
     resetBuffer();
 }
 
