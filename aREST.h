@@ -4,10 +4,11 @@
  
   Written in 2014 by Marco Schwartz under a GPL license. 
 
-  Version 1.9.5
+  Version 1.9.6
 
   Changelog:
-
+  
+  Version 1.9.6: Added support for float variables for Arduino Mega
   Version 1.9.5: Added compatibility with Arduino IDE 1.5.8
   Version 1.9.4: Bug fixes & added support for configuring analog pints as digital outputs
   Version 1.9.3: Added description of available variables for the /id and / routes
@@ -395,7 +396,7 @@ void process(char c){
      // Variable or function request received ?
      if (command == 'u') {
        
-       // Check if variable name is in array
+       // Check if variable name is in int array
        for (uint8_t i = 0; i < variables_index; i++){
          if(answer.startsWith(int_variables_names[i])) {
            
@@ -408,6 +409,22 @@ void process(char c){
            value = i;
          }
        }
+
+       // Check if variable name is in float array (Mega only)
+       #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+       for (uint8_t i = 0; i < float_variables_index; i++){
+         if(answer.startsWith(float_variables_names[i])) {
+           
+           // End here
+           pin_selected = true;
+           state = 'x';
+
+           // Set state
+           command = 'l';
+           value = i;
+         }
+       }
+       #endif
 
        // Check if function name is in array
        for (uint8_t i = 0; i < functions_index; i++){
@@ -626,6 +643,22 @@ bool send_command(bool headers) {
        }
   }
 
+  // Float ariable selected (Mega only)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+  if (command == 'l') {          
+
+       // Send feedback to client
+       if (LIGHTWEIGHT){addToBuffer(*float_variables[value]);}
+       else {
+        addToBuffer(F("{\""));
+        addToBuffer(float_variables_names[value]);
+        addToBuffer(F("\": "));
+        addToBuffer(*float_variables[value]);
+        addToBuffer(F(", ")); 
+       }
+  }
+  #endif
+
   // Function selected
   if (command == 'f') {
 
@@ -652,11 +685,15 @@ bool send_command(bool headers) {
         for (uint8_t i = 0; i < variables_index-1; i++){
           addToBuffer(F("\""));
           addToBuffer(int_variables_names[i]);
-          addToBuffer(F("\": \"int32\", "));
+          addToBuffer(F("\": "));
+          addToBuffer(*int_variables[i]);
+          addToBuffer(F(", "));
         }
         addToBuffer(F("\""));
         addToBuffer(int_variables_names[variables_index-1]);
-        addToBuffer(F("\": \"int32\"}, "));
+        addToBuffer(F("\": "));
+        addToBuffer(*int_variables[variables_index-1]);
+        addToBuffer(F("}, "));
       }
       else {
         addToBuffer(F(" }, "));
@@ -702,6 +739,17 @@ void variable(char * variable_name, int *variable){
   variables_index++;
 
 }
+
+// Float variables (Mega only)
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+void variable(char * variable_name, float *variable){
+
+  float_variables[float_variables_index] = variable;
+  float_variables_names[float_variables_index] = variable_name;
+  float_variables_index++;
+
+}
+#endif
 
 void function(char * function_name, int (*f)(String)){
 
@@ -749,6 +797,15 @@ void addToBuffer(char * toAdd){
 }
 
 // Add to output buffer
+void addToBuffer(uint16_t toAdd){
+
+  char number[10];
+  itoa(toAdd,number,10);
+  
+  addToBuffer(number);
+}
+
+// Add to output buffer
 void addToBuffer(int toAdd){
 
   char number[10];
@@ -756,6 +813,17 @@ void addToBuffer(int toAdd){
   
   addToBuffer(number);
 }
+
+// Add to output buffer (Mega only)
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+void addToBuffer(float toAdd){
+
+  char number[5];
+  dtostrf(toAdd, 5, 2, number);
+  
+  addToBuffer(number);
+}
+#endif
 
 // Add to output buffer
 void addToBuffer(const __FlashStringHelper *toAdd){
@@ -841,10 +909,17 @@ private:
   // Status LED
   uint8_t status_led_pin;
 
-  // Variables arrays
+  // Int variables arrays
   uint8_t variables_index;
   int * int_variables[NUMBER_VARIABLES];
   char * int_variables_names[NUMBER_VARIABLES];
+
+  // Float variables arrays (Mega only)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+  uint8_t float_variables_index;
+  float * float_variables[NUMBER_VARIABLES];
+  char * float_variables_names[NUMBER_VARIABLES];
+  #endif
 
   // Functions array
   uint8_t functions_index;
