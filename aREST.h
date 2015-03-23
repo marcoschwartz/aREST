@@ -818,7 +818,7 @@ void addToBuffer(int toAdd){
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
 void addToBuffer(float toAdd){
 
-  char number[5];
+  char number[10];
   dtostrf(toAdd, 5, 2, number);
   
   addToBuffer(number);
