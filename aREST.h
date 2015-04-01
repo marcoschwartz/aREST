@@ -240,6 +240,23 @@ void handle(usb_serial_class& serial){
   }
 }
 
+#elif defined(__AVR_ATmega32U4__)
+// Handle request on the Serial port
+void handle(Serial_& serial){
+
+  if (serial.available()) {
+
+    // Handle request
+    handle_proto(serial,false,1);
+
+    // Answer
+    sendBuffer(serial,25,1);
+
+    // Reset variables for the next command
+    reset_status();     
+  }
+}
+
 #else
 // Handle request on the Serial port
 void handle(HardwareSerial& serial){
