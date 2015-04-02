@@ -4,10 +4,11 @@
  
   Written in 2014 by Marco Schwartz under a GPL license. 
 
-  Version 1.9.6
+  Version 1.9.7
 
   Changelog:
   
+  Version 1.9.7: Added support for Arduino 1.6.2
   Version 1.9.6: Added support for float variables for Arduino Mega
   Version 1.9.5: Added compatibility with Arduino IDE 1.5.8
   Version 1.9.4: Bug fixes & added support for configuring analog pints as digital outputs

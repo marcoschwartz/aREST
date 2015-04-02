@@ -1,6 +1,6 @@
 # aREST
 
-Version 1.9.6
+Version 1.9.7
 
 ## Overview
 
