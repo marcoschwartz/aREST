@@ -1,12 +1,14 @@
 # aREST
 
-Version 1.9.7
+Version 1.9.8
 
 ## Overview
 
-A simple library that implements a REST API for Arduino. It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip, the Ethernet shield or the Arduino Yun), via the Serial port (using the USB serial connection, Bluetooth, and XBee) and also via Bluetooth Low Energy.
+A simple library that implements a REST API for Arduino & the ESP8266 WiFi chip.
 
-The library now requires the latest version of the Arduino IDE (1.5.7 or higher) to work correctly, as this version of the IDE comes with a lot of optimizations in the compiler.
+It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip, the Ethernet shield or the Arduino Yun), via the Serial port (using the USB serial connection, Bluetooth, and XBee) and also via Bluetooth Low Energy.
+
+It also works with the ESP8266 WiFi chip using the ESP8266 processor, therefore working as an independent unit.
 
 If you want to know more about aREST, go over to [http://arest.io/](http://arest.io/).
 
@@ -14,13 +16,17 @@ If you want to know more about aREST, go over to [http://arest.io/](http://arest
 
 - aREST.h: the library file.
 - examples: several examples using the aREST library
-- test: Python-based unit tests of the library
+- test: unit tests of the library
 
 ## Supported hardware
 
 ### Arduino boards
 
 The library is at the moment compatible with the following Arduino boards: Uno, Mega, Due, Yun and Teensy 3.x.
+
+### ESP8266
+
+The library is compatible with most of the ESP8266 modules & ESP8266 development boards.
 
 ### HTTP
 
@@ -36,7 +42,13 @@ For Bluetooth Low Energy communications, the library has been tested with the Ad
 
 ## Requirements
 
-- [Arduino IDE 1.5.7 Beta](http://arduino.cc/en/Main/OldSoftwareReleases)
+To use the library with Arduino boards you will need the latest version of the Arduino IDE:
+
+- [Arduino IDE 1.6.3](http://arduino.cc/en/main/software)
+
+To use the library with the ESP8266 WiFi chip you will need a special version of the Arduino IDE:
+
+- [ESP8266 Arduino IDE](https://github.com/esp8266/Arduino/releases)
 
 ### For WiFi using the CC3000 chip
 
@@ -88,6 +100,15 @@ To install the library, simply clone this repository in the /libraries folder of
 4. Use the [BlueFruit LE Connect app](https://itunes.apple.com/fr/app/adafruit-bluefruit-le-connect/id830125974?mt=8) to connect to the BLE chip 
 5. Type `/mode/8/o /` to set the pin as an output
 6. Now type `/digital/8/1 /` and the LED should turn on
+
+## Quick test (ESP8266)
+
+1. Connect a LED & resistor to pin number 5 of your ESP8266 board
+2. Open the ESP8266 example sketch and modify the WiFi SSID & password
+3. Upload the sketch
+4. Open the Serial monitor to get the IP address of the board, for example 192.168.1.103
+5. Go to a web browser and type `192.168.1.103/mode/5/o` to set the pin as an output
+6. Now type `192.168.1.103/digital/5/1` and the LED should turn on
 
 ## API documentation
 
