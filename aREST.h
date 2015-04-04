@@ -4,10 +4,11 @@
  
   Written in 2014 by Marco Schwartz under a GPL license. 
 
-  Version 1.9.7
+  Version 1.9.8
 
   Changelog:
   
+  Version 1.9.8: Added support for ESP8266 chip
   Version 1.9.7: Added support for Arduino 1.6.2
   Version 1.9.6: Added support for float variables for Arduino Mega
   Version 1.9.5: Added compatibility with Arduino IDE 1.5.8
@@ -44,6 +45,11 @@
 
 // Include Arduino header
 #include "Arduino.h"
+
+// Using ESP8266 ?
+#if defined(ESP8266)
+#include "stdlib_noniso.h"
+#endif
 
 // Which board?
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -206,11 +212,33 @@ void handle(EthernetClient& client){
   }
 }
 
-// Handle request for the Arduino Ethernet shield
+// Handle request for the ESP8266 chip
+#elif defined(ESP8266)
+void handle(WiFiClient& client){
+
+  if (client.available()) {
+
+    if (DEBUG_MODE) {Serial.println("Request received");}
+
+    // Handle request
+    handle_proto(client,true,0);
+
+    // Answer
+    sendBuffer(client,0,0);
+    client.stop();  
+   
+    // Reset variables for the next command
+    reset_status();   
+  }
+}
+
+// Handle request for the Arduino WiFi shield
 #elif defined(WiFi_h)
 void handle(WiFiClient& client){
 
   if (client.available()) {
+
+    if (DEBUG_MODE) {Serial.println("Request received");}
 
     // Handle request
     handle_proto(client,true,0);
@@ -846,10 +874,10 @@ void addToBuffer(float toAdd){
 // Add to output buffer
 void addToBuffer(const __FlashStringHelper *toAdd){
 
-  if (DEBUG_MODE) {
-    Serial.print(F("Added to buffer: "));
-    Serial.println(toAdd);
-  }
+  // if (DEBUG_MODE) {
+  //   Serial.print(F("Added to buffer: "));
+  //   Serial.println(toAdd);
+  // }
 
   uint8_t idx = 0;
 
@@ -870,29 +898,38 @@ void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
     Serial.print(F("Sending buffer: "));
     Serial.println(buffer);
   }  
-  
-  // Max iteration
-  uint8_t max_iteration = (int)(index/chunkSize) + 1;
 
-  // Send data
-  for (uint8_t i = 0; i < max_iteration; i++) {
-    char intermediate_buffer[chunkSize+1];
-    memcpy(intermediate_buffer, buffer + i*chunkSize, chunkSize);
-    intermediate_buffer[chunkSize] = '\0';
+  // Send all of it
+  if (chunkSize == 0) {
+    client.print(buffer);
+  }
 
-    // Send intermediate buffer
-    #ifdef ADAFRUIT_CC3000_H
-    client.fastrprint(intermediate_buffer);
-    #else
-    client.print(intermediate_buffer);
-    #endif
+  // Send chunk by chunk
+  else {
+    
+    // Max iteration
+    uint8_t max_iteration = (int)(index/chunkSize) + 1;
 
-    // Wait for client to get data
-    delay(wait_time);
+    // Send data
+    for (uint8_t i = 0; i < max_iteration; i++) {
+      char intermediate_buffer[chunkSize+1];
+      memcpy(intermediate_buffer, buffer + i*chunkSize, chunkSize);
+      intermediate_buffer[chunkSize] = '\0';
 
-    if (DEBUG_MODE) {
-      Serial.print(F("Sent buffer: "));
-      Serial.println(intermediate_buffer);
+      // Send intermediate buffer
+      #ifdef ADAFRUIT_CC3000_H
+      client.fastrprint(intermediate_buffer);
+      #else
+      client.print(intermediate_buffer);
+      #endif
+
+      // Wait for client to get data
+      delay(wait_time);
+
+      if (DEBUG_MODE) {
+        Serial.print(F("Sent buffer: "));
+        Serial.println(intermediate_buffer);
+      }
     }
   }
     
