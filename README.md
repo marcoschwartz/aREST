@@ -46,9 +46,13 @@ To use the library with Arduino boards you will need the latest version of the A
 
 - [Arduino IDE 1.6.3](http://arduino.cc/en/main/software)
 
-To use the library with the ESP8266 WiFi chip you will need a special version of the Arduino IDE:
+To use the library with the ESP8266 WiFi chip you will need a special version of the Arduino IDE. At the moment you need to download it from GitHub & build it from the source using the following commands:
 
-- [ESP8266 Arduino IDE](https://github.com/esp8266/Arduino/releases)
+```
+$ git clone https://github.com/esp8266/Arduino.git
+$ cd Arduino/build
+$ ant dist
+```
 
 ### For WiFi using the CC3000 chip
 
