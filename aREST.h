@@ -894,10 +894,10 @@ void addToBuffer(const __FlashStringHelper *toAdd){
 template <typename T>
 void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
 
-  if (DEBUG_MODE) {
-    Serial.print(F("Sending buffer: "));
-    Serial.println(buffer);
-  }  
+  // if (DEBUG_MODE) {
+  //   Serial.print(F("Sending buffer: "));
+  //   Serial.println(buffer);
+  // }  
 
   // Send all of it
   if (chunkSize == 0) {
