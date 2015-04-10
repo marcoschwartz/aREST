@@ -43,6 +43,10 @@
 
 */
 
+#ifndef aRest_h
+#define aRest_h
+#endif
+
 // Include Arduino header
 #include "Arduino.h"
 
