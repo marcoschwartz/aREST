@@ -489,9 +489,14 @@ void process(char c){
            value = i;
 
            // Get command
-           uint8_t header_length = strlen(functions_names[i]) + 8;
-           //strcpy(arguments, answer.substring(header_length).c_str());
-           arguments = answer.substring(header_length);
+           arguments = "";
+           uint8_t header_length = strlen(functions_names[i]);
+           if (answer.substring(header_length, header_length + 1) == "?") {
+             uint8_t footer_start = answer.length();
+             if (answer.endsWith(" HTTP/"))
+               footer_start -= 6; // length of " HTTP/"
+             arguments = answer.substring(header_length + 1, footer_start);
+           }
          }
        }
 
