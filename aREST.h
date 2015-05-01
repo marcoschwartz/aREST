@@ -587,7 +587,7 @@ bool send_command(bool headers) {
       }
      }
      
-     #if !defined(__AVR_ATmega32U4__)
+     #if !defined(__AVR_ATmega32U4__) || !defined(ADAFRUIT_CC3000_H)
      if (state == 'a') {
        if (!LIGHTWEIGHT) {addToBuffer(F("{"));}
        
