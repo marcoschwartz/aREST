@@ -3,9 +3,7 @@
   See the README file for more details.
  
   Written in 2014 by Marco Schwartz under a GPL license. 
-
   Version 1.9.8
-
   Changelog:
   
   Version 1.9.8: Added support for ESP8266 chip
@@ -17,16 +15,13 @@
   Version 1.9.2: Added compatibility with the Arduino WiFi library
   Version 1.9.1: Added compatibility with CORS
   Version 1.9: New speedup of the library (answers 2x faster in HTTP compared to version 1.8)
-
   Version 1.8: Speedup of the library (answers 2.5x faster with the CC3000 WiFi chip)
-
   Version 1.7.5: Reduced memory footprint of the library
   Version 1.7.4: Added a function to read all analog & digital inputs at once
   Version 1.7.3: Added LIGHTWEIGHT mode to only send limited data back
   Version 1.7.2: Added possibility to assign a status pin connected to a LED
   Version 1.7.1: Added possibility to change number of exposed variables & functions
   Version 1.7: Added compatibility with the Arduino Due & Teensy 3.x
-
   Version 1.6: Added compatibility with the Arduino Yun
   
   Version 1.5: Size reduction, and added compatibility with Adafruit BLE
@@ -40,7 +35,6 @@
   Version 1.1: Added variables & functions support
   
   Version 1.0: First working version of the library
-
 */
 
 #ifndef aRest_h
@@ -60,14 +54,18 @@
 #define NUMBER_ANALOG_PINS 16
 #define NUMBER_DIGITAL_PINS 54
 #define OUTPUT_BUFFER_SIZE 600
-#elif defined(__AVR_ATmega328P__)
+#elif defined(__AVR_ATmega328P__) && !defined(ADAFRUIT_CC3000_H)
 #define NUMBER_ANALOG_PINS 6
 #define NUMBER_DIGITAL_PINS 14
-#define OUTPUT_BUFFER_SIZE 275
+#define OUTPUT_BUFFER_SIZE 350
+#elif defined(ADAFRUIT_CC3000_H)
+#define NUMBER_ANALOG_PINS 6
+#define NUMBER_DIGITAL_PINS 14
+#define OUTPUT_BUFFER_SIZE 275  
 #else
 #define NUMBER_ANALOG_PINS 6
 #define NUMBER_DIGITAL_PINS 14
-#define OUTPUT_BUFFER_SIZE 275
+#define OUTPUT_BUFFER_SIZE 350
 #endif
 
 // Size of name & ID
@@ -489,9 +487,14 @@ void process(char c){
            value = i;
 
            // Get command
-           uint8_t header_length = strlen(functions_names[i]) + 8;
-           //strcpy(arguments, answer.substring(header_length).c_str());
-           arguments = answer.substring(header_length);
+           arguments = "";
+           uint8_t header_length = strlen(functions_names[i]);
+           if (answer.substring(header_length, header_length + 1) == "?") {
+             uint8_t footer_start = answer.length();
+             if (answer.endsWith(" HTTP/"))
+               footer_start -= 6; // length of " HTTP/"
+             arguments = answer.substring(header_length + 1, footer_start);
+           }
          }
        }
 
