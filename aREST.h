@@ -39,7 +39,6 @@
 
 #ifndef aRest_h
 #define aRest_h
-#endif
 
 // Include Arduino header
 #include "Arduino.h"
@@ -988,3 +987,5 @@ private:
   int (*functions[NUMBER_FUNCTIONS])(String);
   char * functions_names[NUMBER_FUNCTIONS];
 };
+
+#endif
