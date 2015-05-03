@@ -457,8 +457,8 @@ void process(char c){
          }
        }
 
-       // Check if variable name is in float array (Mega only)
-       #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+       // Check if variable name is in float array (Mega & ESP8266 only)
+       #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
        for (uint8_t i = 0; i < float_variables_index; i++){
          if(answer.startsWith(float_variables_names[i])) {
            
@@ -468,6 +468,22 @@ void process(char c){
 
            // Set state
            command = 'l';
+           value = i;
+         }
+       }
+       #endif
+
+       // Check if variable name is in float array (Mega & ESP8266 only)
+       #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
+       for (uint8_t i = 0; i < string_variables_index; i++){
+         if(answer.startsWith(string_variables_names[i])) {
+           
+           // End here
+           pin_selected = true;
+           state = 'x';
+
+           // Set state
+           command = 's';
            value = i;
          }
        }
@@ -696,7 +712,7 @@ bool send_command(bool headers) {
   }
 
   // Float ariable selected (Mega only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
   if (command == 'l') {          
 
        // Send feedback to client
@@ -707,6 +723,22 @@ bool send_command(bool headers) {
         addToBuffer(F("\": "));
         addToBuffer(*float_variables[value]);
         addToBuffer(F(", ")); 
+       }
+  }
+  #endif
+
+  // String variable selected (Mega & ESP8266 only)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
+  if (command == 's') {          
+
+       // Send feedback to client
+       if (LIGHTWEIGHT){addToBuffer(*string_variables[value]);}
+       else {
+        addToBuffer(F("{\""));
+        addToBuffer(string_variables_names[value]);
+        addToBuffer(F("\": \""));
+        addToBuffer(*string_variables[value]);
+        addToBuffer(F("\", ")); 
        }
   }
   #endif
@@ -732,6 +764,8 @@ bool send_command(bool headers) {
     if (LIGHTWEIGHT) {addToBuffer(id);}
     else {
       addToBuffer(F("{\"variables\": {"));
+
+      // Int variables
       if (variables_index > 0){
         
         for (uint8_t i = 0; i < variables_index-1; i++){
@@ -792,13 +826,24 @@ void variable(char * variable_name, int *variable){
 
 }
 
-// Float variables (Mega only)
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+// Float variables (Mega & ESP only)
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
 void variable(char * variable_name, float *variable){
 
   float_variables[float_variables_index] = variable;
   float_variables_names[float_variables_index] = variable_name;
   float_variables_index++;
+
+}
+#endif
+
+// String variables (Mega & ESP only)
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
+void variable(char * variable_name, String *variable){
+
+  string_variables[string_variables_index] = variable;
+  string_variables_names[string_variables_index] = variable_name;
+  string_variables_index++;
 
 }
 #endif
@@ -849,6 +894,22 @@ void addToBuffer(char * toAdd){
 }
 
 // Add to output buffer
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
+void addToBuffer(String toAdd){
+
+  if (DEBUG_MODE) {
+    Serial.print(F("Added to buffer: "));
+    Serial.println(toAdd);
+  }
+  
+  for (int i = 0; i < toAdd.length(); i++){
+    buffer[index+i] = toAdd[i];  
+  }
+  index = index + toAdd.length();
+}
+#endif
+
+// Add to output buffer
 void addToBuffer(uint16_t toAdd){
 
   char number[10];
@@ -866,8 +927,8 @@ void addToBuffer(int toAdd){
   addToBuffer(number);
 }
 
-// Add to output buffer (Mega only)
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+// Add to output buffer (Mega & ESP only)
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
 void addToBuffer(float toAdd){
 
   char number[10];
@@ -975,11 +1036,18 @@ private:
   int * int_variables[NUMBER_VARIABLES];
   char * int_variables_names[NUMBER_VARIABLES];
 
-  // Float variables arrays (Mega only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+  // Float variables arrays (Mega & ESP8266 only)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
   uint8_t float_variables_index;
   float * float_variables[NUMBER_VARIABLES];
   char * float_variables_names[NUMBER_VARIABLES];
+  #endif
+
+  // String variables arrays (Mega & ESP8266 only)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
+  uint8_t string_variables_index;
+  String * string_variables[NUMBER_VARIABLES];
+  char * string_variables_names[NUMBER_VARIABLES];
   #endif
 
   // Functions array
