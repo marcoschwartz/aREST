@@ -139,7 +139,9 @@ Mode is to change the mode on a pin. For example:
 
 ### Variables
 
-You can also directly call variables that are defined in your sketch. At the moment only integer & float (Arduino Mega only) variables are supported by the library. To access a variable in your sketch, you have to declare it first, and then call it from with a REST call. For example, if your aREST instance is called "rest" and the variable "temperature":
+You can also directly call variables that are defined in your sketch. Integer variables are supported by the library. Float and String variables are also supported, but only by the Arduino Mega board & by the ESP8266.
+
+To access a variable in your sketch, you have to declare it first, and then call it from with a REST call. For example, if your aREST instance is called "rest" and the variable "temperature":
   * `rest.variable("temperature",&temperature);` declares the temperature in the Arduino sketch
   * `/temperature` returns the value of the variable in JSON format
 
