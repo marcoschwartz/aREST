@@ -492,7 +492,7 @@ void process(char c){
              uint8_t footer_start = answer.length();
              if (answer.endsWith(" HTTP/"))
                footer_start -= 6; // length of " HTTP/"
-             arguments = answer.substring(header_length + 1, footer_start);
+             arguments = answer.substring(header_length + 8, footer_start);
            }
          }
        }
