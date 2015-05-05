@@ -152,7 +152,7 @@ void handle(Adafruit_CC3000_ClientRef& client) {
     handle_proto(client,true,0);
         
     // Answer
-    sendBuffer(client,32,10);
+    sendBuffer(client,64,20);
     client.stop();  
 
     // Reset variables for the next command
