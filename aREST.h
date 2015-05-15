@@ -534,10 +534,21 @@ void process(char c){
            state = 'x';
        }
 
+       // Check the type of HTTP request
+       // if (answer.startsWith("GET")) {method = "GET";}
+       // if (answer.startsWith("POST")) {method = "POST";}
+       // if (answer.startsWith("PUT")) {method = "PUT";}
+       // if (answer.startsWith("DELETE")) {method = "DELETE";}
+       
+       // if (DEBUG_MODE && method != "") {
+       //  Serial.print("Selected method: ");
+       //  Serial.println(method);
+       // }
+
      }
 
      answer = "";
-     }
+    }
 }
 
 bool send_command(bool headers) {
@@ -948,7 +959,8 @@ void addToBuffer(const __FlashStringHelper *toAdd){
 
   uint8_t idx = 0;
 
-  const char PROGMEM *p = (const char PROGMEM *)toAdd;
+  PGM_P p = reinterpret_cast<PGM_P>(toAdd);
+
   while (1) {
     unsigned char c = pgm_read_byte(p++);
     if (c == 0) break;
@@ -1019,6 +1031,8 @@ private:
   char state;
   uint16_t value;
   boolean pin_selected;
+
+  //char * method;
 
   char name[NAME_SIZE];
   char id[ID_SIZE];
