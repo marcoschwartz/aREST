@@ -49,10 +49,10 @@
 #endif
 
 // Which board?
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)
 #define NUMBER_ANALOG_PINS 16
 #define NUMBER_DIGITAL_PINS 54
-#define OUTPUT_BUFFER_SIZE 600
+#define OUTPUT_BUFFER_SIZE 5000
 #elif defined(__AVR_ATmega328P__) && !defined(ADAFRUIT_CC3000_H)
 #define NUMBER_ANALOG_PINS 6
 #define NUMBER_DIGITAL_PINS 14
@@ -94,12 +94,15 @@
 class aREST {
 
 public:
-  aREST() {
+
+aREST() {
+  
   command = 'u';
   pin_selected = false;
  
   status_led_pin = 255;
   state = 'u';
+
 }
 
 // Set status LED
@@ -564,7 +567,7 @@ bool send_command(bool headers) {
    }
 
    // Start of message
-   if (headers) {send_http_headers();}
+   if (headers && command != 'r') {send_http_headers();}
 
    // Mode selected
    if (command == 'm'){
@@ -772,7 +775,43 @@ bool send_command(bool headers) {
   }
 
   if (command == 'r') {
+    root_answer();
+  }
+
+  if (command == 'i') {
     if (LIGHTWEIGHT) {addToBuffer(id);}
+    else {
+      addToBuffer(F("{"));
+    }
+  }
+
+   // End of message
+   if (LIGHTWEIGHT){
+     addToBuffer(F("\r\n"));
+   }
+
+   else {
+
+     if (command != 'r') {
+      addToBuffer(F("\"id\": \""));
+       addToBuffer(id);
+       addToBuffer(F("\", \"name\": \""));
+       addToBuffer(name);
+       addToBuffer(F("\", \"connected\": true}\r\n"));
+     }
+   }
+
+   if (DEBUG_MODE) {
+     Serial.print(F("State of buffer at the end: "));
+     Serial.println(buffer);
+   }
+   
+   // End here
+   return true;
+}
+
+virtual void root_answer() {
+  if (LIGHTWEIGHT) {addToBuffer(id);}
     else {
       addToBuffer(F("{\"variables\": {"));
 
@@ -797,36 +836,6 @@ bool send_command(bool headers) {
       }
       
     }
-  }
-
-  if (command == 'i') {
-    if (LIGHTWEIGHT) {addToBuffer(id);}
-    else {
-      addToBuffer(F("{"));
-    }
-  }
-
-   // End of message
-   if (LIGHTWEIGHT){
-     addToBuffer(F("\r\n"));
-   }
-
-   else {
-
-     addToBuffer(F("\"id\": \""));
-     addToBuffer(id);
-     addToBuffer(F("\", \"name\": \""));
-     addToBuffer(name);
-     addToBuffer(F("\", \"connected\": true}\r\n"));
-   }
-
-   if (DEBUG_MODE) {
-     Serial.print(F("State of buffer at the end: "));
-     Serial.println(buffer);
-   }
-   
-   // End here
-   return true;
 }
 
 void variable(char * variable_name, int *variable){
@@ -1023,7 +1032,8 @@ char * getBuffer() {
 void resetBuffer(){
   memset(&buffer[0], 0, sizeof(buffer));
 }
-  
+
+
 private:
   String answer;
   char command;
@@ -1068,6 +1078,7 @@ private:
   uint8_t functions_index;
   int (*functions[NUMBER_FUNCTIONS])(String);
   char * functions_names[NUMBER_FUNCTIONS];
+
 };
 
 #endif
