@@ -52,7 +52,7 @@
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)
 #define NUMBER_ANALOG_PINS 16
 #define NUMBER_DIGITAL_PINS 54
-#define OUTPUT_BUFFER_SIZE 800
+#define OUTPUT_BUFFER_SIZE 2000
 #elif defined(__AVR_ATmega328P__) && !defined(ADAFRUIT_CC3000_H)
 #define NUMBER_ANALOG_PINS 6
 #define NUMBER_DIGITAL_PINS 14
@@ -155,7 +155,7 @@ void handle(Adafruit_CC3000_ClientRef& client) {
     handle_proto(client,true,0);
         
     // Answer
-    sendBuffer(client,64,20);
+    sendBuffer(client,32,20);
     client.stop();  
 
     // Reset variables for the next command
@@ -461,7 +461,7 @@ void process(char c){
        }
 
        // Check if variable name is in float array (Mega & ESP8266 only)
-       #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
+       #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE)
        for (uint8_t i = 0; i < float_variables_index; i++){
          if(answer.startsWith(float_variables_names[i])) {
            
@@ -477,7 +477,7 @@ void process(char c){
        #endif
 
        // Check if variable name is in float array (Mega & ESP8266 only)
-       #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
+       #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE)
        for (uint8_t i = 0; i < string_variables_index; i++){
          if(answer.startsWith(string_variables_names[i])) {
            
@@ -726,7 +726,7 @@ bool send_command(bool headers) {
   }
 
   // Float ariable selected (Mega only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE)
   if (command == 'l') {          
 
        // Send feedback to client
@@ -742,7 +742,7 @@ bool send_command(bool headers) {
   #endif
 
   // String variable selected (Mega & ESP8266 only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE)
   if (command == 's') {          
 
        // Send feedback to client
@@ -847,7 +847,7 @@ void variable(char * variable_name, int *variable){
 }
 
 // Float variables (Mega & ESP only)
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE)
 void variable(char * variable_name, float *variable){
 
   float_variables[float_variables_index] = variable;
@@ -858,7 +858,7 @@ void variable(char * variable_name, float *variable){
 #endif
 
 // String variables (Mega & ESP only)
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE)
 void variable(char * variable_name, String *variable){
 
   string_variables[string_variables_index] = variable;
@@ -914,7 +914,7 @@ void addToBuffer(char * toAdd){
 }
 
 // Add to output buffer
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE)
 void addToBuffer(String toAdd){
 
   if (DEBUG_MODE) {
@@ -948,7 +948,7 @@ void addToBuffer(int toAdd){
 }
 
 // Add to output buffer (Mega & ESP only)
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE)
 void addToBuffer(float toAdd){
 
   char number[10];
@@ -982,10 +982,10 @@ void addToBuffer(const __FlashStringHelper *toAdd){
 template <typename T>
 void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
 
-  // if (DEBUG_MODE) {
-  //   Serial.print(F("Sending buffer: "));
-  //   Serial.println(buffer);
-  // }  
+  if (DEBUG_MODE) {
+    Serial.print(F("Buffer size: "));
+    Serial.println(index);
+  }  
 
   // Send all of it
   if (chunkSize == 0) {
@@ -1061,14 +1061,14 @@ private:
   char * int_variables_names[NUMBER_VARIABLES];
 
   // Float variables arrays (Mega & ESP8266 only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE)
   uint8_t float_variables_index;
   float * float_variables[NUMBER_VARIABLES];
   char * float_variables_names[NUMBER_VARIABLES];
   #endif
 
   // String variables arrays (Mega & ESP8266 only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE)
   uint8_t string_variables_index;
   String * string_variables[NUMBER_VARIABLES];
   char * string_variables_names[NUMBER_VARIABLES];
