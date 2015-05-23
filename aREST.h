@@ -83,12 +83,20 @@
 
 // Default number of max. exposed variables
 #ifndef NUMBER_VARIABLES
-#define NUMBER_VARIABLES 5
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)
+  #define NUMBER_VARIABLES 10
+  #else
+  #define NUMBER_VARIABLES 5
+  #endif
 #endif
 
 // Default number of max. exposed functions
 #ifndef NUMBER_FUNCTIONS
-#define NUMBER_FUNCTIONS 5
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)
+  #define NUMBER_FUNCTIONS 10
+  #else
+  #define NUMBER_FUNCTIONS 5
+  #endif
 #endif
 
 class aREST {
