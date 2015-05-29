@@ -207,7 +207,7 @@ void handle(Adafruit_BLE_UART& serial) {
 }
 
 // Handle request for the Arduino Ethernet shield
-#elif defined(ethernet_h)
+#elif defined(ethernet_h) || defined(UIPETHERNET_H)
 void handle(EthernetClient& client){
 
   if (client.available()) {
