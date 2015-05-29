@@ -880,6 +880,7 @@ virtual void root_answer() {
     }
 }
 
+#ifndef DISABLE_VARIABLE_ENDPOINT
 void variable(char * variable_name, int *variable){
 
   int_variables[variables_index] = variable;
@@ -910,12 +911,16 @@ void variable(char * variable_name, String *variable){
 }
 #endif
 
+#endif
+
+#ifndef DISABLE_FUNCTION_ENDPOINT
 void function(char * function_name, int (*f)(String)){
 
   functions_names[functions_index] = function_name;
   functions[functions_index] = f;
   functions_index++;
 }
+#endif
 
 // Set device ID
 void set_id(char *device_id){
