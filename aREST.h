@@ -835,7 +835,8 @@ bool send_command(bool headers) {
    else {
 
      if (command != 'r') {
-      addToBuffer(F("\"id\": \""));
+       addToBuffer(F("{"));
+       addToBuffer(F("\"id\": \""));
        addToBuffer(id);
        addToBuffer(F("\", \"name\": \""));
        addToBuffer(name);
@@ -873,9 +874,8 @@ virtual void root_answer() {
         addToBuffer(*int_variables[variables_index-1]);
         addToBuffer(F("}, "));
       }
-      else {
-        addToBuffer(F(" }, "));
-      }
+      
+      addToBuffer(F("} }"));
       
     }
 }
