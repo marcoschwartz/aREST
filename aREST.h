@@ -230,7 +230,9 @@ void handle(WiFiClient& client){
 
   if (client.available()) {
 
-    if (DEBUG_MODE) {Serial.println("Request received");}
+    #if DEBUG_MODE
+    Serial.println("Request received");
+    #endif
 
     // Handle request
     handle_proto(client,true,0);
@@ -250,7 +252,9 @@ void handle(WiFiClient& client){
 
   if (client.available()) {
 
-    if (DEBUG_MODE) {Serial.println("Request received");}
+    #if DEBUG_MODE
+    Serial.println("Request received");
+    #endif
 
     // Handle request
     handle_proto(client,true,0);
@@ -352,7 +356,9 @@ void handle_proto(T& serial, bool headers, uint8_t read_delay)
     char c = serial.read();
     delay(read_delay);
     answer = answer + c;
-    //if (DEBUG_MODE) {Serial.print(c);}
+    // #if (DEBUG_MODE)
+    // Serial.print(c);
+    // #endif
 
     // Process data
     process(c);
@@ -368,7 +374,9 @@ void process(char c){
   // Check if we are receveing useful data and process it
   if ((c == '/' || c == '\r') && state == 'u') {
 
-      if (DEBUG_MODE) {Serial.println(answer);}
+      #if DEBUG_MODE
+      Serial.println(answer);
+      #endif
 
       // If the command is mode, and the pin is already selected    
       if (command == 'm' && pin_selected && state == 'u') {
@@ -408,10 +416,11 @@ void process(char c){
        else {
          pin = answer.toInt();
        }
-       if (DEBUG_MODE) {
-        Serial.print("Selected pin: ");
-        Serial.println(pin);
-       }
+       #if DEBUG_MODE
+       Serial.print("Selected pin: ");
+       Serial.println(pin);
+       #endif
+
        pin_selected = true;
 
        // Nothing more ?
@@ -441,15 +450,24 @@ void process(char c){
      }  
 
    }
-     
      // Digital command received ?    
+     #ifndef DISABLE_PINS_ENDPOINT
+
+     #ifndef DISABLE_DIGITAL_ENDPOINT
      if (answer.startsWith("digital")) {command = 'd';}
+     #endif
           
      // Mode command received ?
+     #ifndef DISABLE_MODE_ENDPOINT
      if (answer.startsWith("mode")) {command = 'm';}
+     #endif
           
      // Analog command received ?
+     #ifndef DISABLE_ANALOG_ENDPOINT
      if (answer.startsWith("analog")) {command = 'a';}
+     #endif
+
+     #endif
 
      // Variable or function request received ?
      if (command == 'u') {
@@ -551,10 +569,12 @@ void process(char c){
        // if (answer.startsWith("PUT")) {method = "PUT";}
        // if (answer.startsWith("DELETE")) {method = "DELETE";}
        
-       // if (DEBUG_MODE && method != "") {
-       //  Serial.print("Selected method: ");
-       //  Serial.println(method);
+       // #if DEBUG_MODE
+       // if (method != "") {
+       // Serial.print("Selected method: ");
+       // Serial.println(method);
        // }
+       // #endif
 
      }
 
@@ -564,20 +584,23 @@ void process(char c){
 
 bool send_command(bool headers) {
 
-   if (DEBUG_MODE) {
-     Serial.println(F("Sending command"));
-     Serial.print(F("Command: "));
-     Serial.println(command);
-     Serial.print(F("State: "));
-     Serial.println(state);
-     Serial.print(F("State of buffer at the start: "));
-     Serial.println(buffer);
-   }
+   #if DEBUG_MODE
+    Serial.println(F("Sending command"));
+    Serial.print(F("Command: "));
+    Serial.println(command);
+    Serial.print(F("State: "));
+    Serial.println(state);
+    Serial.print(F("State of buffer at the start: "));
+    Serial.println(buffer);
+   #endif
 
    // Start of message
    if (headers && command != 'r') {send_http_headers();}
 
+   #ifndef DISABLE_PINS_ENDPOINT
+   
    // Mode selected
+   #ifndef DISABLE_MODE_ENDPOINT
    if (command == 'm'){
 
      // Send feedback to client 
@@ -607,8 +630,10 @@ bool send_command(bool headers) {
      }
 
    }
+   #endif
 
    // Digital selected
+   #ifndef DISABLE_DIGITAL_ENDPOINT
    if (command == 'd') {
      if (state == 'r'){
 
@@ -664,8 +689,10 @@ bool send_command(bool headers) {
        }
      }
    }
+   #endif
 
    // Analog selected
+   #ifndef DISABLE_ANALOG_ENDPOINT
    if (command == 'a') {
      if (state == 'r'){
        
@@ -718,7 +745,10 @@ bool send_command(bool headers) {
 
    }
   }
+   #endif
+  #endif
 
+  #ifndef DISABLE_VARIABLE_ENDPOINT
   // Variable selected
   if (command == 'v') {          
 
@@ -765,6 +795,9 @@ bool send_command(bool headers) {
   }
   #endif
 
+  #endif
+
+  #ifndef DISABLE_FUNCTION_ENDPOINT
   // Function selected
   if (command == 'f') {
 
@@ -781,6 +814,7 @@ bool send_command(bool headers) {
      //addToBuffer(F(" executed\", "));
     }
   }
+  #endif
 
   if (command == 'r') {
     root_answer();
@@ -809,10 +843,10 @@ bool send_command(bool headers) {
      }
    }
 
-   if (DEBUG_MODE) {
-     Serial.print(F("State of buffer at the end: "));
-     Serial.println(buffer);
-   }
+   #if DEBUG_MODE
+   Serial.print(F("State of buffer at the end: "));
+   Serial.println(buffer);
+   #endif
    
    // End here
    return true;
@@ -910,10 +944,10 @@ void set_id(String device_id){
 // Add to output buffer
 void addToBuffer(char * toAdd){
 
-  if (DEBUG_MODE) {
-    Serial.print(F("Added to buffer: "));
-    Serial.println(toAdd);
-  }
+  #if DEBUG_MODE
+  Serial.print(F("Added to buffer: "));
+  Serial.println(toAdd);
+  #endif
   
   for (int i = 0; i < strlen(toAdd); i++){
     buffer[index+i] = toAdd[i];  
@@ -925,10 +959,10 @@ void addToBuffer(char * toAdd){
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE)
 void addToBuffer(String toAdd){
 
-  if (DEBUG_MODE) {
-    Serial.print(F("Added to buffer: "));
-    Serial.println(toAdd);
-  }
+  #if DEBUG_MODE
+  Serial.print(F("Added to buffer: "));
+  Serial.println(toAdd);
+  #endif
   
   for (int i = 0; i < toAdd.length(); i++){
     buffer[index+i] = toAdd[i];  
@@ -969,10 +1003,10 @@ void addToBuffer(float toAdd){
 // Add to output buffer
 void addToBuffer(const __FlashStringHelper *toAdd){
 
-  // if (DEBUG_MODE) {
-  //   Serial.print(F("Added to buffer: "));
-  //   Serial.println(toAdd);
-  // }
+  // #if DEBUG_MODE
+  // Serial.print(F("Added to buffer: "));
+  // Serial.println(toAdd);
+  // #endif
 
   uint8_t idx = 0;
 
@@ -990,10 +1024,10 @@ void addToBuffer(const __FlashStringHelper *toAdd){
 template <typename T>
 void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
 
-  if (DEBUG_MODE) {
-    Serial.print(F("Buffer size: "));
-    Serial.println(index);
-  }  
+  #if DEBUG_MODE
+  Serial.print(F("Buffer size: "));
+  Serial.println(index);
+  #endif
 
   // Send all of it
   if (chunkSize == 0) {
@@ -1022,10 +1056,10 @@ void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
       // Wait for client to get data
       delay(wait_time);
 
-      if (DEBUG_MODE) {
-        Serial.print(F("Sent buffer: "));
-        Serial.println(intermediate_buffer);
-      }
+      #if DEBUG_MODE
+      Serial.print(F("Sent buffer: "));
+      Serial.println(intermediate_buffer);
+      #endif
     }
   }
     
