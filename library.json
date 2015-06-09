@@ -8,5 +8,11 @@
     "url": "https://github.com/marcoschwartz/aREST.git"
   },
   "frameworks": "arduino",
-  "platforms": "atmelavr"
+  "platforms":
+  [
+    "atmelavr",
+    "atmelsam",
+    "espressif",
+    "teensy"
+  ]
 }
