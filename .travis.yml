@@ -1,0 +1,27 @@
+language: python
+python:
+    - "2.7"
+
+env:
+    - PLATFORMIO_CI_SRC=examples/BLE
+    - PLATFORMIO_CI_SRC=examples/ESP8266 PLATFORMIO_CI_BOARDS_ARGS="--board=esp01"
+    - PLATFORMIO_CI_SRC=examples/Ethernet
+    - PLATFORMIO_CI_SRC=examples/Serial
+    - PLATFORMIO_CI_SRC=examples/WiFi
+    - PLATFORMIO_CI_SRC=examples/WiFi_CC3000
+    - PLATFORMIO_CI_SRC=examples/WiFi_CC3000_Due PLATFORMIO_CI_BOARDS_ARGS="--board=due"
+    - PLATFORMIO_CI_SRC=examples/Yun PLATFORMIO_CI_BOARDS_ARGS="--board=yun"
+
+install:
+    - python -c "$(curl -fsSL https://raw.githubusercontent.com/platformio/platformio/master/scripts/get-platformio.py)"
+    #
+    # Libraries from PlatformIO Library Registry:
+    #
+    # http://platformio.org/#!/lib/show/17/Adafruit-CC3000
+    # http://platformio.org/#!/lib/show/426/nRF8001
+    # http://platformio.org/#!/lib/show/427/CC3000_MDNS
+
+    - platformio lib install 17 426 427
+
+script:
+    - if [[ $PLATFORMIO_CI_BOARDS_ARGS ]]; then bash -c 'platformio ci --lib="." $PLATFORMIO_CI_BOARDS_ARGS'; else bash -c 'platformio ci --lib="." --board=uno --board=teensy31'; fi
