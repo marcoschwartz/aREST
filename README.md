@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/marcoschwartz/aREST.svg)](https://travis-ci.org/marcoschwartz/aREST)
+__________
+
 # aREST
 
 Version 1.9.8
@@ -101,7 +104,7 @@ To install the library, simply clone this repository in the /libraries folder of
 1. Connect a LED & resistor to pin number 8 of your Arduino board
 2. Open the BLE example sketch
 3. Upload the sketch
-4. Use the [BlueFruit LE Connect app](https://itunes.apple.com/fr/app/adafruit-bluefruit-le-connect/id830125974?mt=8) to connect to the BLE chip 
+4. Use the [BlueFruit LE Connect app](https://itunes.apple.com/fr/app/adafruit-bluefruit-le-connect/id830125974?mt=8) to connect to the BLE chip
 5. Type `/mode/8/o /` to set the pin as an output
 6. Now type `/digital/8/1 /` and the LED should turn on
 
@@ -167,7 +170,7 @@ rest.set_status_led(led_pin);
 
 ### Lightweight mode (BETA)
 
-There is the possibility to use a lightweight mode for aREST. This means that for commands to control the Arduino board (like digitalWrite commands), no data is returned at all. For commands that ask for data to be sent back (like asking for a variable), in this mode the library will only return the value of the data that was requested. 
+There is the possibility to use a lightweight mode for aREST. This means that for commands to control the Arduino board (like digitalWrite commands), no data is returned at all. For commands that ask for data to be sent back (like asking for a variable), in this mode the library will only return the value of the data that was requested.
 
 This mode was made for cases where the memory footprint of the aREST library has to be as small as possible, or with devices that can't send/receive a lot of data at the same time, like Bluetooth LE. To enable this lightweight mode, simply start your sketch with:
 
