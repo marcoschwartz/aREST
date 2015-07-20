@@ -65,11 +65,10 @@ void loop() {
   
   // Handle REST calls
   WiFiClient client = server.available();
-  if (!client) {
-    return;
-  }
-  while(!client.available()){
-    delay(1);
+  if (client) {
+    while (!client.available()) {
+      delay(1);
+    }
   }
   rest.handle(client);
  
