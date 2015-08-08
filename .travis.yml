@@ -9,7 +9,8 @@ before_install:
   - sudo ln -s /usr/local/share/arduino/arduino /usr/local/bin/arduino
 install:
   - ln -s $PWD /usr/local/share/arduino/libraries/aREST
-  - arduino --install-library "Adafruit CC3000 Library, CC3000 Multicast DNS"
+  - arduino --install-library "Adafruit CC3000 Library"
+  - arduino --install-library "CC3000 MDNS"
 script:
   - arduino --verify --board arduino:avr:uno $PWD/examples/Serial/Serial.ino
   - arduino --verify --board arduino:avr:uno $PWD/examples/WiFi_CC3000/WiFi_CC3000.ino
