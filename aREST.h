@@ -801,7 +801,7 @@ bool send_command(bool headers) {
    else {
 
      if (command != 'r') {
-      addToBuffer(F("\"id\": \""));
+       addToBuffer(F("\"id\": \""));
        addToBuffer(id);
        addToBuffer(F("\", \"name\": \""));
        addToBuffer(name);
@@ -819,31 +819,95 @@ bool send_command(bool headers) {
 }
 
 virtual void root_answer() {
-  if (LIGHTWEIGHT) {addToBuffer(id);}
-    else {
-      addToBuffer(F("{\"variables\": {"));
 
-      // Int variables
+  #if defined(ADAFRUIT_CC3000_H) || defined(ESP8266) || defined(ethernet_h) || defined(WiFi_h)
+  addToBuffer(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
+  #endif
+
+  if (LIGHTWEIGHT) {addToBuffer(id);}
+  else {
+    
+    // Start
+    addToBuffer(F("{\"variables\": {"));
+
+    #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE)
+    
+    // Int variables
+    if (variables_index == 0 && string_variables_index == 0 && float_variables_index == 0){
+      addToBuffer(F(" }, "));
+    }
+    else {
+
       if (variables_index > 0){
-        
-        for (uint8_t i = 0; i < variables_index-1; i++){
+
+        for (uint8_t i = 0; i < variables_index; i++){
           addToBuffer(F("\""));
           addToBuffer(int_variables_names[i]);
           addToBuffer(F("\": "));
           addToBuffer(*int_variables[i]);
           addToBuffer(F(", "));
         }
-        addToBuffer(F("\""));
-        addToBuffer(int_variables_names[variables_index-1]);
-        addToBuffer(F("\": "));
-        addToBuffer(*int_variables[variables_index-1]);
-        addToBuffer(F("}, "));
+
       }
-      else {
-        addToBuffer(F(" }, "));
+      if (string_variables_index > 0){
+
+        for (uint8_t i = 0; i < string_variables_index; i++){
+          addToBuffer(F("\""));
+          addToBuffer(string_variables_names[i]);
+          addToBuffer(F("\": \""));
+          addToBuffer(*string_variables[i]);
+          addToBuffer(F("\", "));
+        }
+        
+      }
+      if (float_variables_index > 0){
+
+        for (uint8_t i = 0; i < float_variables_index; i++){
+          addToBuffer(F("\""));
+          addToBuffer(float_variables_names[i]);
+          addToBuffer(F("\": "));
+          addToBuffer(*float_variables[i]);
+          addToBuffer(F(", "));
+        }
+        
+      }
+      removeLastBufferChar();
+      removeLastBufferChar();
+      addToBuffer(F("}, "));
+
+    }
+    #else
+    // Int variables
+    if (variables_index > 0){
+        
+      for (uint8_t i = 0; i < variables_index-1; i++){
+        addToBuffer(F("\""));
+        addToBuffer(int_variables_names[i]);
+        addToBuffer(F("\": "));
+        addToBuffer(*int_variables[i]);
+        addToBuffer(F(", "));
       }
       
+      // End
+      addToBuffer(F("\""));
+      addToBuffer(int_variables_names[variables_index-1]);
+      addToBuffer(F("\": "));
+      addToBuffer(*int_variables[variables_index-1]);
+      addToBuffer(F("}, "));
     }
+    else {
+      addToBuffer(F(" }, "));
+    } 
+    #endif
+       
+  }
+
+  // End
+  addToBuffer(F("\"id\": \""));
+  addToBuffer(id);
+  addToBuffer(F("\", \"name\": \""));
+  addToBuffer(name);
+  addToBuffer(F("\", \"connected\": true}\r\n"));
 }
 
 void variable(char * variable_name, int *variable){
@@ -905,6 +969,13 @@ void set_name(String device_name){
 void set_id(String device_id){
 
   device_id.toCharArray(id, NAME_SIZE);
+}
+
+// Remove last char from buffer
+void removeLastBufferChar() {
+
+  index = index - 1;
+
 }
 
 // Add to output buffer
