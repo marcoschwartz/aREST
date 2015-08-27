@@ -316,7 +316,7 @@ void handle(HardwareSerial& serial){
 }
 #endif
 
-void handle(char * string) {
+void handle(const char * string) {
 
   // Process String
   handle_proto(string);
@@ -325,7 +325,7 @@ void handle(char * string) {
   reset_status();     
 }
 
-void handle_proto(char * string) {
+void handle_proto(const char * string) {
   // Check if there is data available to read
   for (int i = 0; i < strlen(string); i++){
 
@@ -910,7 +910,7 @@ virtual void root_answer() {
   addToBuffer(F("\", \"connected\": true}\r\n"));
 }
 
-void variable(char * variable_name, int *variable){
+void variable(const char * variable_name, int *variable){
 
   int_variables[variables_index] = variable;
   int_variables_names[variables_index] = variable_name;
@@ -920,7 +920,7 @@ void variable(char * variable_name, int *variable){
 
 // Float variables (Mega & ESP only)
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE)
-void variable(char * variable_name, float *variable){
+void variable(const char * variable_name, float *variable){
 
   float_variables[float_variables_index] = variable;
   float_variables_names[float_variables_index] = variable_name;
@@ -931,7 +931,7 @@ void variable(char * variable_name, float *variable){
 
 // String variables (Mega & ESP only)
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE)
-void variable(char * variable_name, String *variable){
+void variable(const char * variable_name, String *variable){
 
   string_variables[string_variables_index] = variable;
   string_variables_names[string_variables_index] = variable_name;
@@ -940,7 +940,7 @@ void variable(char * variable_name, String *variable){
 }
 #endif
 
-void function(char * function_name, int (*f)(String)){
+void function(const char * function_name, int (*f)(String)){
 
   functions_names[functions_index] = function_name;
   functions[functions_index] = f;
@@ -948,13 +948,13 @@ void function(char * function_name, int (*f)(String)){
 }
 
 // Set device ID
-void set_id(char *device_id){
+void set_id(const char *device_id){
 
   strcpy(id,device_id);
 }
 
 // Set device name
-void set_name(char *device_name){
+void set_name(const char *device_name){
   
   strcpy(name, device_name);
 }
@@ -979,7 +979,7 @@ void removeLastBufferChar() {
 }
 
 // Add to output buffer
-void addToBuffer(char * toAdd){
+void addToBuffer(const char * toAdd){
 
   if (DEBUG_MODE) {
     Serial.print(F("Added to buffer: "));
@@ -1137,26 +1137,26 @@ private:
   // Int variables arrays
   uint8_t variables_index;
   int * int_variables[NUMBER_VARIABLES];
-  char * int_variables_names[NUMBER_VARIABLES];
+  const char * int_variables_names[NUMBER_VARIABLES];
 
   // Float variables arrays (Mega & ESP8266 only)
   #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE)
   uint8_t float_variables_index;
   float * float_variables[NUMBER_VARIABLES];
-  char * float_variables_names[NUMBER_VARIABLES];
+  const char * float_variables_names[NUMBER_VARIABLES];
   #endif
 
   // String variables arrays (Mega & ESP8266 only)
   #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE)
   uint8_t string_variables_index;
   String * string_variables[NUMBER_VARIABLES];
-  char * string_variables_names[NUMBER_VARIABLES];
+  const char * string_variables_names[NUMBER_VARIABLES];
   #endif
 
   // Functions array
   uint8_t functions_index;
   int (*functions[NUMBER_FUNCTIONS])(String);
-  char * functions_names[NUMBER_FUNCTIONS];
+  const char * functions_names[NUMBER_FUNCTIONS];
 
 };
 
