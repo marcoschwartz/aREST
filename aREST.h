@@ -770,7 +770,7 @@ bool send_command(bool headers) {
   if (command == 'f') {
 
     // Execute function
-    uint8_t result = functions[value](arguments);
+    int result = functions[value](arguments);
 
     // Send feedback to client
     if (!LIGHTWEIGHT) {
