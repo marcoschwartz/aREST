@@ -1,6 +1,6 @@
 # aREST [![Build Status](https://travis-ci.org/marcoschwartz/aREST.svg?branch=master)](https://travis-ci.org/marcoschwartz/aREST)
 
-Version 2.0.0
+Version 2.0.1
 
 ## Overview
 
@@ -9,6 +9,8 @@ A simple library that implements a REST API for Arduino & the ESP8266 WiFi chip.
 It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip, the Ethernet shield or the Arduino Yun), via the Serial port (using the USB serial connection, Bluetooth, and XBee) and also via Bluetooth Low Energy.
 
 It also works with the ESP8266 WiFi chip using the ESP8266 processor, therefore working as an independent unit.
+
+Boards running aREST can also be accessed from anywhere in the world via an API available at `cloud.arest.io`. Check the rest of this file and the examples ending with *_cloud* for more details. This currently only works with the ESP8266 WiFi chip.
 
 If you want to know more about aREST, go over to [http://arest.io/](http://arest.io/).
 
@@ -67,6 +69,10 @@ To use the library with the ESP8266 WiFi chip you will need to install the requi
 
 - [Adafruit nRF8001 Library](https://github.com/adafruit/Adafruit_nRF8001)
 
+### For Cloud Access
+
+- [PubSub Library](https://github.com/knolleary/pubsubclient)
+
 ## Setup
 
 To install the library, simply clone this repository in the /libraries folder of your Arduino folder.
@@ -113,6 +119,14 @@ To install the library, simply clone this repository in the /libraries folder of
 4. Open the Serial monitor to get the IP address of the board, for example 192.168.1.103
 5. Go to a web browser and type `192.168.1.103/mode/5/o` to set the pin as an output
 6. Now type `192.168.1.103/digital/5/1` and the LED should turn on
+
+## Cloud Access (ESP8266) (BETA)
+
+1. Connect a LED & resistor to pin number 5 of your ESP8266 board
+2. Open the ESP8266_cloud example sketch and modify the WiFi SSID & password, and also give a unique ID to your project
+3. Upload the sketch to the board
+5. Go to a web browser and type `cloud.arest.io/mode/5/o` to set the pin as an output
+6. Now type `cloud.arest.io/digital/5/1` and the LED should turn on
 
 ## API documentation
 

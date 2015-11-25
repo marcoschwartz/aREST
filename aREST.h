@@ -6,6 +6,7 @@
   Version 2.0.0
   Changelog:
 
+  Version 2.0.1: Added beta support for cloud access via cloud.arest.io
   Version 2.0.0: Added beta support for MQTT communications
   Version 1.9.10: Added support for floats & Strings for Uno (without the CC3000 chip)
   Version 1.9.8: Added support for ESP8266 chip
@@ -398,12 +399,14 @@ void handle_callback(PubSubClient& client, char* topic, byte* payload, unsigned 
 
   String msgString = String(mqtt_msg);
 
-  Serial.print("Received message via MQTT: ");
-  Serial.println(msgString);
+  if (DEBUG_MODE) {
+    Serial.print("Received message via MQTT: ");
+    Serial.println(msgString);
+  }
 
   String modified_message = String(msgString) + " /";
-  char char_message[50];
-  modified_message.toCharArray(char_message, 50);
+  char char_message[100];
+  modified_message.toCharArray(char_message, 100);
 
   handle(char_message);
   char * answer = getBuffer();
@@ -411,8 +414,10 @@ void handle_callback(PubSubClient& client, char* topic, byte* payload, unsigned 
   String output = String(answer);
   output.trim();
 
-  Serial.print("Sending message via MQTT: ");
-  Serial.println(output);
+  if (DEBUG_MODE) {
+    Serial.print("Sending message via MQTT: ");
+    Serial.println(output);
+  }
   client.publish(out_topic, (char *) output.c_str());
   resetBuffer();
 }
@@ -905,9 +910,11 @@ bool send_command(bool headers) {
 virtual void root_answer() {
 
   #if defined(ADAFRUIT_CC3000_H) || defined(ESP8266) || defined(ethernet_h) || defined(WiFi_h)
-  if (command != 'u') {
-    addToBuffer(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
-  }
+    #if !defined(PubSubClient_h)
+      if (command != 'u') {
+        addToBuffer(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
+      }
+    #endif
   #endif
 
   if (LIGHTWEIGHT) {addToBuffer(id);}
@@ -1238,11 +1245,11 @@ private:
   // MQTT client
   #if defined(PubSubClient_h)
 
-  char in_topic[50];
-  char out_topic[50];
+  char in_topic[100];
+  char out_topic[100];
 
-  const char* mqtt_server = "192.168.0.101";
-  //const char* mqtt_server = "45.55.79.41";
+  //const char* mqtt_server = "192.168.0.101";
+  const char* mqtt_server = "45.55.79.41";
   #endif
 
   // Float variables arrays (Mega & ESP8266 only)
