@@ -3,9 +3,10 @@
   See the README file for more details.
 
   Written in 2014 by Marco Schwartz under a GPL license.
-  Version 2.0.0
+  Version 2.0.2
   Changelog:
 
+  Version 2.0.2: Added cloud access support for the Ethernet library
   Version 2.0.1: Added beta support for cloud access via cloud.arest.io
   Version 2.0.0: Added beta support for MQTT communications
   Version 1.9.10: Added support for floats & Strings for Uno (without the CC3000 chip)
@@ -389,9 +390,9 @@ void handle_proto(T& serial, bool headers, uint8_t read_delay)
 // Process callback
 void handle_callback(PubSubClient& client, char* topic, byte* payload, unsigned int length) {
 
+  // Process received message
   int i;
   char mqtt_msg[100];
-  // Create character buffer with ending null terminator (string)
   for(i = 0; i < length; i++) {
     mqtt_msg[i] = payload[i];
   }
@@ -408,17 +409,18 @@ void handle_callback(PubSubClient& client, char* topic, byte* payload, unsigned 
   char char_message[100];
   modified_message.toCharArray(char_message, 100);
 
+  // Handle command with aREST
   handle(char_message);
+
+  // Read answer
   char * answer = getBuffer();
 
-  String output = String(answer);
-  output.trim();
-
+  // Send response
   if (DEBUG_MODE) {
     Serial.print("Sending message via MQTT: ");
-    Serial.println(output);
+    Serial.println(answer);
   }
-  client.publish(out_topic, (char *) output.c_str());
+  client.publish(out_topic, answer);
   resetBuffer();
 }
 
@@ -436,15 +438,15 @@ void loop(PubSubClient& client){
 void reconnect(PubSubClient& client) {
   // Loop until we're reconnected
   while (!client.connected()) {
-    Serial.print("Attempting MQTT connection...");
+    Serial.print(F("Attempting MQTT connection..."));
     // Attempt to connect
     if (client.connect(id)) {
-      Serial.println("connected");
+      Serial.println(F("Connected to aREST.io"));
       client.subscribe(in_topic);
     } else {
-      Serial.print("failed, rc=");
+      Serial.print(F("failed, rc="));
       Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
+      Serial.println(F(" try again in 5 seconds"));
       // Wait 5 seconds before retrying
       delay(5000);
     }
@@ -1245,8 +1247,8 @@ private:
   // MQTT client
   #if defined(PubSubClient_h)
 
-  char in_topic[100];
-  char out_topic[100];
+  char in_topic[15];
+  char out_topic[15];
 
   //const char* mqtt_server = "192.168.0.101";
   const char* mqtt_server = "45.55.79.41";
