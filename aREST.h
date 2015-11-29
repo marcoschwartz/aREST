@@ -47,6 +47,11 @@
 // Include Arduino header
 #include "Arduino.h"
 
+// MQTT packet size
+#if defined(PubSubClient_h)
+#define MQTT_MAX_PACKET_SIZE 256
+#endif
+
 // Using ESP8266 ?
 #if defined(ESP8266)
 #include "stdlib_noniso.h"
