@@ -1050,18 +1050,15 @@ void function(char * function_name, int (*f)(String)){
 // Set device ID
 void set_id(char *device_id){
 
-  strcpy(id,device_id);
+  strncpy(id,device_id, ID_SIZE);
 
   #if defined(PubSubClient_h)
-  char bufferone[5];
-  strcpy(bufferone, "_in");
   strcpy(in_topic, id);
-  strcat(in_topic, bufferone);
+  strcat(in_topic, "_in");
 
   char bufferbis[5];
-  strcpy(bufferbis, "_out");
   strcpy(out_topic, id);
-  strcat(out_topic, bufferbis);
+  strcat(out_topic, "_out");
   #endif
 
 }
@@ -1081,7 +1078,8 @@ void set_name(String device_name){
 // Set device ID
 void set_id(String device_id){
 
-  device_id.toCharArray(id, NAME_SIZE);
+  device_id.toCharArray(id, ID_SIZE);
+  set_id(id);
 }
 
 // Remove last char from buffer
@@ -1234,7 +1232,7 @@ private:
   boolean pin_selected;
 
   char name[NAME_SIZE];
-  char id[ID_SIZE];
+  char id[ID_SIZE+1];
   String arguments;
 
   // Output uffer
@@ -1252,8 +1250,8 @@ private:
   // MQTT client
   #if defined(PubSubClient_h)
 
-  char in_topic[15];
-  char out_topic[15];
+  char in_topic[ID_SIZE+5];
+  char out_topic[ID_SIZE+5];
 
   //const char* mqtt_server = "192.168.0.101";
   const char* mqtt_server = "45.55.79.41";
