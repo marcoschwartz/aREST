@@ -3,9 +3,10 @@
   See the README file for more details.
 
   Written in 2014 by Marco Schwartz under a GPL license.
-  Version 2.0.2
+  Version 2.0.3
   Changelog:
 
+  Version 2.0.2: Able to change MQTT remote server
   Version 2.0.2: Added cloud access support for the Ethernet library
   Version 2.0.1: Added beta support for cloud access via cloud.arest.io
   Version 2.0.0: Added beta support for MQTT communications
@@ -48,9 +49,8 @@
 #include "Arduino.h"
 
 // MQTT packet size
-#if defined(PubSubClient_h)
-#define MQTT_MAX_PACKET_SIZE 256
-#endif
+#undef MQTT_MAX_PACKET_SIZE
+#define MQTT_MAX_PACKET_SIZE 512
 
 // Using ESP8266 ?
 #if defined(ESP8266)
@@ -123,6 +123,8 @@ aREST() {
 }
 
 #if defined(PubSubClient_h)
+
+// With default server
 aREST(PubSubClient& client) {
 
   command = 'u';
@@ -134,6 +136,21 @@ aREST(PubSubClient& client) {
   client.setServer(mqtt_server, 1883);
 
 }
+
+// With another server
+aREST(PubSubClient& client, char* new_mqtt_server) {
+
+  command = 'u';
+  pin_selected = false;
+
+  status_led_pin = 255;
+  state = 'u';
+
+  setMQTTServer(new_mqtt_server);
+  client.setServer(new_mqtt_server, 1883);
+
+}
+
 char* get_topic() {
   return out_topic;
 }
@@ -1223,6 +1240,12 @@ void resetBuffer(){
   memset(&buffer[0], 0, sizeof(buffer));
 }
 
+#if defined(PubSubClient_h)
+void setMQTTServer(char* new_mqtt_server){
+  mqtt_server = new_mqtt_server;
+}
+#endif
+
 private:
   String answer;
   char command;
@@ -1254,7 +1277,7 @@ private:
   char out_topic[ID_SIZE+5];
 
   //const char* mqtt_server = "192.168.0.101";
-  const char* mqtt_server = "45.55.79.41";
+  char* mqtt_server = "45.55.79.41";
   #endif
 
   // Float variables arrays (Mega & ESP8266 only)
