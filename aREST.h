@@ -3,9 +3,10 @@
   See the README file for more details.
 
   Written in 2014 by Marco Schwartz under a GPL license.
-  Version 2.0.3
+  Version 2.1.0
   Changelog:
 
+  Version 2.1.0: Added publish() function
   Version 2.0.2: Able to change MQTT remote server
   Version 2.0.2: Added cloud access support for the Ethernet library
   Version 2.0.1: Added beta support for cloud access via cloud.arest.io
@@ -122,6 +123,19 @@ aREST() {
 
 }
 
+aREST(char* rest_remote_server, int rest_port) {
+
+  command = 'u';
+  pin_selected = false;
+
+  status_led_pin = 255;
+  state = 'u';
+
+  remote_server = rest_remote_server;
+  port = rest_port;
+
+}
+
 #if defined(PubSubClient_h)
 
 // With default server
@@ -215,6 +229,14 @@ void handle(Adafruit_CC3000_ClientRef& client) {
   }
 }
 
+template <typename T>
+void publish(Adafruit_CC3000_ClientRef& client, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
+}
+
 // Handle request with the Arduino Yun
 #elif defined(_YUN_CLIENT_H_)
 void handle(YunClient& client) {
@@ -231,6 +253,14 @@ void handle(YunClient& client) {
     // Reset variables for the next command
     reset_status();
   }
+}
+
+template <typename T>
+void publish(YunClient& client, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
 }
 
 // Handle request with the Adafruit BLE board
@@ -250,6 +280,14 @@ void handle(Adafruit_BLE_UART& serial) {
   }
 }
 
+template <typename T>
+void publish(Adafruit_BLE_UART& serial, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
+}
+
 // Handle request for the Arduino Ethernet shield
 #elif defined(ethernet_h)
 void handle(EthernetClient& client){
@@ -266,6 +304,14 @@ void handle(EthernetClient& client){
     // Reset variables for the next command
     reset_status();
   }
+}
+
+template <typename T>
+void publish(EthernetClient& client, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
 }
 
 // Handle request for the ESP8266 chip
@@ -288,6 +334,14 @@ void handle(WiFiClient& client){
   }
 }
 
+template <typename T>
+void publish(WiFiClient& client, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
+}
+
 // Handle request for the Arduino WiFi shield
 #elif defined(WiFi_h)
 void handle(WiFiClient& client){
@@ -308,6 +362,14 @@ void handle(WiFiClient& client){
   }
 }
 
+template <typename T>
+void publish(WiFiClient& client, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
+}
+
 #elif defined(CORE_TEENSY)
 // Handle request on the Serial port
 void handle(usb_serial_class& serial){
@@ -323,6 +385,14 @@ void handle(usb_serial_class& serial){
     // Reset variables for the next command
     reset_status();
   }
+}
+
+template <typename T>
+void publish(usb_serial_class& client, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
 }
 
 #elif defined(__AVR_ATmega32U4__)
@@ -342,6 +412,14 @@ void handle(Serial_& serial){
   }
 }
 
+template <typename T>
+void publish(Serial_& client, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
+}
+
 #else
 // Handle request on the Serial port
 void handle(HardwareSerial& serial){
@@ -357,6 +435,14 @@ void handle(HardwareSerial& serial){
     // Reset variables for the next command
     reset_status();
   }
+}
+
+template <typename T>
+void publish(HardwareSerial& client, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
 }
 #endif
 
@@ -383,6 +469,31 @@ void handle_proto(char * string) {
 
   // Send command
   send_command(false);
+}
+
+template <typename T, typename V>
+void publish_proto(T& client, String eventName, V value) {
+
+  // Format data
+  String data = "name=" + eventName + "&data=" + String(value);
+
+  Serial.println("POST /" + String(id) + "/events HTTP/1.1");
+  Serial.println("Host: " + String(remote_server) + ":" + String(port));
+  Serial.println(F("Content-Type: application/x-www-form-urlencoded"));
+  Serial.print(F("Content-Length: "));
+  Serial.println(data.length());
+  Serial.println();
+  Serial.print(data);
+
+  // Send request
+  client.println(F("POST /1/events HTTP/1.1"));
+  client.println("Host: " + String(remote_server) + ":" + String(port));
+  client.println(F("Content-Type: application/x-www-form-urlencoded"));
+  client.print(F("Content-Length: "));
+  client.println(data.length());
+  client.println();
+  client.print(data);
+
 }
 
 template <typename T>
@@ -1253,6 +1364,9 @@ private:
   char state;
   uint16_t value;
   boolean pin_selected;
+
+  char* remote_server;
+  int port;
 
   char name[NAME_SIZE];
   char id[ID_SIZE+1];
