@@ -4,8 +4,6 @@ Copyright (c) 2014-2016 Marc-Olivier Schwartz
 
 All rights reserved.
 
-=====
-
 This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
 http://creativecommons.org/licenses/by-sa/4.0/
 
