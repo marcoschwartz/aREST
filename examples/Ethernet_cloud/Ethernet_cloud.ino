@@ -61,7 +61,7 @@ void setup(void)
 void loop() {
 
   // Connect to the cloud
-  rest.loop(client);
+  rest.handle(client);
 
 }
 

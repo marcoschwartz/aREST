@@ -14,6 +14,8 @@ install:
 script:
   - arduino --verify --board arduino:avr:uno $PWD/examples/Serial/Serial.ino
   - arduino --verify --board arduino:avr:uno $PWD/examples/WiFi_CC3000/WiFi_CC3000.ino
+  - arduino --verify --board arduino:avr:uno $PWD/examples/Ethernet/Ethernet.ino
+  - arduino --verify --board arduino:avr:uno $PWD/examples/Ethernet_cloud/Ethernet_cloud.ino
 notifications:
   email:
     on_success: change

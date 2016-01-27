@@ -572,6 +572,16 @@ void loop(PubSubClient& client){
 
 }
 
+void handle(PubSubClient& client){
+
+  // Connect to cloud
+  if (!client.connected()) {
+    reconnect(client);
+  }
+  client.loop();
+
+}
+
 void reconnect(PubSubClient& client) {
   // Loop until we're reconnected
   while (!client.connected()) {
