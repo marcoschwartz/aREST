@@ -1,6 +1,6 @@
 # aREST [![Build Status](https://travis-ci.org/marcoschwartz/aREST.svg?branch=master)](https://travis-ci.org/marcoschwartz/aREST)
 
-Version 2.0.1
+Version 2.1.0
 
 ## Overview
 
