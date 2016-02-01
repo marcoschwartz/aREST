@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.1.0
+  Version 2.1.1
   Changelog:
 
+  Version 2.1.1: Fixed analogWrite() for ESP8266 chips
   Version 2.1.0: Added publish() function
   Version 2.0.2: Able to change MQTT remote server
   Version 2.0.2: Added cloud access support for the Ethernet library
@@ -888,6 +889,11 @@ bool send_command(bool headers) {
     #endif
 
      if (state == 'w') {
+
+       // Disable analogWrite if ESP8266
+       #if defined(ESP8266)
+       analogWrite(pin, 0);
+       #endif
 
        // Apply on the pin
        digitalWrite(pin,value);
