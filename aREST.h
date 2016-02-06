@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.1.1
+  Version 2.1.2
   Changelog:
 
+  Version 2.1.2: Added data about hardware type in JSON answer
   Version 2.1.1: Fixed analogWrite() for ESP8266 chips
   Version 2.1.0: Added publish() function
   Version 2.0.2: Able to change MQTT remote server
@@ -80,6 +81,13 @@
 #define NUMBER_ANALOG_PINS 6
 #define NUMBER_DIGITAL_PINS 14
 #define OUTPUT_BUFFER_SIZE 350
+#endif
+
+// Hardware data
+#if defined(ESP8266)
+#define HARDWARE "esp8266"
+#else
+#define HARDWARE "arduino"
 #endif
 
 // Size of name & ID
@@ -1049,6 +1057,8 @@ bool send_command(bool headers) {
        addToBuffer(id);
        addToBuffer(F("\", \"name\": \""));
        addToBuffer(name);
+       addToBuffer(F("\", \"hardware\": \""));
+       addToBuffer(HARDWARE);
        addToBuffer(F("\", \"connected\": true}\r\n"));
      }
    }
@@ -1155,6 +1165,8 @@ virtual void root_answer() {
   addToBuffer(id);
   addToBuffer(F("\", \"name\": \""));
   addToBuffer(name);
+  addToBuffer(F("\", \"hardware\": \""));
+  addToBuffer(HARDWARE);
   addToBuffer(F("\", \"connected\": true}\r\n"));
 }
 

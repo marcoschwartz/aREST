@@ -1,7 +1,5 @@
 # aREST [![Build Status](https://travis-ci.org/marcoschwartz/aREST.svg?branch=master)](https://travis-ci.org/marcoschwartz/aREST)
 
-Version 2.1.1
-
 ## Overview
 
 A simple library that implements a REST API for Arduino & the ESP8266 WiFi chip.
