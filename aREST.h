@@ -1057,8 +1057,10 @@ bool send_command(bool headers) {
        addToBuffer(id);
        addToBuffer(F("\", \"name\": \""));
        addToBuffer(name);
+       #if !defined(PubSubClient_h)
        addToBuffer(F("\", \"hardware\": \""));
        addToBuffer(HARDWARE);
+       #endif
        addToBuffer(F("\", \"connected\": true}\r\n"));
      }
    }
@@ -1165,8 +1167,10 @@ virtual void root_answer() {
   addToBuffer(id);
   addToBuffer(F("\", \"name\": \""));
   addToBuffer(name);
+  #if !defined(PubSubClient_h)
   addToBuffer(F("\", \"hardware\": \""));
   addToBuffer(HARDWARE);
+  #endif
   addToBuffer(F("\", \"connected\": true}\r\n"));
 }
 
