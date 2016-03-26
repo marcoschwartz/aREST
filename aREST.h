@@ -1398,7 +1398,11 @@ void sendBuffer() {
       intermediate_buffer[clientChunkSize] = '\0';
 
       // Send intermediate buffer
+      #ifdef ADAFRUIT_CC3000_H
+      ((Adafruit_CC3000_ClientRef*)client_print_object)->fastrprint(intermediate_buffer);
+      #else
       client_print_object->print(intermediate_buffer);
+      #endif
 
       // Wait for client to get data
       delay(client_wait_time);
