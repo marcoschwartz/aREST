@@ -287,7 +287,7 @@ void publish(YunClient& client, String eventName, T value) {
 void handle(Adafruit_BLE_UART& serial) {
 
   if (serial.available()) {
-    client_print_object = &client;
+    client_print_object = &serial;
     clientChunkSize = 100;
     client_wait_time = 1;
 
@@ -406,7 +406,7 @@ void publish(WiFiClient& client, String eventName, T value) {
 void handle(usb_serial_class& serial){
 
   if (serial.available()) {
-    client_print_object = &client;
+    client_print_object = &serial;
     clientChunkSize = 25;
     client_wait_time = 1;
 
@@ -434,7 +434,7 @@ void publish(usb_serial_class& client, String eventName, T value) {
 void handle(Serial_& serial){
 
   if (serial.available()) {
-    client_print_object = &client;
+    client_print_object = &serial;
     clientChunkSize = 25;
     client_wait_time = 1;
 
@@ -462,7 +462,7 @@ void publish(Serial_& client, String eventName, T value) {
 void handle(HardwareSerial& serial){
 
   if (serial.available()) {
-    client_print_object = &client;
+    client_print_object = &serial;
     clientChunkSize = 25;
     client_wait_time = 1;
 
