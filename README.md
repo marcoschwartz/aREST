@@ -23,9 +23,9 @@ If you want to know more about aREST, go over to [http://arest.io/](http://arest
 
 ## Supported hardware
 
-### Arduino boards
+### Arduino/Genuino Boards
 
-The library is at the moment compatible with the following Arduino boards: Uno, Mega, Due, Yun and Teensy 3.x.
+The library is at the moment compatible with the following Arduino boards: Uno, Mega, Due, Yun and Teensy 3.x. It is also compatible with the Arduino/Genuino MKR1000 board.
 
 ### ESP8266
 
@@ -47,7 +47,7 @@ For Bluetooth Low Energy communications, the library has been tested with the Ad
 
 To use the library with Arduino boards you will need the latest version of the Arduino IDE:
 
-- [Arduino IDE 1.6.6](http://arduino.cc/en/main/software)
+- [Arduino IDE 1.6.8](http://arduino.cc/en/main/software)
 
 ### For WiFi using the ESP8266 chip
 
@@ -65,6 +65,12 @@ To use the library with the ESP8266 WiFi chip you will need to install the requi
   - For OS X it is supported through Bonjour, you don't have anything to install.
   - For Linux, you need to install [Avahi](http://avahi.org/).
   - For Windows, you need to install [Bonjour](http://www.apple.com/support/bonjour/).
+
+### For WiFi using the CC3000 chip
+
+To use aREST with the MKR1000 board, you first need to install the MKR1000 board definition from the Arduino IDE board manager. You also need to install the following library:
+
+- [WiFi 101 Library](https://github.com/arduino-libraries/WiFi101)
 
 ### For Bluetooth Low Energy
 
