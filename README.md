@@ -66,7 +66,7 @@ To use the library with the ESP8266 WiFi chip you will need to install the requi
   - For Linux, you need to install [Avahi](http://avahi.org/).
   - For Windows, you need to install [Bonjour](http://www.apple.com/support/bonjour/).
 
-### For WiFi using the CC3000 chip
+### For WiFi using the MKR1000 Board
 
 To use aREST with the MKR1000 board, you first need to install the MKR1000 board definition from the Arduino IDE board manager. You also need to install the following library:
 
