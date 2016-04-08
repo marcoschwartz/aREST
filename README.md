@@ -4,7 +4,7 @@
 
 A simple library that implements a REST API for Arduino & the ESP8266 WiFi chip.
 
-It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip, the Ethernet shield or the Arduino Yun), via the Serial port (using the USB serial connection, Bluetooth, and XBee) and also via Bluetooth Low Energy.
+It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip, the Arduino WiFi library or the Ethernet shield), via the Serial port (using the USB serial connection, Bluetooth, and XBee) and also via Bluetooth Low Energy. The library is also compatible with the Arduino MKR1000 board.
 
 It also works with the ESP8266 WiFi chip using the ESP8266 processor, therefore working as an independent unit.
 
