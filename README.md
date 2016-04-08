@@ -1,10 +1,13 @@
-# aREST [![Build Status](https://travis-ci.org/marcoschwartz/aREST.svg?branch=master)](https://travis-ci.org/marcoschwartz/aREST)
+<h1>aREST</h1>
+
+<span>[![Build Status](https://travis-ci.org/marcoschwartz/aREST.svg?branch=master)](https://travis-ci.org/marcoschwartz/aREST)</span>
+<span>[![Donate](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3Q73345CWMYE8)</span>
 
 ## Overview
 
 A simple library that implements a REST API for Arduino & the ESP8266 WiFi chip.
 
-It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip, the Ethernet shield or the Arduino Yun), via the Serial port (using the USB serial connection, Bluetooth, and XBee) and also via Bluetooth Low Energy.
+It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip, the Arduino WiFi library or the Ethernet shield), via the Serial port (using the USB serial connection, Bluetooth, and XBee) and also via Bluetooth Low Energy. The library is also compatible with the Arduino MKR1000 board.
 
 It also works with the ESP8266 WiFi chip using the ESP8266 processor, therefore working as an independent unit.
 
@@ -20,9 +23,9 @@ If you want to know more about aREST, go over to [http://arest.io/](http://arest
 
 ## Supported hardware
 
-### Arduino boards
+### Arduino/Genuino Boards
 
-The library is at the moment compatible with the following Arduino boards: Uno, Mega, Due, Yun and Teensy 3.x.
+The library is at the moment compatible with the following Arduino boards: Uno, Mega, Due, Yun and Teensy 3.x. It is also compatible with the Arduino/Genuino MKR1000 board.
 
 ### ESP8266
 
@@ -44,7 +47,7 @@ For Bluetooth Low Energy communications, the library has been tested with the Ad
 
 To use the library with Arduino boards you will need the latest version of the Arduino IDE:
 
-- [Arduino IDE 1.6.6](http://arduino.cc/en/main/software)
+- [Arduino IDE 1.6.8](http://arduino.cc/en/main/software)
 
 ### For WiFi using the ESP8266 chip
 
@@ -62,6 +65,12 @@ To use the library with the ESP8266 WiFi chip you will need to install the requi
   - For OS X it is supported through Bonjour, you don't have anything to install.
   - For Linux, you need to install [Avahi](http://avahi.org/).
   - For Windows, you need to install [Bonjour](http://www.apple.com/support/bonjour/).
+
+### For WiFi using the MKR1000 Board
+
+To use aREST with the MKR1000 board, you first need to install the MKR1000 board definition from the Arduino IDE board manager. You also need to install the following library:
+
+- [WiFi 101 Library](https://github.com/arduino-libraries/WiFi101)
 
 ### For Bluetooth Low Energy
 
