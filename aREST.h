@@ -269,9 +269,11 @@ void send_http_headers(){
 void reset_status() {
 
   #if defined(ESP8266)
-  Serial.print("Memory loss before reset:");
-  Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-  freeMemory = ESP.getFreeHeap();
+  if (DEBUG_MODE) {
+    Serial.print("Memory loss before reset:");
+    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    freeMemory = ESP.getFreeHeap();
+  }
   #endif
 
   answer = "";
@@ -284,11 +286,13 @@ void reset_status() {
   //memset(&buffer[0], 0, sizeof(buffer));
 
   #if defined(ESP8266)
-  Serial.print("Memory loss after reset:");
-  Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-  freeMemory = ESP.getFreeHeap();
-  Serial.print("Memory free:");
-  Serial.println(freeMemory, DEC);
+  if (DEBUG_MODE) {
+    Serial.print("Memory loss after reset:");
+    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    freeMemory = ESP.getFreeHeap();
+    Serial.print("Memory free:");
+    Serial.println(freeMemory, DEC);
+  }
   #endif
 
 }
