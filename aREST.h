@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.2.0
+  Version 2.2.1
   Changelog:
 
+  Version 2.2.1: Added compatibility with the WINC1500 chip
   Version 2.2.0: Added compatibility with the Arduino MKR1000 board
   Version 2.1.2: Added data about hardware type in JSON answer
   Version 2.1.1: Fixed analogWrite() for ESP8266 chips
@@ -170,6 +171,7 @@ aREST(PubSubClient& client) {
   status_led_pin = 255;
   state = 'u';
 
+  private_mqtt_server = false;
   client.setServer(mqtt_server, 1883);
 
 }
@@ -183,6 +185,7 @@ aREST(PubSubClient& client, char* new_mqtt_server) {
   status_led_pin = 255;
   state = 'u';
 
+  private_mqtt_server = true;
   setMQTTServer(new_mqtt_server);
   client.setServer(new_mqtt_server, 1883);
 
@@ -400,28 +403,28 @@ void publish(EthernetClient& client, String eventName, T value) {
 #elif defined(ESP8266)
 void handle(WiFiClient& client){
 
-  if (DEBUG_MODE) {
-    Serial.print("Memory loss before available:");
-    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-    freeMemory = ESP.getFreeHeap();
-  }
+  // if (DEBUG_MODE) {
+  //   Serial.print("Memory loss before available:");
+  //   Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+  //   freeMemory = ESP.getFreeHeap();
+  // }
 
   if (client.available()) {
 
-    if (DEBUG_MODE) {
-      Serial.print("Memory loss before handling:");
-      Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-      freeMemory = ESP.getFreeHeap();
-    }
+    // if (DEBUG_MODE) {
+    //   Serial.print("Memory loss before handling:");
+    //   Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    //   freeMemory = ESP.getFreeHeap();
+    // }
 
     // Handle request
     handle_proto(client,true,0);
 
-    if (DEBUG_MODE) {
-      Serial.print("Memory loss after handling:");
-      Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-      freeMemory = ESP.getFreeHeap();
-    }
+    // if (DEBUG_MODE) {
+    //   Serial.print("Memory loss after handling:");
+    //   Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    //   freeMemory = ESP.getFreeHeap();
+    // }
 
     // Answer
     sendBuffer(client,0,0);
@@ -705,7 +708,12 @@ void reconnect(PubSubClient& client) {
 
     // Attempt to connect
     if (client.connect(id)) {
-      Serial.println(F("Connected to aREST.io"));
+      if (private_mqtt_server) {
+        Serial.println(F("Connected to MQTT server"));
+      }
+      else {
+        Serial.println(F("Connected to aREST.io"));
+      }
       client.subscribe(in_topic);
 
       // Subscribe to all
@@ -739,11 +747,11 @@ void process(char c){
   if ((c == '/' || c == '\r') && state == 'u') {
 
       if (DEBUG_MODE) {
-        #if defined(ESP8266)
-        Serial.print("Memory loss:");
-        Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-        freeMemory = ESP.getFreeHeap();
-        #endif
+        // #if defined(ESP8266)
+        // Serial.print("Memory loss:");
+        // Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+        // freeMemory = ESP.getFreeHeap();
+        // #endif
         Serial.println(answer);
       }
 
@@ -826,7 +834,14 @@ void process(char c){
      if (answer.startsWith("mode")) {command = 'm';}
 
      // Analog command received ?
-     if (answer.startsWith("analog")) {command = 'a';}
+     if (answer.startsWith("analog")) {
+      command = 'a';
+
+      #if defined(ESP8266)
+      analogWriteRange(255);
+      #endif
+      
+     }
 
      // Variable or function request received ?
      if (command == 'u') {
@@ -1628,6 +1643,7 @@ private:
 
   // aREST.io server
   char* mqtt_server = "45.55.79.41";
+  bool private_mqtt_server;
   #endif
 
   // Float variables arrays (Mega & ESP8266 only)
