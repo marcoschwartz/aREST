@@ -272,9 +272,11 @@ void send_http_headers(){
 void reset_status() {
 
   #if defined(ESP8266)
-  Serial.print("Memory loss before reset:");
-  Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-  freeMemory = ESP.getFreeHeap();
+  if (DEBUG_MODE) {
+    Serial.print("Memory loss before reset:");
+    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    freeMemory = ESP.getFreeHeap();
+  }
   #endif
 
   answer = "";
@@ -287,11 +289,13 @@ void reset_status() {
   //memset(&buffer[0], 0, sizeof(buffer));
 
   #if defined(ESP8266)
-  Serial.print("Memory loss after reset:");
-  Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-  freeMemory = ESP.getFreeHeap();
-  Serial.print("Memory free:");
-  Serial.println(freeMemory, DEC);
+  if (DEBUG_MODE) {
+    Serial.print("Memory loss after reset:");
+    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    freeMemory = ESP.getFreeHeap();
+    Serial.print("Memory free:");
+    Serial.println(freeMemory, DEC);
+  }
   #endif
 
 }
@@ -301,12 +305,15 @@ void reset_status() {
 void handle(Adafruit_CC3000_ClientRef& client) {
 
   if (client.available()) {
+    client_print_object = &client;
+    clientChunkSize = 32;
+    client_wait_time = 20;
 
     // Handle request
     handle_proto(client,true,0);
 
     // Answer
-    sendBuffer(client,32,20);
+    sendBuffer();
     client.stop();
 
     // Reset variables for the next command
@@ -327,12 +334,15 @@ void publish(Adafruit_CC3000_ClientRef& client, String eventName, T value) {
 void handle(YunClient& client) {
 
   if (client.available()) {
+    client_print_object = &client;
+    clientChunkSize = 25;
+    client_wait_time = 10;
 
     // Handle request
     handle_proto(client,false,0);
 
     // Answer
-    sendBuffer(client,25,10);
+    sendBuffer();
     client.stop();
 
     // Reset variables for the next command
@@ -353,12 +363,15 @@ void publish(YunClient& client, String eventName, T value) {
 void handle(Adafruit_BLE_UART& serial) {
 
   if (serial.available()) {
+    client_print_object = &serial;
+    clientChunkSize = 100;
+    client_wait_time = 1;
 
     // Handle request
     handle_proto(serial,false,0);
 
     // Answer
-    sendBuffer(serial,100,1);
+    sendBuffer();
 
     // Reset variables for the next command
     reset_status();
@@ -378,12 +391,15 @@ void publish(Adafruit_BLE_UART& serial, String eventName, T value) {
 void handle(EthernetClient& client){
 
   if (client.available()) {
+    client_print_object = &client;
+    clientChunkSize = 50;
+    client_wait_time = 0;
 
     // Handle request
     handle_proto(client,true,0);
 
     // Answer
-    sendBuffer(client,50,0);
+    sendBuffer();
     client.stop();
 
     // Reset variables for the next command
@@ -410,6 +426,9 @@ void handle(WiFiClient& client){
   // }
 
   if (client.available()) {
+    client_print_object = &client;
+    clientChunkSize = 0;
+    client_wait_time = 0;
 
     // if (DEBUG_MODE) {
     //   Serial.print("Memory loss before handling:");
@@ -427,7 +446,7 @@ void handle(WiFiClient& client){
     // }
 
     // Answer
-    sendBuffer(client,0,0);
+    sendBuffer();
     client.stop();
 
     // Reset variables for the next command
@@ -468,6 +487,9 @@ void handle(WiFiClient& client){
 void handle(WiFiClient& client){
 
   if (client.available()) {
+    client_print_object = &client;
+    clientChunkSize = 50;
+    client_wait_time = 1;
 
     if (DEBUG_MODE) {Serial.println("Request received");}
 
@@ -475,7 +497,7 @@ void handle(WiFiClient& client){
     handle_proto(client,true,0);
 
     // Answer
-    sendBuffer(client,50,1);
+    sendBuffer();
     client.stop();
 
     // Reset variables for the next command
@@ -496,12 +518,15 @@ void publish(WiFiClient& client, String eventName, T value) {
 void handle(usb_serial_class& serial){
 
   if (serial.available()) {
+    client_print_object = &serial;
+    clientChunkSize = 25;
+    client_wait_time = 1;
 
     // Handle request
     handle_proto(serial,false,1);
 
     // Answer
-    sendBuffer(serial,25,1);
+    sendBuffer();
 
     // Reset variables for the next command
     reset_status();
@@ -521,12 +546,15 @@ void publish(usb_serial_class& client, String eventName, T value) {
 void handle(Serial_& serial){
 
   if (serial.available()) {
+    client_print_object = &serial;
+    clientChunkSize = 25;
+    client_wait_time = 1;
 
     // Handle request
     handle_proto(serial,false,1);
 
     // Answer
-    sendBuffer(serial,25,1);
+    sendBuffer();
 
     // Reset variables for the next command
     reset_status();
@@ -546,12 +574,15 @@ void publish(Serial_& client, String eventName, T value) {
 void handle(HardwareSerial& serial){
 
   if (serial.available()) {
+    client_print_object = &serial;
+    clientChunkSize = 25;
+    client_wait_time = 1;
 
     // Handle request
     handle_proto(serial,false,1);
 
     // Answer
-    sendBuffer(serial,25,1);
+    sendBuffer();
 
     // Reset variables for the next command
     reset_status();
@@ -1412,8 +1443,19 @@ void removeLastBufferChar() {
 
 }
 
+void sendBufferIfNeeded(size_t len_needed)
+{
+  if (index + len_needed >= OUTPUT_BUFFER_SIZE-1)
+  {
+    sendBuffer();
+  }
+}
+
 // Add to output buffer
 void addToBuffer(char * toAdd){
+  size_t toAddLen = strlen(toAdd);
+
+  sendBufferIfNeeded(toAddLen);
 
   if (DEBUG_MODE) {
     #if defined(ESP8266)
@@ -1425,15 +1467,16 @@ void addToBuffer(char * toAdd){
     Serial.println(toAdd);
   }
 
-  for (int i = 0; i < strlen(toAdd); i++){
+  for (int i = 0; i < toAddLen; i++){
     buffer[index+i] = toAdd[i];
   }
-  index = index + strlen(toAdd);
+  index = index + toAddLen;
 }
 
 // Add to output buffer
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
 void addToBuffer(String toAdd){
+  sendBufferIfNeeded(toAdd.length());
 
   if (DEBUG_MODE) {
     #if defined(ESP8266)
@@ -1499,6 +1542,7 @@ void addToBuffer(const __FlashStringHelper *toAdd){
   PGM_P p = reinterpret_cast<PGM_P>(toAdd);
 
   while (1) {
+    sendBufferIfNeeded(idx+1);
     unsigned char c = pgm_read_byte(p++);
     if (c == 0) break;
     buffer[index + idx] = c;
@@ -1507,8 +1551,7 @@ void addToBuffer(const __FlashStringHelper *toAdd){
   index = index + idx;
 }
 
-template <typename T>
-void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
+void sendBuffer() {
 
   if (DEBUG_MODE) {
     #if defined(ESP8266)
@@ -1521,31 +1564,31 @@ void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
   }
 
   // Send all of it
-  if (chunkSize == 0) {
-    client.print(buffer);
+  if (clientChunkSize == 0) {
+    client_print_object->print(buffer);
   }
 
   // Send chunk by chunk
   else {
 
     // Max iteration
-    uint8_t max_iteration = (int)(index/chunkSize) + 1;
+    uint8_t max_iteration = (int)(index/clientChunkSize) + 1;
 
     // Send data
     for (uint8_t i = 0; i < max_iteration; i++) {
-      char intermediate_buffer[chunkSize+1];
-      memcpy(intermediate_buffer, buffer + i*chunkSize, chunkSize);
-      intermediate_buffer[chunkSize] = '\0';
+      char intermediate_buffer[clientChunkSize+1];
+      memcpy(intermediate_buffer, buffer + i*clientChunkSize, clientChunkSize);
+      intermediate_buffer[clientChunkSize] = '\0';
 
       // Send intermediate buffer
       #ifdef ADAFRUIT_CC3000_H
-      client.fastrprint(intermediate_buffer);
+      ((Adafruit_CC3000_ClientRef*)client_print_object)->fastrprint(intermediate_buffer);
       #else
-      client.print(intermediate_buffer);
+      client_print_object->print(intermediate_buffer);
       #endif
 
       // Wait for client to get data
-      delay(wait_time);
+      delay(client_wait_time);
 
       if (DEBUG_MODE) {
         Serial.print(F("Sent buffer: "));
@@ -1575,6 +1618,7 @@ char * getBuffer() {
 void resetBuffer(){
 
   memset(&buffer[0], 0, sizeof(buffer));
+  index = 0;
   // free(buffer);
 
 }
@@ -1617,7 +1661,12 @@ private:
   char id[ID_SIZE+1];
   String arguments;
 
-  // Output uffer
+  // Pointer to just the Print object of the client
+  Print *client_print_object;
+  uint8_t clientChunkSize = 0;
+  uint8_t client_wait_time = 0;
+
+  // Output buffer
   char buffer[OUTPUT_BUFFER_SIZE];
   uint16_t index;
 
