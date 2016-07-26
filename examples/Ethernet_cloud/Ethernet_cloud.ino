@@ -27,7 +27,7 @@ aREST rest = aREST(client);
 int temperature;
 int humidity;
 
-// Unique ID to identify the device for cloud.arest.io
+// ID to identify the device on the cloud (should be 6 characters long)
 char* device_id = "unique_device_id";
 
 void setup(void)
@@ -44,7 +44,7 @@ void setup(void)
   rest.variable("temperature",&temperature);
   rest.variable("humidity",&humidity);
 
-  // Give name and ID to device
+  // Give name & ID to the device
   rest.set_id(device_id);
   rest.set_name("ethernet");
 

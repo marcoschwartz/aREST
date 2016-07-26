@@ -127,7 +127,7 @@ To install the library, simply clone this repository in the /libraries folder of
 5. Go to a web browser and type `192.168.1.103/mode/5/o` to set the pin as an output
 6. Now type `192.168.1.103/digital/5/1` and the LED should turn on
 
-## Cloud Access (Ethernet) (BETA)
+## Cloud Access (Ethernet)
 
 1. Connect a LED & resistor to pin number 8 of your Arduino board
 2. Open the Ethernet_cloud example sketch and modify the MAC address, and also give a unique ID to your project, for example 47fd9g
@@ -136,7 +136,7 @@ To install the library, simply clone this repository in the /libraries folder of
 5. Go to a web browser and type `cloud.arest.io/47fd9g/mode/8/o` to set the pin as an output
 6. Now type `cloud.arest.io/47fd9g/digital/8/1` and the LED should turn on
 
-## Cloud Access (ESP8266) (BETA)
+## Cloud Access (ESP8266)
 
 1. Connect a LED & resistor to pin number 5 of your ESP8266 board
 2. Open the ESP8266_cloud example sketch and modify the WiFi SSID & password, and also give a unique ID to your project, for example 47fd9g

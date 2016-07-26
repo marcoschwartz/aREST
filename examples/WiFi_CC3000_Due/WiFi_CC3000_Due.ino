@@ -1,8 +1,8 @@
-/* 
+/*
   This a simple example of the aREST Library for Arduino (Uno/Mega/Due/Teensy)
   using the CC3000 WiFi chip. See the README file for more details.
- 
-  Written in 2014 by Marco Schwartz under a GPL license. 
+
+  Written in 2014 by Marco Schwartz under a GPL license.
 */
 
 // Import required libraries
@@ -22,12 +22,12 @@ Adafruit_CC3000 cc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS, ADAFRUIT_CC3000_IRQ
 // Create aREST instance
 aREST rest = aREST();
 
-// Your WiFi SSID and password                                         
+// Your WiFi SSID and password
 #define WLAN_SSID       "yourSSID"
 #define WLAN_PASS       "yourPassword"
 #define WLAN_SECURITY   WLAN_SEC_WPA2
 
-// The port to listen for incoming TCP connections 
+// The port to listen for incoming TCP connections
 #define LISTEN_PORT           80
 
 // Server instance
@@ -41,10 +41,10 @@ int temperature;
 int humidity;
 
 void setup(void)
-{  
+{
   // Start Serial
   Serial.begin(115200);
-  
+
   // Init variables and expose them to REST API
   temperature = 24;
   humidity = 40;
@@ -53,11 +53,11 @@ void setup(void)
 
   // Function to be exposed
   rest.function("led",ledControl);
-  
-  // Give name and ID to device
+
+  // Give name and ID to device (ID should be 6 characters long)
   rest.set_id("1");
   rest.set_name("wifi");
-  
+
   // Set up CC3000 and get connected to the wireless network.
   if (!cc3000.begin())
   {
@@ -71,17 +71,17 @@ void setup(void)
     delay(100);
   }
   Serial.println();
-  
+
   // Print CC3000 IP address. Enable if mDNS doesn't work
   //while (! displayConnectionDetails()) {
    // delay(1000);
   //}
-  
+
   // Start multicast DNS responder
   if (!mdns.begin("arduino", cc3000)) {
-    while(1); 
+    while(1);
   }
-   
+
   // Start server
   restServer.begin();
   Serial.println(F("Listening for connections..."));
@@ -89,24 +89,24 @@ void setup(void)
 }
 
 void loop() {
-  
+
   // Handle any multicast DNS requests
   mdns.update();
-  
+
   // Handle REST calls
   Adafruit_CC3000_ClientRef client = restServer.available();
   rest.handle(client);
 
   // Check connection, reset if connection is lost
   if(!cc3000.checkConnected()){while(1){}}
- 
+
 }
 
 // Print connection details of the CC3000 chip
 bool displayConnectionDetails(void)
 {
   uint32_t ipAddress, netmask, gateway, dhcpserv, dnsserv;
-  
+
   if(!cc3000.getIPAddress(&ipAddress, &netmask, &gateway, &dhcpserv, &dnsserv))
   {
     Serial.println(F("Unable to retrieve the IP Address!\r\n"));
@@ -126,10 +126,10 @@ bool displayConnectionDetails(void)
 
 // Custom function accessible by the API
 int ledControl(String command) {
-  
+
   // Get state from command
   int state = command.toInt();
-  
+
   digitalWrite(6,state);
   return 1;
 }

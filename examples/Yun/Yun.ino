@@ -1,8 +1,8 @@
-/* 
-  This a simple example of the aREST Library working with 
+/*
+  This a simple example of the aREST Library working with
   the Arduino Yun. See the README file for more details.
- 
-  Written in 2014 by Marco Schwartz under a GPL license. 
+
+  Written in 2014 by Marco Schwartz under a GPL license.
 */
 
 // Import required libraries
@@ -22,11 +22,11 @@ int temperature;
 int humidity;
 
 void setup(void)
-{  
+{
   // Start Serial
   Serial.begin(115200);
-  
-  // Init variables and expose them to REST API
+
+  // Init variables and expose them to REST API (ID should be 6 characters long)
   temperature = 24;
   humidity = 40;
   rest.variable("temperature",&temperature);
@@ -34,11 +34,11 @@ void setup(void)
 
   // Function to be exposed
   rest.function("led",ledControl);
-   
+
   // Give name and ID to device
   rest.set_id("008");
   rest.set_name("mighty_cat");
-   
+
   // Bridge startup
   Bridge.begin();
 
@@ -47,19 +47,19 @@ void setup(void)
 }
 
 void loop() {
-  
+
   // Handle REST calls
   YunClient client = server.accept();
   rest.handle(client);
- 
+
 }
 
 // Custom function accessible by the API
 int ledControl(String command) {
-  
+
   // Get state from command
   int state = command.toInt();
-  
+
   digitalWrite(7,state);
   return 1;
 }

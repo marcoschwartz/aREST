@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.2.1
+  Version 2.3.0
   Changelog:
 
+  Version 2.3.0: Implement required changes for the cloud server upgrade
   Version 2.2.1: Added compatibility with the WINC1500 chip
   Version 2.2.0: Added compatibility with the Arduino MKR1000 board
   Version 2.1.2: Added data about hardware type in JSON answer
@@ -271,11 +272,14 @@ void send_http_headers(){
 // Reset variables after a request
 void reset_status() {
 
-  #if defined(ESP8266)
-  Serial.print("Memory loss before reset:");
-  Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-  freeMemory = ESP.getFreeHeap();
-  #endif
+  if (DEBUG_MODE) {
+    #if defined(ESP8266)
+      Serial.print("Memory loss before reset:");
+      Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+      freeMemory = ESP.getFreeHeap();
+    #endif
+  }
+
 
   answer = "";
   command = 'u';
@@ -286,13 +290,15 @@ void reset_status() {
   index = 0;
   //memset(&buffer[0], 0, sizeof(buffer));
 
-  #if defined(ESP8266)
-  Serial.print("Memory loss after reset:");
-  Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-  freeMemory = ESP.getFreeHeap();
-  Serial.print("Memory free:");
-  Serial.println(freeMemory, DEC);
-  #endif
+  if (DEBUG_MODE) {
+    #if defined(ESP8266)
+    Serial.print("Memory loss after reset:");
+    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    freeMemory = ESP.getFreeHeap();
+    Serial.print("Memory free:");
+    Serial.println(freeMemory, DEC);
+    #endif
+  }
 
 }
 
@@ -702,12 +708,13 @@ void handle(PubSubClient& client){
 }
 
 void reconnect(PubSubClient& client) {
+
   // Loop until we're reconnected
   while (!client.connected()) {
     Serial.print(F("Attempting MQTT connection..."));
 
     // Attempt to connect
-    if (client.connect(id)) {
+    if (client.connect(client_id)) {
       if (private_mqtt_server) {
         Serial.println(F("Connected to MQTT server"));
       }
@@ -840,7 +847,7 @@ void process(char c){
       #if defined(ESP8266)
       analogWriteRange(255);
       #endif
-      
+
      }
 
      // Variable or function request received ?
@@ -1173,7 +1180,7 @@ bool send_command(bool headers) {
   if (command == 'f') {
 
     // Execute function
-    uint8_t result = functions[value](arguments);
+    int result = functions[value](arguments);
 
     // Send feedback to client
     if (!LIGHTWEIGHT) {
@@ -1371,20 +1378,68 @@ void function(char * function_name, int (*f)(String)){
 // Set device ID
 void set_id(char *device_id){
 
-  strncpy(id,device_id, ID_SIZE);
+  strncpy(id, device_id, ID_SIZE);
 
   #if defined(PubSubClient_h)
-  strcpy(in_topic, id);
-  strcat(in_topic, "_in");
 
-  strcpy(out_topic, id);
-  strcat(out_topic, "_out");
+  // Generate MQTT random ID
+  String randomId;
+  randomId = gen_random(6);
 
-  strcpy(publish_topic, id);
-  strcat(publish_topic, "_publish");
+  // Build topics IDs
+  String inTopic = randomId + String(id) + String("_in");
+  String outTopic = randomId + String(id) + String("_out");
+
+  // String inTopic = String(id) + String("_in");
+  // String outTopic = String(id) + String("_out");
+
+  strcpy(in_topic, inTopic.c_str());
+  strcpy(out_topic, outTopic.c_str());
+
+  // Build client ID
+  String clientId = randomId + String(id);
+  // String clientId = String(id);
+  strcpy(client_id, clientId.c_str());
+
+  if (DEBUG_MODE) {
+    Serial.print("Input MQTT topic: ");
+    Serial.println(in_topic);
+
+    Serial.print("Output MQTT topic: ");
+    Serial.println(out_topic);
+  }
+
   #endif
 
 }
+
+#if defined(PubSubClient_h)
+String gen_random(int length) {
+
+  String randomString;
+
+  #if defined(ESP8266)
+
+    randomString = String(ESP.getChipId());
+    randomString = randomString.substring(0, 6);
+
+  #else
+
+  String charset = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+  // Generate
+  int l = charset.length();
+  int key;
+  for (int n = 0; n < length; n++) {
+    key = random(0, l - 1);
+    randomString += charset[key];
+  }
+
+  #endif
+
+  return randomString;
+}
+#endif
 
 // Set device name
 void set_name(char *device_name){
@@ -1633,16 +1688,17 @@ private:
   #if defined(PubSubClient_h)
 
   // Topics
-  char in_topic[ID_SIZE+5];
-  char out_topic[ID_SIZE+5];
-  char publish_topic[ID_SIZE+7];
+  char in_topic[ID_SIZE+10];
+  char out_topic[ID_SIZE+10];
+  char publish_topic[ID_SIZE+10];
+  char client_id[ID_SIZE+10];
 
   // Subscribe topics & handlers
   uint8_t subscriptions_index;
   char * subscriptions_names[NUMBER_SUBSCRIPTIONS];
 
   // aREST.io server
-  char* mqtt_server = "45.55.79.41";
+  char* mqtt_server = "45.55.196.201";
   bool private_mqtt_server;
   #endif
 
