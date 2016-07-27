@@ -1072,6 +1072,9 @@ bool send_command(bool headers) {
         addToBuffer(F(" set to "));
         addToBuffer(value);
         addToBuffer(F("\", "));
+		addToBuffer(F("\"pin\": "));
+		addToBuffer(pin);
+		addToBuffer(F(", "));
        }
      }
    }
