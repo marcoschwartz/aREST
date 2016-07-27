@@ -105,7 +105,7 @@ To install the library, simply clone this repository in the /libraries folder of
 1. Connect a LED & resistor to pin number 8 of your Arduino board
 2. Open the Serial example sketch
 3. Upload the sketch
-4. Go to a the Serial monitor and set the options to "Carriage return" and "115200 bauds"
+4. Go to a the Serial monitor and set the options to "BOTH NL & CR" and "115200 bauds"
 5. Type `/mode/8/o` to set the pin as an output
 6. Now type `/digital/8/1` and the LED should turn on
 
