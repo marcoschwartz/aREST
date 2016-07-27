@@ -46,7 +46,7 @@ void setup(void)
   rest.variable("temperature",&temperature);
   rest.variable("humidity",&humidity);
 
-  // Give name and ID to device
+  // Give name & ID to the device (ID should be 6 characters long)
   rest.set_id(device_id);
   rest.set_name("esp8266");
 
@@ -67,7 +67,7 @@ void setup(void)
 void loop() {
 
   // Connect to the cloud
-  rest.loop(client);
+  rest.handle(client);
 
 }
 

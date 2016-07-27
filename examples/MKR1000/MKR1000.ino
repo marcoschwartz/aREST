@@ -1,20 +1,24 @@
 /*
-  This a simple example of the aREST Library for the ESP8266 WiFi chip.
+  This a simple example of the aREST Library for the Arduino/Genuino MKR1000 board.
   See the README file for more details.
 
-  Written in 2015 by Marco Schwartz under a GPL license.
+  Written in 2016 by Marco Schwartz under a GPL license.
 */
 
 // Import required libraries
-#include <ESP8266WiFi.h>
+#include <SPI.h>
+#include <WiFi101.h>
 #include <aREST.h>
+
+// Status
+int status = WL_IDLE_STATUS;
 
 // Create aREST instance
 aREST rest = aREST();
 
 // WiFi parameters
-const char* ssid = "your_wifi_network_name";
-const char* password = "your_wifi_network_password";
+char ssid[] = "your_wifi_network_name";
+char password[] = "your_wifi_network_password";
 
 // The port to listen for incoming TCP connections
 #define LISTEN_PORT           80
@@ -43,23 +47,29 @@ void setup(void)
   // Function to be exposed
   rest.function("led",ledControl);
 
-  // Give name & ID to the device (ID should be 6 characters long)
+  // Give name and ID to device (ID should be 6 characters long)
   rest.set_id("1");
-  rest.set_name("esp8266");
+  rest.set_name("mkr1000");
 
-  // Setup WiFi network
-  WiFi.softAP(ssid, password);
-  Serial.println("");
-  Serial.println("WiFi created");
+  // Connect to WiFi
+  while (status != WL_CONNECTED) {
+    Serial.print("Attempting to connect to SSID: ");
+    Serial.println(ssid);
+    status = WiFi.begin(ssid, password);
+
+    // Wait 10 seconds for connection:
+    delay(10000);
+  }
+  Serial.println("WiFi connected");
 
   // Start the server
   server.begin();
   Serial.println("Server started");
 
   // Print the IP address
-  IPAddress myIP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(myIP);
+  IPAddress ip = WiFi.localIP();
+  Serial.print("IP Address: ");
+  Serial.println(ip);
 }
 
 void loop() {

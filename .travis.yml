@@ -3,17 +3,20 @@ before_install:
   - "/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_1.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :1 -ac -screen 0 1280x1024x16"
   - sleep 3
   - export DISPLAY=:1.0
-  - wget http://downloads.arduino.cc/arduino-1.6.5-linux64.tar.xz
-  - tar xf arduino-1.6.5-linux64.tar.xz
-  - sudo mv arduino-1.6.5 /usr/local/share/arduino
+  - wget http://downloads.arduino.cc/arduino-1.6.7-linux64.tar.xz
+  - tar xf arduino-1.6.7-linux64.tar.xz
+  - sudo mv arduino-1.6.7 /usr/local/share/arduino
   - sudo ln -s /usr/local/share/arduino/arduino /usr/local/bin/arduino
 install:
   - ln -s $PWD /usr/local/share/arduino/libraries/aREST
   - arduino --install-library "Adafruit CC3000 Library"
   - arduino --install-library "CC3000 MDNS"
+  - arduino --install-library "PubSubClient"
 script:
   - arduino --verify --board arduino:avr:uno $PWD/examples/Serial/Serial.ino
   - arduino --verify --board arduino:avr:uno $PWD/examples/WiFi_CC3000/WiFi_CC3000.ino
+  - arduino --verify --board arduino:avr:uno $PWD/examples/Ethernet/Ethernet.ino
+  - arduino --verify --board arduino:avr:uno $PWD/examples/Ethernet_cloud/Ethernet_cloud.ino
 notifications:
   email:
     on_success: change

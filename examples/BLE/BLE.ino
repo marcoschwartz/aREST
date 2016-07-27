@@ -1,8 +1,8 @@
-/* 
+/*
   This a simple example of the aREST Library for Arduino (Uno/Mega/Due/Teensy)
   using the Adafruit BLE UART library. See the README file for more details.
- 
-  Written in 2014 by Marco Schwartz under a GPL license. 
+
+  Written in 2014 by Marco Schwartz under a GPL license.
 */
 
 // Libraries
@@ -26,13 +26,13 @@ int temperature;
 int humidity;
 
 void setup(void)
-{  
+{
   // Start Serial
   Serial.begin(9600);
 
   // Start BLE
   BTLEserial.begin();
-  
+
   // Init variables and expose them to REST API
   temperature = 24;
   humidity = 40;
@@ -41,20 +41,20 @@ void setup(void)
 
   // Function to be exposed
   rest.function("led",ledControl);
- 
-  // Give name and ID to device
+
+  // Give name & ID to the device (ID should be 6 characters long)
   rest.set_id("008");
-  rest.set_name("ble_drake"); 
+  rest.set_name("ble_drake");
 }
 
 // Status message
 aci_evt_opcode_t laststatus = ACI_EVT_DISCONNECTED;
 
-void loop() {  
-  
+void loop() {
+
   // Tell the nRF8001 to do whatever it should be working on.
   BTLEserial.pollACI();
-  
+
   // Ask what is our current status
   aci_evt_opcode_t status = BTLEserial.getState();
   // If the status changed....
@@ -72,7 +72,7 @@ void loop() {
     // OK set the last status change to this one
     laststatus = status;
   }
-  
+
   // Handle REST calls
   if (status == ACI_EVT_CONNECTED) {
     rest.handle(BTLEserial);
@@ -81,10 +81,10 @@ void loop() {
 
 // Custom function accessible by the API
 int ledControl(String command) {
-  
+
   // Get state from command
   int state = command.toInt();
-  
+
   digitalWrite(7,state);
   return 1;
 }

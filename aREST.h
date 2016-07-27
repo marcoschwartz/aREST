@@ -2,10 +2,21 @@
   aREST Library for Arduino
   See the README file for more details.
 
-  Written in 2014 by Marco Schwartz under a GPL license.
-  Version 2.0.2
+  Written in 2014 by Marco Schwartz.
+
+  This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
+  http://creativecommons.org/licenses/by-sa/4.0/
+
+  Version 2.3.0
   Changelog:
 
+  Version 2.3.0: Implement required changes for the cloud server upgrade
+  Version 2.2.1: Added compatibility with the WINC1500 chip
+  Version 2.2.0: Added compatibility with the Arduino MKR1000 board
+  Version 2.1.2: Added data about hardware type in JSON answer
+  Version 2.1.1: Fixed analogWrite() for ESP8266 chips
+  Version 2.1.0: Added publish() function
+  Version 2.0.2: Able to change MQTT remote server
   Version 2.0.2: Added cloud access support for the Ethernet library
   Version 2.0.1: Added beta support for cloud access via cloud.arest.io
   Version 2.0.0: Added beta support for MQTT communications
@@ -48,9 +59,8 @@
 #include "Arduino.h"
 
 // MQTT packet size
-#if defined(PubSubClient_h)
-#define MQTT_MAX_PACKET_SIZE 256
-#endif
+#undef MQTT_MAX_PACKET_SIZE
+#define MQTT_MAX_PACKET_SIZE 512
 
 // Using ESP8266 ?
 #if defined(ESP8266)
@@ -76,9 +86,19 @@
 #define OUTPUT_BUFFER_SIZE 350
 #endif
 
+// Hardware data
+#if defined(ESP8266)
+#define HARDWARE "esp8266"
+#else
+#define HARDWARE "arduino"
+#endif
+
 // Size of name & ID
 #define NAME_SIZE 20
 #define ID_SIZE 10
+
+// Subscriptions
+#define NUMBER_SUBSCRIPTIONS 4
 
 // Debug mode
 #ifndef DEBUG_MODE
@@ -122,7 +142,28 @@ aREST() {
 
 }
 
+aREST(char* rest_remote_server, int rest_port) {
+
+  command = 'u';
+  pin_selected = false;
+
+  status_led_pin = 255;
+  state = 'u';
+
+  remote_server = rest_remote_server;
+  port = rest_port;
+
+}
+
+#if defined(_ADAFRUIT_MQTT_FONA_H_)
+
+
+
+#endif
+
 #if defined(PubSubClient_h)
+
+// With default server
 aREST(PubSubClient& client) {
 
   command = 'u';
@@ -131,11 +172,71 @@ aREST(PubSubClient& client) {
   status_led_pin = 255;
   state = 'u';
 
+  private_mqtt_server = false;
   client.setServer(mqtt_server, 1883);
 
 }
+
+// With another server
+aREST(PubSubClient& client, char* new_mqtt_server) {
+
+  command = 'u';
+  pin_selected = false;
+
+  status_led_pin = 255;
+  state = 'u';
+
+  private_mqtt_server = true;
+  setMQTTServer(new_mqtt_server);
+  client.setServer(new_mqtt_server, 1883);
+
+}
+
+// Get topic
 char* get_topic() {
   return out_topic;
+}
+
+// Subscribe to events
+void subscribe(String device, String eventName) {
+
+  // Build topic
+  String topic = device + "_" + eventName + "_in";
+
+  // Subscribe
+  char charBuf[50];
+  topic.toCharArray(charBuf, 50);
+
+  subscriptions_names[subscriptions_index] = charBuf;
+  subscriptions_index++;
+
+}
+
+// Publish to cloud
+template <typename T>
+void publish(PubSubClient& client, String eventName, T data) {
+
+  // Get event data
+  if (DEBUG_MODE) {
+    Serial.print("Publishing event " + eventName + " with data: ");
+    Serial.println(data);
+  }
+
+  // Build message
+  String message = "{\"client_id\": \"" + String(id) + "\", \"event_name\": \"" + eventName + "\", \"data\": \"" + String(data) + "\"}";
+
+  if (DEBUG_MODE) {
+    Serial.print("Sending message via MQTT: ");
+    Serial.println(message);
+  }
+
+  // Convert
+  char charBuf[100];
+  message.toCharArray(charBuf, 100);
+
+  // Publish
+  client.publish(publish_topic, charBuf);
+
 }
 
 #endif
@@ -165,10 +266,21 @@ void glow_led() {
 void send_http_headers(){
 
   addToBuffer(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
+
 }
 
 // Reset variables after a request
 void reset_status() {
+
+  if (DEBUG_MODE) {
+    #if defined(ESP8266)
+      Serial.print("Memory loss before reset:");
+      Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+      freeMemory = ESP.getFreeHeap();
+    #endif
+  }
+
+
   answer = "";
   command = 'u';
   pin_selected = false;
@@ -177,6 +289,16 @@ void reset_status() {
 
   index = 0;
   //memset(&buffer[0], 0, sizeof(buffer));
+
+  if (DEBUG_MODE) {
+    #if defined(ESP8266)
+    Serial.print("Memory loss after reset:");
+    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    freeMemory = ESP.getFreeHeap();
+    Serial.print("Memory free:");
+    Serial.println(freeMemory, DEC);
+    #endif
+  }
 
 }
 
@@ -198,6 +320,14 @@ void handle(Adafruit_CC3000_ClientRef& client) {
   }
 }
 
+template <typename T>
+void publish(Adafruit_CC3000_ClientRef& client, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
+}
+
 // Handle request with the Arduino Yun
 #elif defined(_YUN_CLIENT_H_)
 void handle(YunClient& client) {
@@ -216,6 +346,14 @@ void handle(YunClient& client) {
   }
 }
 
+template <typename T>
+void publish(YunClient& client, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
+}
+
 // Handle request with the Adafruit BLE board
 #elif defined(_ADAFRUIT_BLE_UART_H_)
 void handle(Adafruit_BLE_UART& serial) {
@@ -231,6 +369,14 @@ void handle(Adafruit_BLE_UART& serial) {
     // Reset variables for the next command
     reset_status();
   }
+}
+
+template <typename T>
+void publish(Adafruit_BLE_UART& serial, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
 }
 
 // Handle request for the Arduino Ethernet shield
@@ -251,8 +397,60 @@ void handle(EthernetClient& client){
   }
 }
 
+template <typename T>
+void publish(EthernetClient& client, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
+}
+
 // Handle request for the ESP8266 chip
 #elif defined(ESP8266)
+void handle(WiFiClient& client){
+
+  // if (DEBUG_MODE) {
+  //   Serial.print("Memory loss before available:");
+  //   Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+  //   freeMemory = ESP.getFreeHeap();
+  // }
+
+  if (client.available()) {
+
+    // if (DEBUG_MODE) {
+    //   Serial.print("Memory loss before handling:");
+    //   Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    //   freeMemory = ESP.getFreeHeap();
+    // }
+
+    // Handle request
+    handle_proto(client,true,0);
+
+    // if (DEBUG_MODE) {
+    //   Serial.print("Memory loss after handling:");
+    //   Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    //   freeMemory = ESP.getFreeHeap();
+    // }
+
+    // Answer
+    sendBuffer(client,0,0);
+    client.stop();
+
+    // Reset variables for the next command
+    reset_status();
+  }
+}
+
+template <typename T>
+void publish(WiFiClient& client, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
+}
+
+// Handle request for the Arduino MKR1000 board
+#elif defined(WIFI_H)
 void handle(WiFiClient& client){
 
   if (client.available()) {
@@ -291,6 +489,14 @@ void handle(WiFiClient& client){
   }
 }
 
+template <typename T>
+void publish(WiFiClient& client, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
+}
+
 #elif defined(CORE_TEENSY)
 // Handle request on the Serial port
 void handle(usb_serial_class& serial){
@@ -306,6 +512,14 @@ void handle(usb_serial_class& serial){
     // Reset variables for the next command
     reset_status();
   }
+}
+
+template <typename T>
+void publish(usb_serial_class& client, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
 }
 
 #elif defined(__AVR_ATmega32U4__)
@@ -325,6 +539,14 @@ void handle(Serial_& serial){
   }
 }
 
+template <typename T>
+void publish(Serial_& client, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
+}
+
 #else
 // Handle request on the Serial port
 void handle(HardwareSerial& serial){
@@ -340,6 +562,14 @@ void handle(HardwareSerial& serial){
     // Reset variables for the next command
     reset_status();
   }
+}
+
+template <typename T>
+void publish(HardwareSerial& client, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
 }
 #endif
 
@@ -366,6 +596,31 @@ void handle_proto(char * string) {
 
   // Send command
   send_command(false);
+}
+
+template <typename T, typename V>
+void publish_proto(T& client, String eventName, V value) {
+
+  // Format data
+  String data = "name=" + eventName + "&data=" + String(value);
+
+  Serial.println("POST /" + String(id) + "/events HTTP/1.1");
+  Serial.println("Host: " + String(remote_server) + ":" + String(port));
+  Serial.println(F("Content-Type: application/x-www-form-urlencoded"));
+  Serial.print(F("Content-Length: "));
+  Serial.println(data.length());
+  Serial.println();
+  Serial.print(data);
+
+  // Send request
+  client.println(F("POST /1/events HTTP/1.1"));
+  client.println("Host: " + String(remote_server) + ":" + String(port));
+  client.println(F("Content-Type: application/x-www-form-urlencoded"));
+  client.print(F("Content-Length: "));
+  client.println(data.length());
+  client.println();
+  client.print(data);
+
 }
 
 template <typename T>
@@ -402,7 +657,6 @@ void handle_callback(PubSubClient& client, char* topic, byte* payload, unsigned 
     mqtt_msg[i] = payload[i];
   }
   mqtt_msg[i] = '\0';
-
   String msgString = String(mqtt_msg);
 
   if (DEBUG_MODE) {
@@ -410,23 +664,26 @@ void handle_callback(PubSubClient& client, char* topic, byte* payload, unsigned 
     Serial.println(msgString);
   }
 
-  String modified_message = String(msgString) + " /";
-  char char_message[100];
-  modified_message.toCharArray(char_message, 100);
+  // Process aREST commands
+    String modified_message = String(msgString) + " /";
+    char char_message[100];
+    modified_message.toCharArray(char_message, 100);
 
-  // Handle command with aREST
-  handle(char_message);
+    // Handle command with aREST
+    handle(char_message);
 
-  // Read answer
-  char * answer = getBuffer();
+    // Read answer
+    char * answer = getBuffer();
 
-  // Send response
-  if (DEBUG_MODE) {
-    Serial.print("Sending message via MQTT: ");
-    Serial.println(answer);
-  }
-  client.publish(out_topic, answer);
-  resetBuffer();
+    // Send response
+    if (DEBUG_MODE) {
+      Serial.print("Sending message via MQTT: ");
+      Serial.println(answer);
+    }
+    client.publish(out_topic, answer);
+    resetBuffer();
+
+
 }
 
 // Handle request on the Serial port
@@ -440,14 +697,46 @@ void loop(PubSubClient& client){
 
 }
 
+void handle(PubSubClient& client){
+
+  // Connect to cloud
+  if (!client.connected()) {
+    reconnect(client);
+  }
+  client.loop();
+
+}
+
 void reconnect(PubSubClient& client) {
+
   // Loop until we're reconnected
   while (!client.connected()) {
     Serial.print(F("Attempting MQTT connection..."));
+
     // Attempt to connect
-    if (client.connect(id)) {
-      Serial.println(F("Connected to aREST.io"));
+    if (client.connect(client_id)) {
+      if (private_mqtt_server) {
+        Serial.println(F("Connected to MQTT server"));
+      }
+      else {
+        Serial.println(F("Connected to aREST.io"));
+      }
       client.subscribe(in_topic);
+
+      // Subscribe to all
+      if (subscriptions_index > 0) {
+
+        for (int i = 0; i < subscriptions_index; i++) {
+          if (DEBUG_MODE) {
+            Serial.print(F("Subscribing to additional topic: "));
+            Serial.println(subscriptions_names[i]);
+          }
+
+          client.subscribe(subscriptions_names[i]);
+        }
+
+      }
+
     } else {
       Serial.print(F("failed, rc="));
       Serial.print(client.state());
@@ -464,7 +753,14 @@ void process(char c){
   // Check if we are receveing useful data and process it
   if ((c == '/' || c == '\r') && state == 'u') {
 
-      if (DEBUG_MODE) {Serial.println(answer);}
+      if (DEBUG_MODE) {
+        // #if defined(ESP8266)
+        // Serial.print("Memory loss:");
+        // Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+        // freeMemory = ESP.getFreeHeap();
+        // #endif
+        Serial.println(answer);
+      }
 
       // If the command is mode, and the pin is already selected
       if (command == 'm' && pin_selected && state == 'u') {
@@ -545,7 +841,14 @@ void process(char c){
      if (answer.startsWith("mode")) {command = 'm';}
 
      // Analog command received ?
-     if (answer.startsWith("analog")) {command = 'a';}
+     if (answer.startsWith("analog")) {
+      command = 'a';
+
+      #if defined(ESP8266)
+      analogWriteRange(255);
+      #endif
+
+     }
 
      // Variable or function request received ?
      if (command == 'u') {
@@ -661,6 +964,13 @@ void process(char c){
 bool send_command(bool headers) {
 
    if (DEBUG_MODE) {
+
+     #if defined(ESP8266)
+     Serial.print("Memory loss:");
+     Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+     freeMemory = ESP.getFreeHeap();
+     #endif
+
      Serial.println(F("Sending command"));
      Serial.print(F("Command: "));
      Serial.println(command);
@@ -746,6 +1056,11 @@ bool send_command(bool headers) {
     #endif
 
      if (state == 'w') {
+
+       // Disable analogWrite if ESP8266
+       #if defined(ESP8266)
+       analogWrite(pin, 0);
+       #endif
 
        // Apply on the pin
        digitalWrite(pin,value);
@@ -865,7 +1180,7 @@ bool send_command(bool headers) {
   if (command == 'f') {
 
     // Execute function
-    uint8_t result = functions[value](arguments);
+    int result = functions[value](arguments);
 
     // Send feedback to client
     if (!LIGHTWEIGHT) {
@@ -901,11 +1216,20 @@ bool send_command(bool headers) {
        addToBuffer(id);
        addToBuffer(F("\", \"name\": \""));
        addToBuffer(name);
+       #if !defined(PubSubClient_h)
+       addToBuffer(F("\", \"hardware\": \""));
+       addToBuffer(HARDWARE);
+       #endif
        addToBuffer(F("\", \"connected\": true}\r\n"));
      }
    }
 
    if (DEBUG_MODE) {
+     #if defined(ESP8266)
+     Serial.print("Memory loss:");
+     Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+     freeMemory = ESP.getFreeHeap();
+     #endif
      Serial.print(F("State of buffer at the end: "));
      Serial.println(buffer);
    }
@@ -1007,6 +1331,10 @@ virtual void root_answer() {
   addToBuffer(id);
   addToBuffer(F("\", \"name\": \""));
   addToBuffer(name);
+  #if !defined(PubSubClient_h)
+  addToBuffer(F("\", \"hardware\": \""));
+  addToBuffer(HARDWARE);
+  #endif
   addToBuffer(F("\", \"connected\": true}\r\n"));
 }
 
@@ -1050,18 +1378,68 @@ void function(char * function_name, int (*f)(String)){
 // Set device ID
 void set_id(char *device_id){
 
-  strncpy(id,device_id, ID_SIZE);
+  strncpy(id, device_id, ID_SIZE);
 
   #if defined(PubSubClient_h)
-  strcpy(in_topic, id);
-  strcat(in_topic, "_in");
 
-  char bufferbis[5];
-  strcpy(out_topic, id);
-  strcat(out_topic, "_out");
+  // Generate MQTT random ID
+  String randomId;
+  randomId = gen_random(6);
+
+  // Build topics IDs
+  String inTopic = randomId + String(id) + String("_in");
+  String outTopic = randomId + String(id) + String("_out");
+
+  // String inTopic = String(id) + String("_in");
+  // String outTopic = String(id) + String("_out");
+
+  strcpy(in_topic, inTopic.c_str());
+  strcpy(out_topic, outTopic.c_str());
+
+  // Build client ID
+  String clientId = randomId + String(id);
+  // String clientId = String(id);
+  strcpy(client_id, clientId.c_str());
+
+  if (DEBUG_MODE) {
+    Serial.print("Input MQTT topic: ");
+    Serial.println(in_topic);
+
+    Serial.print("Output MQTT topic: ");
+    Serial.println(out_topic);
+  }
+
   #endif
 
 }
+
+#if defined(PubSubClient_h)
+String gen_random(int length) {
+
+  String randomString;
+
+  #if defined(ESP8266)
+
+    randomString = String(ESP.getChipId());
+    randomString = randomString.substring(0, 6);
+
+  #else
+
+  String charset = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+  // Generate
+  int l = charset.length();
+  int key;
+  for (int n = 0; n < length; n++) {
+    key = random(0, l - 1);
+    randomString += charset[key];
+  }
+
+  #endif
+
+  return randomString;
+}
+#endif
 
 // Set device name
 void set_name(char *device_name){
@@ -1093,7 +1471,12 @@ void removeLastBufferChar() {
 void addToBuffer(char * toAdd){
 
   if (DEBUG_MODE) {
-    Serial.print(F("Added to buffer: "));
+    #if defined(ESP8266)
+    Serial.print("Memory loss:");
+    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    freeMemory = ESP.getFreeHeap();
+    #endif
+    Serial.print(F("Added to buffer as char: "));
     Serial.println(toAdd);
   }
 
@@ -1108,7 +1491,12 @@ void addToBuffer(char * toAdd){
 void addToBuffer(String toAdd){
 
   if (DEBUG_MODE) {
-    Serial.print(F("Added to buffer: "));
+    #if defined(ESP8266)
+    Serial.print("Memory loss:");
+    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    freeMemory = ESP.getFreeHeap();
+    #endif
+    Serial.print(F("Added to buffer as String: "));
     Serial.println(toAdd);
   }
 
@@ -1151,10 +1539,15 @@ void addToBuffer(float toAdd){
 // Add to output buffer
 void addToBuffer(const __FlashStringHelper *toAdd){
 
-  // if (DEBUG_MODE) {
-  //   Serial.print(F("Added to buffer: "));
-  //   Serial.println(toAdd);
-  // }
+  if (DEBUG_MODE) {
+    #if defined(ESP8266)
+    Serial.print("Memory loss:");
+    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    freeMemory = ESP.getFreeHeap();
+    #endif
+    Serial.print(F("Added to buffer as progmem: "));
+    Serial.println(toAdd);
+  }
 
   uint8_t idx = 0;
 
@@ -1173,6 +1566,11 @@ template <typename T>
 void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
 
   if (DEBUG_MODE) {
+    #if defined(ESP8266)
+    Serial.print("Memory loss before sending:");
+    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    freeMemory = ESP.getFreeHeap();
+    #endif
     Serial.print(F("Buffer size: "));
     Serial.println(index);
   }
@@ -1211,6 +1609,16 @@ void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
     }
   }
 
+  if (DEBUG_MODE) {
+    #if defined(ESP8266)
+    Serial.print("Memory loss after sending:");
+    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    freeMemory = ESP.getFreeHeap();
+    #endif
+    Serial.print(F("Buffer size: "));
+    Serial.println(index);
+  }
+
     // Reset the buffer
     resetBuffer();
 }
@@ -1220,8 +1628,34 @@ char * getBuffer() {
 }
 
 void resetBuffer(){
+
   memset(&buffer[0], 0, sizeof(buffer));
+  // free(buffer);
+
 }
+
+// For non AVR boards
+#if defined (__arm__)
+char *dtostrf (double val, signed char width, unsigned char prec, char *sout) {
+  char fmt[20];
+  sprintf(fmt, "%%%d.%df", width, prec);
+  sprintf(sout, fmt, val);
+  return sout;
+}
+#endif
+
+// Memory debug
+#if defined(ESP8266)
+void initFreeMemory(){
+  freeMemory = ESP.getFreeHeap();
+}
+#endif
+
+#if defined(PubSubClient_h)
+void setMQTTServer(char* new_mqtt_server){
+  mqtt_server = new_mqtt_server;
+}
+#endif
 
 private:
   String answer;
@@ -1230,6 +1664,9 @@ private:
   char state;
   uint16_t value;
   boolean pin_selected;
+
+  char* remote_server;
+  int port;
 
   char name[NAME_SIZE];
   char id[ID_SIZE+1];
@@ -1250,11 +1687,19 @@ private:
   // MQTT client
   #if defined(PubSubClient_h)
 
-  char in_topic[ID_SIZE+5];
-  char out_topic[ID_SIZE+5];
+  // Topics
+  char in_topic[ID_SIZE+10];
+  char out_topic[ID_SIZE+10];
+  char publish_topic[ID_SIZE+10];
+  char client_id[ID_SIZE+10];
 
-  //const char* mqtt_server = "192.168.0.101";
-  const char* mqtt_server = "45.55.79.41";
+  // Subscribe topics & handlers
+  uint8_t subscriptions_index;
+  char * subscriptions_names[NUMBER_SUBSCRIPTIONS];
+
+  // aREST.io server
+  char* mqtt_server = "45.55.196.201";
+  bool private_mqtt_server;
   #endif
 
   // Float variables arrays (Mega & ESP8266 only)
@@ -1275,6 +1720,11 @@ private:
   uint8_t functions_index;
   int (*functions[NUMBER_FUNCTIONS])(String);
   char * functions_names[NUMBER_FUNCTIONS];
+
+  // Memory debug
+  #if defined(ESP8266)
+  int freeMemory;
+  #endif
 
 };
 
