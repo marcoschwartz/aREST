@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.3.0
+  Version 2.3.1
   Changelog:
 
+  Version 2.3.1: Fixed pin mapping for NodeMCU/Wemos boards
   Version 2.3.0: Implement required changes for the cloud server upgrade
   Version 2.2.1: Added compatibility with the WINC1500 chip
   Version 2.2.0: Added compatibility with the Arduino MKR1000 board
@@ -280,7 +281,6 @@ void reset_status() {
     #endif
   }
 
-
   answer = "";
   command = 'u';
   pin_selected = false;
@@ -317,6 +317,7 @@ void handle(Adafruit_CC3000_ClientRef& client) {
 
     // Reset variables for the next command
     reset_status();
+
   }
 }
 
@@ -409,28 +410,28 @@ void publish(EthernetClient& client, String eventName, T value) {
 #elif defined(ESP8266)
 void handle(WiFiClient& client){
 
-  // if (DEBUG_MODE) {
-  //   Serial.print("Memory loss before available:");
-  //   Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-  //   freeMemory = ESP.getFreeHeap();
-  // }
+  if (DEBUG_MODE) {
+    Serial.print("Memory loss before available:");
+    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    freeMemory = ESP.getFreeHeap();
+  }
 
   if (client.available()) {
 
-    // if (DEBUG_MODE) {
-    //   Serial.print("Memory loss before handling:");
-    //   Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-    //   freeMemory = ESP.getFreeHeap();
-    // }
+    if (DEBUG_MODE) {
+      Serial.print("Memory loss before handling:");
+      Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+      freeMemory = ESP.getFreeHeap();
+    }
 
     // Handle request
     handle_proto(client,true,0);
 
-    // if (DEBUG_MODE) {
-    //   Serial.print("Memory loss after handling:");
-    //   Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-    //   freeMemory = ESP.getFreeHeap();
-    // }
+    if (DEBUG_MODE) {
+      Serial.print("Memory loss after handling:");
+      Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+      freeMemory = ESP.getFreeHeap();
+    }
 
     // Answer
     sendBuffer(client,0,0);
@@ -438,6 +439,7 @@ void handle(WiFiClient& client){
 
     // Reset variables for the next command
     reset_status();
+
   }
 }
 
@@ -800,10 +802,21 @@ void process(char c){
        else {
          pin = answer.toInt();
        }
+
+       // Save pin for message
+       message_pin = pin;
+
+       // For ESP8266-12 boards (NODEMCU)
+       #if defined(ARDUINO_ESP8266_NODEMCU) || defined(ARDUINO_ESP8266_WEMOS_D1MINI)
+         pin = esp_12_pin_map(pin);
+       #endif
+
        if (DEBUG_MODE) {
         Serial.print("Selected pin: ");
         Serial.println(pin);
        }
+
+       // Mark pin as selected
        pin_selected = true;
 
        // Nothing more ?
@@ -989,7 +1002,7 @@ bool send_command(bool headers) {
      // Send feedback to client
      if (!LIGHTWEIGHT){
        addToBuffer(F("{\"message\": \"Pin D"));
-       addToBuffer(pin);
+       addToBuffer(message_pin);
      }
 
      // Input
@@ -1068,7 +1081,7 @@ bool send_command(bool headers) {
        // Send feedback to client
        if (!LIGHTWEIGHT){
         addToBuffer(F("{\"message\": \"Pin D"));
-        addToBuffer(pin);
+        addToBuffer(message_pin);
         addToBuffer(F(" set to "));
         addToBuffer(value);
         addToBuffer(F("\", "));
@@ -1122,7 +1135,7 @@ bool send_command(bool headers) {
 
      // Send feedback to client
      addToBuffer(F("{\"message\": \"Pin D"));
-     addToBuffer(pin);
+     addToBuffer(message_pin);
      addToBuffer(F(" set to "));
      addToBuffer(value);
      addToBuffer(F("\", "));
@@ -1621,6 +1634,16 @@ void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
 
     // Reset the buffer
     resetBuffer();
+
+    if (DEBUG_MODE) {
+      #if defined(ESP8266)
+      Serial.print("Memory loss after buffer reset:");
+      Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+      freeMemory = ESP.getFreeHeap();
+      #endif
+      Serial.print(F("Buffer size: "));
+      Serial.println(index);
+    }
 }
 
 char * getBuffer() {
@@ -1631,6 +1654,55 @@ void resetBuffer(){
 
   memset(&buffer[0], 0, sizeof(buffer));
   // free(buffer);
+
+}
+
+uint8_t esp_12_pin_map(uint8_t pin) {
+
+  // Right pin
+  uint8_t mapped_pin;
+
+  // Map
+  switch (pin) {
+
+    case 0:
+      mapped_pin = 16;
+      break;
+    case 1:
+      mapped_pin = 5;
+      break;
+    case 2:
+      mapped_pin = 4;
+      break;
+    case 3:
+      mapped_pin = 0;
+      break;
+    case 4:
+      mapped_pin = 2;
+      break;
+    case 5:
+      mapped_pin = 14;
+      break;
+    case 6:
+      mapped_pin = 12;
+      break;
+    case 7:
+      mapped_pin = 13;
+      break;
+    case 8:
+      mapped_pin = 15;
+      break;
+    case 9:
+      mapped_pin = 3;
+      break;
+    case 10:
+      mapped_pin = 1;
+      break;
+    default:
+      mapped_pin = 0;
+  }
+
+  return mapped_pin;
 
 }
 
@@ -1661,6 +1733,7 @@ private:
   String answer;
   char command;
   uint8_t pin;
+  uint8_t message_pin;
   char state;
   uint16_t value;
   boolean pin_selected;
