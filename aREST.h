@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.3.1
+  Version 2.4.0
   Changelog:
 
+  Version 2.4.0: Added support for aREST Pro & several fixes
   Version 2.3.1: Fixed pin mapping for NodeMCU/Wemos boards
   Version 2.3.0: Implement required changes for the cloud server upgrade
   Version 2.2.1: Added compatibility with the WINC1500 chip
@@ -237,6 +238,31 @@ void publish(PubSubClient& client, String eventName, T data) {
 
   // Publish
   client.publish(publish_topic, charBuf);
+
+}
+
+void setKey(char* proKey) {
+
+  // Set key
+  proKey = proKey;
+
+  // Generate MQTT random ID
+  String randomId;
+  randomId = gen_random(6);
+
+  // Assign ID
+  strncpy(id, randomId.c_str(), ID_SIZE);
+
+  // Build topics IDs
+  String inTopic = randomId + String(proKey) + String("_in");
+  String outTopic = randomId + String(proKey) + String("_out");
+
+  strcpy(in_topic, inTopic.c_str());
+  strcpy(out_topic, outTopic.c_str());
+
+  // Build client ID
+  String clientId = randomId + String(proKey);
+  strcpy(client_id, clientId.c_str());
 
 }
 
@@ -681,8 +707,45 @@ void handle_callback(PubSubClient& client, char* topic, byte* payload, unsigned 
     if (DEBUG_MODE) {
       Serial.print("Sending message via MQTT: ");
       Serial.println(answer);
+      Serial.print("Size of MQTT message: ");
+      Serial.println(strlen(answer));
+      Serial.print("Size of client ID: ");
+      Serial.println(strlen(client_id));
     }
-    client.publish(out_topic, answer);
+
+    int max_message_size = 128 - 20 - strlen(client_id);
+
+    if (strlen(answer) < max_message_size) {
+      client.publish(out_topic, answer);
+    }
+    else {
+
+      // Max iteration
+      uint8_t max_iteration = (int)(strlen(answer)/max_message_size) + 1;
+
+      // Send data
+      for (uint8_t i = 0; i < max_iteration; i++) {
+        char intermediate_buffer[max_message_size+1];
+        memcpy(intermediate_buffer, buffer + i*max_message_size, max_message_size);
+        intermediate_buffer[max_message_size] = '\0';
+
+        if (DEBUG_MODE) {
+          Serial.print("Intermediate buffer: ");
+          Serial.println(intermediate_buffer);
+          Serial.print("Intermediate buffer size: ");
+          Serial.println(strlen(intermediate_buffer));
+        }
+
+        client.publish(out_topic, intermediate_buffer);
+
+    }
+
+   }
+
+    // Send message
+    // client.publish(out_topic, answer);
+
+    // Reset buffer
     resetBuffer();
 
 
@@ -715,37 +778,39 @@ void reconnect(PubSubClient& client) {
   while (!client.connected()) {
     Serial.print(F("Attempting MQTT connection..."));
 
-    // Attempt to connect
-    if (client.connect(client_id)) {
-      if (private_mqtt_server) {
-        Serial.println(F("Connected to MQTT server"));
-      }
-      else {
-        Serial.println(F("Connected to aREST.io"));
-      }
-      client.subscribe(in_topic);
-
-      // Subscribe to all
-      if (subscriptions_index > 0) {
-
-        for (int i = 0; i < subscriptions_index; i++) {
-          if (DEBUG_MODE) {
-            Serial.print(F("Subscribing to additional topic: "));
-            Serial.println(subscriptions_names[i]);
-          }
-
-          client.subscribe(subscriptions_names[i]);
+      // Attempt to connect
+      if (client.connect(client_id)) {
+        if (private_mqtt_server) {
+          Serial.println(F("Connected to MQTT server"));
         }
+        else {
+          Serial.println(F("Connected to aREST.io"));
+        }
+        client.subscribe(in_topic);
 
+        // Subscribe to all
+        // if (subscriptions_index > 0) {
+        //
+        //   for (int i = 0; i < subscriptions_index; i++) {
+        //     if (DEBUG_MODE) {
+        //       Serial.print(F("Subscribing to additional topic: "));
+        //       Serial.println(subscriptions_names[i]);
+        //     }
+        //
+        //     client.subscribe(subscriptions_names[i]);
+        //   }
+        //
+        // }
+
+      } else {
+        Serial.print(F("failed, rc="));
+        Serial.print(client.state());
+        Serial.println(F(" try again in 5 seconds"));
+
+        // Wait 5 seconds before retrying
+        delay(5000);
       }
 
-    } else {
-      Serial.print(F("failed, rc="));
-      Serial.print(client.state());
-      Serial.println(F(" try again in 5 seconds"));
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
   }
 }
 #endif
@@ -1229,10 +1294,8 @@ bool send_command(bool headers) {
        addToBuffer(id);
        addToBuffer(F("\", \"name\": \""));
        addToBuffer(name);
-       #if !defined(PubSubClient_h)
        addToBuffer(F("\", \"hardware\": \""));
        addToBuffer(HARDWARE);
-       #endif
        addToBuffer(F("\", \"connected\": true}\r\n"));
      }
    }
@@ -1344,11 +1407,15 @@ virtual void root_answer() {
   addToBuffer(id);
   addToBuffer(F("\", \"name\": \""));
   addToBuffer(name);
-  #if !defined(PubSubClient_h)
   addToBuffer(F("\", \"hardware\": \""));
   addToBuffer(HARDWARE);
-  #endif
+
+  #if defined(PubSubClient_h)
+  addToBuffer(F("\", \"connected\": true}"));
+  #else
   addToBuffer(F("\", \"connected\": true}\r\n"));
+  #endif
+
 }
 
 void variable(char * variable_name, int *variable){
@@ -1403,15 +1470,11 @@ void set_id(char *device_id){
   String inTopic = randomId + String(id) + String("_in");
   String outTopic = randomId + String(id) + String("_out");
 
-  // String inTopic = String(id) + String("_in");
-  // String outTopic = String(id) + String("_out");
-
   strcpy(in_topic, inTopic.c_str());
   strcpy(out_topic, outTopic.c_str());
 
   // Build client ID
   String clientId = randomId + String(id);
-  // String clientId = String(id);
   strcpy(client_id, clientId.c_str());
 
   if (DEBUG_MODE) {
@@ -1426,6 +1489,26 @@ void set_id(char *device_id){
 
 }
 
+#if defined(__arm__)
+String getChipId() {
+
+  volatile uint32_t val1, val2, val3, val4;
+  volatile uint32_t *ptr1 = (volatile uint32_t *)0x0080A00C;
+  val1 = *ptr1;
+  volatile uint32_t *ptr = (volatile uint32_t *)0x0080A040;
+  val2 = *ptr;
+  ptr++;
+  val3 = *ptr;
+  ptr++;
+  val4 = *ptr;
+
+  char buf[33];
+  sprintf(buf, "%8x%8x%8x%8x", val1, val2, val3, val4);
+
+  return String(buf);
+}
+#endif
+
 #if defined(PubSubClient_h)
 String gen_random(int length) {
 
@@ -1434,6 +1517,11 @@ String gen_random(int length) {
   #if defined(ESP8266)
 
     randomString = String(ESP.getChipId());
+    randomString = randomString.substring(0, 6);
+
+  #elif defined(__arm__)
+
+    randomString = getChipId();
     randomString = randomString.substring(0, 6);
 
   #else
@@ -1761,10 +1849,10 @@ private:
   #if defined(PubSubClient_h)
 
   // Topics
-  char in_topic[ID_SIZE+10];
-  char out_topic[ID_SIZE+10];
-  char publish_topic[ID_SIZE+10];
-  char client_id[ID_SIZE+10];
+  char in_topic[ID_SIZE + 17];
+  char out_topic[ID_SIZE + 17];
+  char publish_topic[ID_SIZE + 10];
+  char client_id[ID_SIZE + 17];
 
   // Subscribe topics & handlers
   uint8_t subscriptions_index;
@@ -1773,6 +1861,10 @@ private:
   // aREST.io server
   char* mqtt_server = "45.55.196.201";
   bool private_mqtt_server;
+
+  // Key
+  char* proKey;
+
   #endif
 
   // Float variables arrays (Mega & ESP8266 only)
