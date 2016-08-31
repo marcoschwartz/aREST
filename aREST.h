@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.4.0
+  Version 2.4.1
   Changelog:
 
+  Version 2.4.1: Additional fixes for Pro plans
   Version 2.4.0: Added support for aREST Pro & several fixes
   Version 2.3.1: Fixed pin mapping for NodeMCU/Wemos boards
   Version 2.3.0: Implement required changes for the cloud server upgrade
@@ -241,7 +242,11 @@ void publish(PubSubClient& client, String eventName, T data) {
 
 }
 
-void setKey(char* proKey) {
+void setKey(char* proKey, PubSubClient& client) {
+
+  // Assign MQTT server
+  mqtt_server = "104.131.78.157";
+  client.setServer(mqtt_server, 1883);
 
   // Set key
   proKey = proKey;
