@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.4.1
+  Version 2.4.2
   Changelog:
 
+  Version 2.4.2: Added publish() support for MKR1000
   Version 2.4.1: Additional fixes for Pro plans
   Version 2.4.0: Added support for aREST Pro & several fixes
   Version 2.3.1: Fixed pin mapping for NodeMCU/Wemos boards
@@ -403,13 +404,13 @@ void handle(Adafruit_BLE_UART& serial) {
   }
 }
 
-template <typename T>
-void publish(Adafruit_BLE_UART& serial, String eventName, T value) {
+// template <typename T>
+// void publish(Adafruit_BLE_UART& serial, String eventName, T value) {
 
-  // Publish request
-  publish_proto(client, eventName, value);
+//   // Publish request
+//   publish_proto(client, eventName, value);
 
-}
+// }
 
 // Handle request for the Arduino Ethernet shield
 #elif defined(ethernet_h)
@@ -435,6 +436,25 @@ void publish(EthernetClient& client, String eventName, T value) {
   // Publish request
   publish_proto(client, eventName, value);
 
+}
+
+// Handle request for the Cytron Clone ESP8266
+#elif defined(_CYTRONWIFISERVER_H_)
+void handle(ESP8266Client& client){
+
+  if (client.available()) {
+
+    // Handle request
+    handle_proto(client,true,0);
+
+    // Answer
+    sendBuffer(client,0,0);
+    client.stop();
+
+    // Reset variables for the next command
+    reset_status();
+
+  }
 }
 
 // Handle request for the ESP8266 chip
@@ -500,6 +520,14 @@ void handle(WiFiClient& client){
     // Reset variables for the next command
     reset_status();
   }
+}
+
+template <typename T>
+void publish(WiFiClient& client, String eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
 }
 
 // Handle request for the Arduino WiFi shield
