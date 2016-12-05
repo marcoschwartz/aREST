@@ -146,7 +146,7 @@ aREST() {
 
 }
 
-aREST(char* rest_remote_server, int rest_port) {
+aREST(const char* rest_remote_server, int rest_port) {
 
   command = 'u';
   pin_selected = false;
@@ -154,7 +154,8 @@ aREST(char* rest_remote_server, int rest_port) {
   status_led_pin = 255;
   state = 'u';
 
-  remote_server = rest_remote_server;
+  free(remote_server);
+  remote_server = strdup(rest_remote_server);
   port = rest_port;
 
 }
@@ -182,7 +183,7 @@ aREST(PubSubClient& client) {
 }
 
 // With another server
-aREST(PubSubClient& client, char* new_mqtt_server) {
+aREST(PubSubClient& client, const char* new_mqtt_server) {
 
   command = 'u';
   pin_selected = false;
@@ -634,7 +635,7 @@ void publish(HardwareSerial& client, String eventName, T value) {
 }
 #endif
 
-void handle(char * string) {
+void handle(const char* string) {
 
   // Process String
   handle_proto(string);
@@ -643,7 +644,7 @@ void handle(char * string) {
   reset_status();
 }
 
-void handle_proto(char * string) {
+void handle_proto(const char* string) {
   // Check if there is data available to read
   for (int i = 0; i < strlen(string); i++){
 
@@ -709,7 +710,7 @@ void handle_proto(T& serial, bool headers, uint8_t read_delay)
 #if defined(PubSubClient_h)
 
 // Process callback
-void handle_callback(PubSubClient& client, char* topic, byte* payload, unsigned int length) {
+void handle_callback(PubSubClient& client, const char* topic, byte* payload, unsigned int length) {
 
   // Process received message
   int i;
@@ -1451,20 +1452,22 @@ virtual void root_answer() {
 
 }
 
-void variable(char * variable_name, int *variable){
+void variable(const char* variable_name, int *variable){
 
   int_variables[variables_index] = variable;
-  int_variables_names[variables_index] = variable_name;
+  free(int_variables_names[variables_index]);
+  int_variables_names[variables_index] = strdup(variable_name);
   variables_index++;
 
 }
 
 // Float variables (Mega & ESP only, or without CC3000)
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
-void variable(char * variable_name, float *variable){
+void variable(const char* variable_name, float *variable){
 
   float_variables[float_variables_index] = variable;
-  float_variables_names[float_variables_index] = variable_name;
+  free(float_variables_names[float_variables_index]);
+  float_variables_names[float_variables_index] = strdup(variable_name);
   float_variables_index++;
 
 }
@@ -1472,24 +1475,25 @@ void variable(char * variable_name, float *variable){
 
 // String variables (Mega & ESP only, or without CC3000)
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
-void variable(char * variable_name, String *variable){
+void variable(const char* variable_name, String *variable){
 
   string_variables[string_variables_index] = variable;
-  string_variables_names[string_variables_index] = variable_name;
+  free(string_variables_names[string_variables_index]);
+  string_variables_names[string_variables_index] = strdup(variable_name);
   string_variables_index++;
 
 }
 #endif
 
-void function(char * function_name, int (*f)(String)){
-
-  functions_names[functions_index] = function_name;
+void function(const char* function_name, int (*f)(String)){
+  free(functions_names[functions_index]);
+  functions_names[functions_index] = strdup(function_name);
   functions[functions_index] = f;
   functions_index++;
 }
 
 // Set device ID
-void set_id(char *device_id){
+void set_id(const char* device_id){
 
   strncpy(id, device_id, ID_SIZE);
 
@@ -1576,7 +1580,7 @@ String gen_random(int length) {
 #endif
 
 // Set device name
-void set_name(char *device_name){
+void set_name(const char* device_name){
 
   strcpy(name, device_name);
 }
@@ -1602,7 +1606,7 @@ void removeLastBufferChar() {
 }
 
 // Add to output buffer
-void addToBuffer(char * toAdd){
+void addToBuffer(const char* toAdd){
 
   if (DEBUG_MODE) {
     #if defined(ESP8266)
@@ -1845,8 +1849,9 @@ void initFreeMemory(){
 #endif
 
 #if defined(PubSubClient_h)
-void setMQTTServer(char* new_mqtt_server){
-  mqtt_server = new_mqtt_server;
+void setMQTTServer(const char* new_mqtt_server){
+  free(mqtt_server);
+  mqtt_server = strdup(new_mqtt_server);
 }
 #endif
 
