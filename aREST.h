@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.4.2
+  Version 2.5.0
   Changelog:
 
+  Version 2.5.0: Added support for the ESP32 WiFi chip (local & cloud)
   Version 2.4.2: Added publish() support for MKR1000
   Version 2.4.1: Additional fixes for Pro plans
   Version 2.4.0: Added support for aREST Pro & several fixes
@@ -67,12 +68,12 @@
 #define MQTT_MAX_PACKET_SIZE 512
 
 // Using ESP8266 ?
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 #include "stdlib_noniso.h"
 #endif
 
 // Which board?
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266) || defined(ESP32)
 #define NUMBER_ANALOG_PINS 16
 #define NUMBER_DIGITAL_PINS 54
 #define OUTPUT_BUFFER_SIZE 2000
@@ -93,6 +94,8 @@
 // Hardware data
 #if defined(ESP8266)
 #define HARDWARE "esp8266"
+#elif defined(ESP32)
+#define HARDWARE "esp32"
 #else
 #define HARDWARE "arduino"
 #endif
@@ -116,7 +119,7 @@
 
 // Default number of max. exposed variables
 #ifndef NUMBER_VARIABLES
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266) || !defined(ADAFRUIT_CC3000_H)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)|| defined(ESP32) || !defined(ADAFRUIT_CC3000_H)
   #define NUMBER_VARIABLES 10
   #else
   #define NUMBER_VARIABLES 5
@@ -125,7 +128,7 @@
 
 // Default number of max. exposed functions
 #ifndef NUMBER_FUNCTIONS
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)
+  #if defined(__AVR_ATmega1280__) || defined(ESP32) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)
   #define NUMBER_FUNCTIONS 10
   #else
   #define NUMBER_FUNCTIONS 5
@@ -284,6 +287,7 @@ void set_status_led(uint8_t pin){
   pinMode(status_led_pin,OUTPUT);
 }
 
+#if !defined(ESP32)
 // Glow status LED
 void glow_led() {
 
@@ -294,6 +298,7 @@ void glow_led() {
       analogWrite(status_led_pin,j/8);
     }
 }
+#endif
 
 // Send HTTP headers for Ethernet & WiFi
 void send_http_headers(){
@@ -979,7 +984,7 @@ void process(char c){
        }
 
        // Check if variable name is in float array (Mega & ESP8266 only)
-       #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
+       #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
        for (uint8_t i = 0; i < float_variables_index; i++){
          if(answer.startsWith(float_variables_names[i])) {
 
@@ -995,7 +1000,7 @@ void process(char c){
        #endif
 
        // Check if variable name is in float array (Mega & ESP8266 only)
-       #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
+       #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
        for (uint8_t i = 0; i < string_variables_index; i++){
          if(answer.startsWith(string_variables_names[i])) {
 
@@ -1229,7 +1234,9 @@ bool send_command(bool headers) {
    if (state == 'w') {
 
      // Write output value
+     #if !defined(ESP32)
      analogWrite(pin,value);
+     #endif
 
      // Send feedback to client
      addToBuffer(F("{\"message\": \"Pin D"));
@@ -1256,7 +1263,7 @@ bool send_command(bool headers) {
   }
 
   // Float ariable selected (Mega only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
   if (command == 'l') {
 
        // Send feedback to client
@@ -1272,7 +1279,7 @@ bool send_command(bool headers) {
   #endif
 
   // String variable selected (Mega & ESP8266 only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
   if (command == 's') {
 
        // Send feedback to client
@@ -1460,7 +1467,7 @@ void variable(char * variable_name, int *variable){
 }
 
 // Float variables (Mega & ESP only, or without CC3000)
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
 void variable(char * variable_name, float *variable){
 
   float_variables[float_variables_index] = variable;
@@ -1471,7 +1478,7 @@ void variable(char * variable_name, float *variable){
 #endif
 
 // String variables (Mega & ESP only, or without CC3000)
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
 void variable(char * variable_name, String *variable){
 
   string_variables[string_variables_index] = variable;
@@ -1506,9 +1513,13 @@ void set_id(char *device_id){
   strcpy(in_topic, inTopic.c_str());
   strcpy(out_topic, outTopic.c_str());
 
+  // inTopic.toCharArray(in_topic, inTopic.length());
+  // outTopic.toCharArray(out_topic, outTopic.length());
+
   // Build client ID
   String clientId = randomId + String(id);
   strcpy(client_id, clientId.c_str());
+  // clientId.toCharArray(client_id, clientId.length());
 
   if (DEBUG_MODE) {
     Serial.print("Input MQTT topic: ");
@@ -1516,6 +1527,9 @@ void set_id(char *device_id){
 
     Serial.print("Output MQTT topic: ");
     Serial.println(out_topic);
+
+    Serial.print("Client ID: ");
+    Serial.println(client_id);
   }
 
   #endif
@@ -1621,7 +1635,7 @@ void addToBuffer(char * toAdd){
 }
 
 // Add to output buffer
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
 void addToBuffer(String toAdd){
 
   if (DEBUG_MODE) {
@@ -1901,14 +1915,14 @@ private:
   #endif
 
   // Float variables arrays (Mega & ESP8266 only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
   uint8_t float_variables_index;
   float * float_variables[NUMBER_VARIABLES];
   char * float_variables_names[NUMBER_VARIABLES];
   #endif
 
   // String variables arrays (Mega & ESP8266 only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
   uint8_t string_variables_index;
   String * string_variables[NUMBER_VARIABLES];
   char * string_variables_names[NUMBER_VARIABLES];

@@ -9,7 +9,7 @@ A simple library that implements a REST API for Arduino & the ESP8266 WiFi chip.
 
 It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip, the Arduino WiFi library or the Ethernet shield), via the Serial port (using the USB serial connection, Bluetooth, and XBee) and also via Bluetooth Low Energy. The library is also compatible with the Arduino MKR1000 board.
 
-It also works with the ESP8266 WiFi chip using the ESP8266 processor, therefore working as an independent unit.
+It also works with the ESP8266 WiFi chip using the ESP8266 processor, therefore working as an independent unit. It also works on the ESP32 WiFi chip.
 
 Boards running aREST can also be accessed from anywhere in the world via an API available at `cloud.arest.io`. Check the rest of this file and the examples ending with *_cloud* for more details. This currently only works with the Ethernet library for Arduino & the ESP8266 WiFi chip.
 
@@ -27,9 +27,9 @@ If you want to know more about aREST, go over to [http://arest.io/](http://arest
 
 The library is at the moment compatible with the following Arduino boards: Uno, Mega, Due, Yun and Teensy 3.x. It is also compatible with the Arduino/Genuino MKR1000 board.
 
-### ESP8266
+### ESP8266/ESP32
 
-The library is compatible with most of the ESP8266 modules & ESP8266 development boards.
+The library is compatible with most of the ESP8266 modules & ESP8266 development boards, as well as most boards based on the ESP32 WiFi chip.
 
 ### HTTP
 
@@ -56,6 +56,14 @@ To use the library with the ESP8266 WiFi chip you will need to install the requi
 1. Start the Arduino IDE and open the Preferences window
 2. Enter `http://arduino.esp8266.com/package_esp8266com_index.json` into the Additional Board Manager URLs field. You can add multiple URLs, separating them with commas.
 3. Open the Boards Manager from Tools > Board menu and install the esp8266 package (and after that don't forget to select your ESP8266 board from Tools > Board menu).
+
+### For WiFi using the ESP32 chip
+
+To use the library with the ESP32 WiFi chip you will need to install the board definitions for the Arduino IDE. These are the steps to install support for the ESP32 chip inside the Arduino IDE:
+
+1. Follow the install instructions from [https://github.com/espressif/arduino-esp32](https://github.com/espressif/arduino-esp32)
+2. Restart the Arduino IDE
+3. Select your ESP32 board from Tools > Board menu.
 
 ### For WiFi using the CC3000 chip
 
@@ -118,10 +126,10 @@ To install the library, simply clone this repository in the /libraries folder of
 5. Type `/mode/8/o /` to set the pin as an output
 6. Now type `/digital/8/1 /` and the LED should turn on
 
-## Quick test (ESP8266)
+## Quick test (ESP8266/ESP32)
 
-1. Connect a LED & resistor to pin number 5 of your ESP8266 board
-2. Open the ESP8266 example sketch and modify the WiFi SSID & password
+1. Connect a LED & resistor to pin number 5 of your ESP8266/ESP32 board
+2. Open the ESP8266/ESP32 example sketch and modify the WiFi SSID & password
 3. Upload the sketch
 4. Open the Serial monitor to get the IP address of the board, for example 192.168.1.103
 5. Go to a web browser and type `192.168.1.103/mode/5/o` to set the pin as an output
