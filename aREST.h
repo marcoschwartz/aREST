@@ -1118,6 +1118,16 @@ bool send_command(bool headers) {
       if (!LIGHTWEIGHT){addToBuffer(F(" set to input\", "));}
      }
 
+     // Input with pullup
+     if (state == 'I'){
+
+      // Set pin to Input with pullup
+      pinMode(pin,INPUT_PULLUP);
+
+      // Send feedback to client
+      if (!LIGHTWEIGHT){addToBuffer(F(" set to input with pullup\", "));}
+     }
+
      // Output
      if (state == 'o'){
 
