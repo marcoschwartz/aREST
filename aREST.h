@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.5.0
+  Version 2.6.0
   Changelog:
 
+  Version 2.6.0: Added support for new aREST cloud app
   Version 2.5.0: Added support for the ESP32 WiFi chip (local & cloud)
   Version 2.4.2: Added publish() support for MKR1000
   Version 2.4.1: Additional fixes for Pro plans
@@ -249,8 +250,8 @@ void publish(PubSubClient& client, String eventName, T data) {
 void setKey(char* proKey, PubSubClient& client) {
 
   // Assign MQTT server
-  mqtt_server = "104.131.78.157";
-  client.setServer(mqtt_server, 1883);
+  // mqtt_server = "104.131.78.157";
+  // client.setServer(mqtt_server, 1883);
 
   // Set key
   proKey = proKey;
@@ -1906,7 +1907,7 @@ private:
   char * subscriptions_names[NUMBER_SUBSCRIPTIONS];
 
   // aREST.io server
-  char* mqtt_server = "45.55.196.201";
+  char* mqtt_server = "104.131.78.157";
   bool private_mqtt_server;
 
   // Key
