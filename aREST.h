@@ -1639,10 +1639,11 @@ void addToBuffer(char * toAdd){
     Serial.println(toAdd);
   }
 
-  for (int i = 0; i < strlen(toAdd); i++){
-    buffer[index+i] = toAdd[i];
+  for (int i = 0;
+       i < strlen(toAdd) && index < OUTPUT_BUFFER_SIZE;
+       i++, index++) {
+    buffer[index] = toAdd[i];
   }
-  index = index + strlen(toAdd);
 }
 
 // Add to output buffer
@@ -1659,10 +1660,9 @@ void addToBuffer(String toAdd){
     Serial.println(toAdd);
   }
 
-  for (int i = 0; i < toAdd.length(); i++){
-    buffer[index+i] = toAdd[i];
+  for (int i = 0; i < toAdd.length() && index < OUTPUT_BUFFER_SIZE; i++, index++){
+    buffer[index] = toAdd[i];
   }
-  index = index + toAdd.length();
 }
 #endif
 
@@ -1712,13 +1712,11 @@ void addToBuffer(const __FlashStringHelper *toAdd){
 
   PGM_P p = reinterpret_cast<PGM_P>(toAdd);
 
-  while (1) {
-    unsigned char c = pgm_read_byte(p++);
-    if (c == 0) break;
-    buffer[index + idx] = c;
-    idx++;
+  for ( unsigned char c = pgm_read_byte(p++);
+        c != 0 && index < OUTPUT_BUFFER_SIZE;
+        c = pgm_read_byte(p++), index++) {
+    buffer[index] = c;
   }
-  index = index + idx;
 }
 
 template <typename T>
