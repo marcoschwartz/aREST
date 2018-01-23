@@ -118,6 +118,11 @@
 #define LIGHTWEIGHT 0
 #endif
 
+// Use light answer mode
+#ifndef EXPOSE_STANDARD_COMMANDS
+#define EXPOSE_STANDARD_COMMANDS 1
+#endif
+
 // Default number of max. exposed variables
 #ifndef NUMBER_VARIABLES
   #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)|| defined(ESP32) || !defined(ADAFRUIT_CC3000_H)
@@ -950,7 +955,7 @@ void process(char c){
      }
 
    }
-
+	if(EXPOSE_STANDARD_COMMANDS){
      // Digital command received ?
      if (answer.startsWith("digital")) {command = 'd';}
 
@@ -966,7 +971,7 @@ void process(char c){
       #endif
 
      }
-
+    }
      // Variable or function request received ?
      if (command == 'u') {
 
@@ -1309,13 +1314,15 @@ bool send_command(bool headers) {
   if (command == 'f') {
 
     // Execute function
-    int result = functions[value](arguments);
-
+    String result = functions[value](arguments);
     // Send feedback to client
     if (!LIGHTWEIGHT) {
-     addToBuffer(F("{\"return_value\": "));
+     addToBuffer(F("{\"return_value\": \""));
      addToBuffer(result);
-     addToBuffer(F(", "));
+     addToBuffer(F("\", "));
+	 /*addToBuffer(F("\"ciao\": \""));
+	 addToBuffer(prova);
+	 addToBuffer(F("\","));*/
      //addToBuffer(F(", \"message\": \""));
      //addToBuffer(functions_names[value]);
      //addToBuffer(F(" executed\", "));
@@ -1499,7 +1506,7 @@ void variable(char * variable_name, String *variable){
 }
 #endif
 
-void function(char * function_name, int (*f)(String)){
+void function(char * function_name, String (*f)(String)){
 
   functions_names[functions_index] = function_name;
   functions[functions_index] = f;
@@ -1939,7 +1946,7 @@ private:
 
   // Functions array
   uint8_t functions_index;
-  int (*functions[NUMBER_FUNCTIONS])(String);
+  String (*functions[NUMBER_FUNCTIONS])(String);
   char * functions_names[NUMBER_FUNCTIONS];
 
   // Memory debug
