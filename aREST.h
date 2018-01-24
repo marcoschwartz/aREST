@@ -312,7 +312,7 @@ void send_http_headers(){
 void reset_status() {
 
   if (DEBUG_MODE) {
-    #if defined(ESP8266)
+    #if defined(ESP8266)|| defined (ESP32)
       Serial.print("Memory loss before reset:");
       Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
       freeMemory = ESP.getFreeHeap();
@@ -329,7 +329,7 @@ void reset_status() {
   //memset(&buffer[0], 0, sizeof(buffer));
 
   if (DEBUG_MODE) {
-    #if defined(ESP8266)
+    #if defined(ESP8266)|| defined (ESP32)
     Serial.print("Memory loss after reset:");
     Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
     freeMemory = ESP.getFreeHeap();
@@ -464,7 +464,7 @@ void handle(ESP8266Client& client){
 }
 
 // Handle request for the ESP8266 chip
-#elif defined(ESP8266)
+#elif defined(ESP8266) || defined (ESP32)
 void handle(WiFiClient& client){
 
   if (DEBUG_MODE) {
@@ -860,7 +860,7 @@ void process(char c){
   if ((c == '/' || c == '\r') && state == 'u') {
 
       if (DEBUG_MODE) {
-        // #if defined(ESP8266)
+        // #if defined(ESP8266)|| defined (ESP32)
         // Serial.print("Memory loss:");
         // Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
         // freeMemory = ESP.getFreeHeap();
@@ -1082,7 +1082,7 @@ bool send_command(bool headers) {
 
    if (DEBUG_MODE) {
 
-     #if defined(ESP8266)
+     #if defined(ESP8266)|| defined (ESP32)
      Serial.print("Memory loss:");
      Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
      freeMemory = ESP.getFreeHeap();
@@ -1352,7 +1352,7 @@ bool send_command(bool headers) {
    }
 
    if (DEBUG_MODE) {
-     #if defined(ESP8266)
+     #if defined(ESP8266)|| defined (ESP32)
      Serial.print("Memory loss:");
      Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
      freeMemory = ESP.getFreeHeap();
@@ -1630,7 +1630,7 @@ void removeLastBufferChar() {
 void addToBuffer(char * toAdd){
 
   if (DEBUG_MODE) {
-    #if defined(ESP8266)
+    #if defined(ESP8266)|| defined (ESP32)
     Serial.print("Memory loss:");
     Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
     freeMemory = ESP.getFreeHeap();
@@ -1651,7 +1651,7 @@ void addToBuffer(char * toAdd){
 void addToBuffer(String toAdd){
 
   if (DEBUG_MODE) {
-    #if defined(ESP8266)
+    #if defined(ESP8266)|| defined (ESP32)
     Serial.print("Memory loss:");
     Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
     freeMemory = ESP.getFreeHeap();
@@ -1699,7 +1699,7 @@ void addToBuffer(float toAdd){
 void addToBuffer(const __FlashStringHelper *toAdd){
 
   if (DEBUG_MODE) {
-    #if defined(ESP8266)
+    #if defined(ESP8266)|| defined (ESP32)
     Serial.print("Memory loss:");
     Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
     freeMemory = ESP.getFreeHeap();
@@ -1723,7 +1723,7 @@ template <typename T>
 void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
 
   if (DEBUG_MODE) {
-    #if defined(ESP8266)
+    #if defined(ESP8266)|| defined (ESP32)
     Serial.print("Memory loss before sending:");
     Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
     freeMemory = ESP.getFreeHeap();
@@ -1767,7 +1767,7 @@ void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
   }
 
   if (DEBUG_MODE) {
-    #if defined(ESP8266)
+    #if defined(ESP8266) || defined (ESP32)
     Serial.print("Memory loss after sending:");
     Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
     freeMemory = ESP.getFreeHeap();
@@ -1780,7 +1780,7 @@ void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
     resetBuffer();
 
     if (DEBUG_MODE) {
-      #if defined(ESP8266)
+      #if defined(ESP8266) || defined (ESP32)
       Serial.print("Memory loss after buffer reset:");
       Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
       freeMemory = ESP.getFreeHeap();
@@ -1861,7 +1861,7 @@ char *dtostrf (double val, signed char width, unsigned char prec, char *sout) {
 #endif
 
 // Memory debug
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 void initFreeMemory(){
   freeMemory = ESP.getFreeHeap();
 }
@@ -1943,7 +1943,7 @@ private:
   char * functions_names[NUMBER_FUNCTIONS];
 
   // Memory debug
-  #if defined(ESP8266)
+  #if defined(ESP8266) || defined(ESP32)
   int freeMemory;
   #endif
 
