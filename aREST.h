@@ -1078,7 +1078,36 @@ void process(char c){
     }
 }
 
-bool send_command(bool headers) {
+
+// Modifies arguments in place
+void urldecode(String &arguments) {
+  char a, b;
+  int j = 0;
+  for(int i = 0; i < arguments.length(); i++, j++) {
+    // %20 ==> arguments[i] = '%', a = '2', b = '0'
+    if ((arguments[i] == '%') && /*i < arguments.length() - 2 &&*/ ((a = arguments[i + 1]) && (b = arguments[i + 2])) && (isxdigit(a) && isxdigit(b))) {
+      if (a >= 'a') a -= 'a'-'A';
+      if (a >= 'A') a -= ('A' - 10);
+      else          a -= '0';
+
+      if (b >= 'a') b -= 'a'-'A';
+      if (b >= 'A') b -= ('A' - 10);
+      else          b -= '0';
+
+      arguments[j] = char(16 * a + b);
+      i += 2;   // Skip ahead
+    } else if (arguments[i] == '+') {
+      arguments[j] = ' ';
+    } else {
+     arguments[j] = arguments[i];
+    }
+  }
+
+  arguments.remove(j);    // Truncate string to new possibly reduced length
+}
+
+
+bool send_command(bool headers, bool decodeArgs) {
 
    if (DEBUG_MODE) {
 
@@ -1309,6 +1338,9 @@ bool send_command(bool headers) {
   if (command == 'f') {
 
     // Execute function
+    if(decodeArgs)
+      urldecode(arguments);   // Modifies arguments
+
     int result = functions[value](arguments);
 
     // Send feedback to client
