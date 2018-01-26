@@ -662,7 +662,7 @@ void handle_proto(char * string) {
   }
 
   // Send command
-  send_command<T>(false, false);
+  send_command(false, false);
 }
 
 template <typename T, typename V>
