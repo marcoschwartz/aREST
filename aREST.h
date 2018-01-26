@@ -347,7 +347,7 @@ void handle(Adafruit_CC3000_ClientRef& client) {
   if (client.available()) {
 
     // Handle request
-    handle_proto(client,true,0);
+    handle_proto(client,true,0,false);
 
     // Answer
     sendBuffer(client,32,20);
@@ -374,7 +374,7 @@ void handle(YunClient& client) {
   if (client.available()) {
 
     // Handle request
-    handle_proto(client,false,0);
+    handle_proto(client,false,0,false);
 
     // Answer
     sendBuffer(client,25,10);
@@ -400,7 +400,7 @@ void handle(Adafruit_BLE_UART& serial) {
   if (serial.available()) {
 
     // Handle request
-    handle_proto(serial,false,0);
+    handle_proto(serial,false,0,false);
 
     // Answer
     sendBuffer(serial,100,1);
@@ -425,7 +425,7 @@ void handle(EthernetClient& client){
   if (client.available()) {
 
     // Handle request
-    handle_proto(client,true,0);
+    handle_proto(client,true,0,false);
 
     // Answer
     sendBuffer(client,50,0);
@@ -451,7 +451,7 @@ void handle(ESP8266Client& client){
   if (client.available()) {
 
     // Handle request
-    handle_proto(client,true,0);
+    handle_proto(client,true,0,true);
 
     // Answer
     sendBuffer(client,0,0);
@@ -482,7 +482,7 @@ void handle(WiFiClient& client){
     }
 
     // Handle request
-    handle_proto(client,true,0);
+    handle_proto(client,true,0,true);
 
     if (DEBUG_MODE) {
       Serial.print("Memory loss after handling:");
@@ -517,7 +517,7 @@ void handle(WiFiClient& client){
     if (DEBUG_MODE) {Serial.println("Request received");}
 
     // Handle request
-    handle_proto(client,true,0);
+    handle_proto(client,true,0,true);
 
     // Answer
     sendBuffer(client,0,0);
@@ -545,7 +545,7 @@ void handle(WiFiClient& client){
     if (DEBUG_MODE) {Serial.println("Request received");}
 
     // Handle request
-    handle_proto(client,true,0);
+    handle_proto(client,true,0,true);
 
     // Answer
     sendBuffer(client,50,1);
@@ -571,7 +571,7 @@ void handle(usb_serial_class& serial){
   if (serial.available()) {
 
     // Handle request
-    handle_proto(serial,false,1);
+    handle_proto(serial,false,1,false);
 
     // Answer
     sendBuffer(serial,25,1);
@@ -596,7 +596,7 @@ void handle(Serial_& serial){
   if (serial.available()) {
 
     // Handle request
-    handle_proto(serial,false,1);
+    handle_proto(serial,false,1,false);
 
     // Answer
     sendBuffer(serial,25,1);
@@ -621,7 +621,7 @@ void handle(HardwareSerial& serial){
   if (serial.available()) {
 
     // Handle request
-    handle_proto(serial,false,1);
+    handle_proto(serial,false,1,false);
 
     // Answer
     sendBuffer(serial,25,1);
@@ -662,7 +662,7 @@ void handle_proto(char * string) {
   }
 
   // Send command
-  send_command(false);
+  send_command<T>(false, false);
 }
 
 template <typename T, typename V>
@@ -691,7 +691,7 @@ void publish_proto(T& client, String eventName, V value) {
 }
 
 template <typename T>
-void handle_proto(T& serial, bool headers, uint8_t read_delay)
+void handle_proto(T& serial, bool headers, uint8_t read_delay, bool decode)
 {
 
   // Check if there is data available to read
@@ -709,7 +709,7 @@ void handle_proto(T& serial, bool headers, uint8_t read_delay)
    }
 
    // Send command
-   send_command(headers);
+   send_command(headers, decode);
 }
 
 #if defined(PubSubClient_h)
