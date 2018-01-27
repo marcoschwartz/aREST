@@ -1082,7 +1082,8 @@ void process(char c){
 // Modifies arguments in place
 void urldecode(String &arguments) {
   char a, b;
-  for(int i = 0, int j = 0; i < arguments.length(); i++, j++) {
+  int j = 0;
+  for(int i = 0; i < arguments.length(); i++) {
     // %20 ==> arguments[i] = '%', a = '2', b = '0'
     if ((arguments[i] == '%') && ((a = arguments[i + 1]) && (b = arguments[i + 2])) && (isxdigit(a) && isxdigit(b))) {
       if (a >= 'a') a -= 'a'-'A';
@@ -1100,6 +1101,7 @@ void urldecode(String &arguments) {
     } else {
      arguments[j] = arguments[i];
     }
+    j++;
   }
 
   arguments.remove(j);    // Truncate string to new possibly reduced length
