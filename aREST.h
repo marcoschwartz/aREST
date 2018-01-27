@@ -1085,7 +1085,7 @@ void urldecode(String &arguments) {
   int j = 0;
   for(int i = 0; i < arguments.length(); i++, j++) {
     // %20 ==> arguments[i] = '%', a = '2', b = '0'
-    if ((arguments[i] == '%') && /*i < arguments.length() - 2 &&*/ ((a = arguments[i + 1]) && (b = arguments[i + 2])) && (isxdigit(a) && isxdigit(b))) {
+    if ((arguments[i] == '%') && ((a = arguments[i + 1]) && (b = arguments[i + 2])) && (isxdigit(a) && isxdigit(b))) {
       if (a >= 'a') a -= 'a'-'A';
       if (a >= 'A') a -= ('A' - 10);
       else          a -= '0';
