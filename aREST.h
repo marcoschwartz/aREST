@@ -206,7 +206,7 @@ char* get_topic() {
 }
 
 // Subscribe to events
-void subscribe(String device, String eventName) {
+void subscribe(const String& device, const String& eventName) {
 
   // Build topic
   String topic = device + "_" + eventName + "_in";
@@ -222,7 +222,7 @@ void subscribe(String device, String eventName) {
 
 // Publish to cloud
 template <typename T>
-void publish(PubSubClient& client, String eventName, T data) {
+void publish(PubSubClient& client, const String& eventName, T data) {
 
   // Get event data
   if (DEBUG_MODE) {
@@ -360,7 +360,7 @@ void handle(Adafruit_CC3000_ClientRef& client) {
 }
 
 template <typename T>
-void publish(Adafruit_CC3000_ClientRef& client, String eventName, T value) {
+void publish(Adafruit_CC3000_ClientRef& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -386,7 +386,7 @@ void handle(YunClient& client) {
 }
 
 template <typename T>
-void publish(YunClient& client, String eventName, T value) {
+void publish(YunClient& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -411,7 +411,7 @@ void handle(Adafruit_BLE_UART& serial) {
 }
 
 // template <typename T>
-// void publish(Adafruit_BLE_UART& serial, String eventName, T value) {
+// void publish(Adafruit_BLE_UART& serial, const String& eventName, T value) {
 
 //   // Publish request
 //   publish_proto(client, eventName, value);
@@ -437,7 +437,7 @@ void handle(EthernetClient& client){
 }
 
 template <typename T>
-void publish(EthernetClient& client, String eventName, T value) {
+void publish(EthernetClient& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -501,7 +501,7 @@ void handle(WiFiClient& client){
 }
 
 template <typename T>
-void publish(WiFiClient& client, String eventName, T value) {
+void publish(WiFiClient& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -529,7 +529,7 @@ void handle(WiFiClient& client){
 }
 
 template <typename T>
-void publish(WiFiClient& client, String eventName, T value) {
+void publish(WiFiClient& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -557,7 +557,7 @@ void handle(WiFiClient& client){
 }
 
 template <typename T>
-void publish(WiFiClient& client, String eventName, T value) {
+void publish(WiFiClient& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -582,7 +582,7 @@ void handle(usb_serial_class& serial){
 }
 
 template <typename T>
-void publish(usb_serial_class& client, String eventName, T value) {
+void publish(usb_serial_class& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -607,7 +607,7 @@ void handle(Serial_& serial){
 }
 
 template <typename T>
-void publish(Serial_& client, String eventName, T value) {
+void publish(Serial_& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -632,7 +632,7 @@ void handle(HardwareSerial& serial){
 }
 
 template <typename T>
-void publish(HardwareSerial& client, String eventName, T value) {
+void publish(HardwareSerial& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -666,7 +666,7 @@ void handle_proto(char * string) {
 }
 
 template <typename T, typename V>
-void publish_proto(T& client, String eventName, V value) {
+void publish_proto(T& client, const String& eventName, V value) {
 
   // Format data
   String data = "name=" + eventName + "&data=" + String(value);
@@ -1607,13 +1607,13 @@ void set_name(char *device_name){
 }
 
 // Set device name
-void set_name(String device_name){
+void set_name(const String& device_name){
 
   device_name.toCharArray(name, NAME_SIZE);
 }
 
 // Set device ID
-void set_id(String device_id){
+void set_id(const String& device_id){
 
   device_id.toCharArray(id, ID_SIZE);
   set_id(id);
@@ -1648,7 +1648,7 @@ void addToBuffer(char * toAdd){
 
 // Add to output buffer
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-void addToBuffer(String toAdd){
+void addToBuffer(const String& toAdd){
 
   if (DEBUG_MODE) {
     #if defined(ESP8266)|| defined (ESP32)
