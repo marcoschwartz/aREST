@@ -862,7 +862,9 @@ void process(char c){
   if ((c == '/' || c == '\r') && state == 'u') {
 
 	if (answer.startsWith("OPTIONS")){
-		Serial.println("Got OPTIONS call, will quit");
+		if (DEBUG_MODE) {
+			Serial.println("Got OPTIONS call, will quit");
+		}
 		state = 'x';
 		command = 'o';
 		return;
