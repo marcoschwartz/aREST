@@ -982,9 +982,6 @@ void process(char c){
 
      // Variable or function request received ?
      if (command == 'u') {
-     
-     	Serial.println(answer);
-
        // Check if variable name is in int array
        for (uint8_t i = 0; i < variables_index; i++){
          if(answer.startsWith(int_variables_names[i])) {
