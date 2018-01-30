@@ -1627,7 +1627,7 @@ void removeLastBufferChar() {
 }
 
 // Add to output buffer
-void addToBuffer(char * toAdd){
+void addToBuffer(const char * toAdd){
 
   if (DEBUG_MODE) {
     #if defined(ESP8266)|| defined (ESP32)
