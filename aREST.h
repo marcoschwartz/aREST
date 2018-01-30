@@ -1277,19 +1277,15 @@ bool send_command(bool headers) {
 
   // Variable selected
   if (command == 'v') {
-    // Send feedback to client 
-    if (LIGHTWEIGHT){  
-      variables[value]->addToBuffer(this); 
-    } 
-    else { 
-      addToBufferF(F("{\"")); 
-      addToBuffer(variable_names[value]); 
-      addToBufferF(F("\": ")); 
-      variables[value]->addToBuffer(this); 
-      addToBufferF(F(", ")); 
-    } 
+    // Send feedback to client
+    if (LIGHTWEIGHT){ 
+      variables[value]->addToBuffer(this);
+    }
+    else {
+      addToBufferF(F("{"));
+      addVariableToBuffer(value);
+    }
   }
-
 
   // Function selected
   if (command == 'f') {
@@ -1326,13 +1322,8 @@ bool send_command(bool headers) {
 
    else {
      if (command != 'r' && command != 'u') {
-      addToBufferF(F("\"id\": \"")); 
-      addToBuffer(id); 
-      addToBufferF(F("\", \"name\": \"")); 
-      addToBuffer(name); 
-      addToBufferF(F("\", \"hardware\": \"")); 
-      addToBuffer(HARDWARE); 
-      addToBufferF(F("\", \"connected\": true}\r\n"));  
+        addHardwareToBuffer();
+        addToBufferF(F("\r\n"));
      }
    }
 
@@ -1369,26 +1360,14 @@ virtual void root_answer() {
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
 
     // Int variables
-    if (variables_index == 0){
-      addToBufferF(F(" }, "));
-    }
-    else {
-
-      if (variables_index > 0){
-
-        for (uint8_t i = 0; i < variables_index; i++){
-          addToBufferF(F("\""));
-          addToBuffer(variable_names[i]);
-          addToBufferF(F("\": "));
-          variables[i]->addToBuffer(this);
-          addToBufferF(F(", "));
-        }
+    if (variables_index > 0){
+      for (uint8_t i = 0; i < variables_index; i++){
+        addVariableToBuffer(i);
       }
 
+      // Remove trailing comma and space
       removeLastBufferChar();
       removeLastBufferChar();
-      addToBufferF(F("}, "));
-
     }
     #else
     // Int variables
@@ -1407,27 +1386,17 @@ virtual void root_answer() {
       addToBuffer(variable_names[variables_index-1]);
       addToBufferF(F("\": "));
       variables[variables_index-1]->addToBuffer(this);
-      addToBufferF(F("}, "));
-    }
-    else {
-      addToBufferF(F(" }, "));
     }
     #endif
 
+    addToBufferF(F("}, "));
   }
 
   // End
-  addToBufferF(F("\"id\": \""));
-  addToBuffer(id);
-  addToBufferF(F("\", \"name\": \""));
-  addToBuffer(name);
-  addToBufferF(F("\", \"hardware\": \""));
-  addToBuffer(HARDWARE);
+  addHardwareToBuffer();
 
-  #if defined(PubSubClient_h)
-  addToBufferF(F("\", \"connected\": true}"));
-  #else
-  addToBufferF(F("\", \"connected\": true}\r\n"));
+  #ifndef PubSubClient_h
+    addToBufferF(F("\r\n"));
   #endif
 }
 
@@ -1782,6 +1751,27 @@ uint8_t esp_12_pin_map(uint8_t pin) {
   return mapped_pin;
 
 }
+
+
+void addVariableToBuffer(uint8_t index) {
+  addToBufferF(F("\""));
+  addToBuffer(variable_names[index]);
+  addToBufferF(F("\": "));
+  variables[index]->addToBuffer(this);
+  addToBufferF(F(", "));
+}
+
+
+void addHardwareToBuffer() {
+  addToBufferF(F("\"id\": \""));
+  addToBuffer(id);
+  addToBufferF(F("\", \"name\": \""));
+  addToBuffer(name);
+  addToBufferF(F("\", \"hardware\": \""));
+  addToBuffer(HARDWARE);
+  addToBufferF(F("\", \"connected\": true}"));
+}
+
 
 // For non AVR boards
 #if defined (__arm__)
