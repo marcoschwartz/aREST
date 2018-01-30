@@ -307,7 +307,7 @@ void send_http_headers(){
 }
 
 void send_options_http_headers(){
-	addToBuffer(F("HTTP/1.1 204 OK\r\nAccess-Control-Allow-Origin: *\r\nAllow: POST, GET, PUT\r\nAccess-Control-Allow-Methods: POST, GET, PUT\r\n\r\n"));
+	addToBuffer(F("HTTP/1.1 204 OK\r\nContent-Length: 0\r\nAccess-Control-Allow-Origin: *\r\nAllow: POST, GET, PUT\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nAccess-Control-Max-Age: 86400\r\nConnection: close\r\n\r\n"));
 }
 
 // Reset variables after a request
