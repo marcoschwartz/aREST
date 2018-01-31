@@ -138,6 +138,23 @@
 
 class aREST {
 
+private:
+struct Variable {
+  virtual void addToBuffer(aREST *arest) const = 0;
+};
+
+
+template<typename T>
+struct TypedVariable: Variable {
+  T *var;
+
+  TypedVariable(T *v) : var{v} { }
+
+  void addToBuffer(aREST *arest) const override { 
+    arest->addToBuffer(*var);
+  }
+};
+
 public:
 
 aREST() {
@@ -162,6 +179,14 @@ aREST(char* rest_remote_server, int rest_port) {
   port = rest_port;
 
 }
+
+template<typename T>
+void variable(const char *name, T *var) { 
+  variables[variables_index] = new TypedVariable<T>(var);
+  variable_names[variables_index] = name;
+  variables_index++;
+}
+
 
 #if defined(_ADAFRUIT_MQTT_FONA_H_)
 
@@ -972,7 +997,7 @@ void process(char c){
 
        // Check if variable name is in int array
        for (uint8_t i = 0; i < variables_index; i++){
-         if(answer.startsWith(int_variables_names[i])) {
+         if(answer.startsWith(variable_names[i])) {
 
            // End here
            pin_selected = true;
@@ -983,38 +1008,6 @@ void process(char c){
            value = i;
          }
        }
-
-       // Check if variable name is in float array (Mega & ESP8266 only)
-       #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-       for (uint8_t i = 0; i < float_variables_index; i++){
-         if(answer.startsWith(float_variables_names[i])) {
-
-           // End here
-           pin_selected = true;
-           state = 'x';
-
-           // Set state
-           command = 'l';
-           value = i;
-         }
-       }
-       #endif
-
-       // Check if variable name is in float array (Mega & ESP8266 only)
-       #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-       for (uint8_t i = 0; i < string_variables_index; i++){
-         if(answer.startsWith(string_variables_names[i])) {
-
-           // End here
-           pin_selected = true;
-           state = 'x';
-
-           // Set state
-           command = 's';
-           value = i;
-         }
-       }
-       #endif
 
        // Check if function name is in array
        for (uint8_t i = 0; i < functions_index; i++){
@@ -1263,47 +1256,18 @@ bool send_command(bool headers) {
   if (command == 'v') {
 
        // Send feedback to client
-       if (LIGHTWEIGHT){addToBuffer(*int_variables[value]);}
+       if (LIGHTWEIGHT){ 
+        variables[value]->addToBuffer(this);
+      }
        else {
         addToBuffer(F("{\""));
-        addToBuffer(int_variables_names[value]);
+        addToBuffer(variable_names[value]);
         addToBuffer(F("\": "));
-        addToBuffer(*int_variables[value]);
+        variables[value]->addToBuffer(this);
         addToBuffer(F(", "));
        }
   }
 
-  // Float ariable selected (Mega only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-  if (command == 'l') {
-
-       // Send feedback to client
-       if (LIGHTWEIGHT){addToBuffer(*float_variables[value]);}
-       else {
-        addToBuffer(F("{\""));
-        addToBuffer(float_variables_names[value]);
-        addToBuffer(F("\": "));
-        addToBuffer(*float_variables[value]);
-        addToBuffer(F(", "));
-       }
-  }
-  #endif
-
-  // String variable selected (Mega & ESP8266 only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-  if (command == 's') {
-
-       // Send feedback to client
-       if (LIGHTWEIGHT){addToBuffer(*string_variables[value]);}
-       else {
-        addToBuffer(F("{\""));
-        addToBuffer(string_variables_names[value]);
-        addToBuffer(F("\": \""));
-        addToBuffer(*string_variables[value]);
-        addToBuffer(F("\", "));
-       }
-  }
-  #endif
 
   // Function selected
   if (command == 'f') {
@@ -1384,7 +1348,7 @@ virtual void root_answer() {
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
 
     // Int variables
-    if (variables_index == 0 && string_variables_index == 0 && float_variables_index == 0){
+    if (variables_index == 0){
       addToBuffer(F(" }, "));
     }
     else {
@@ -1393,35 +1357,13 @@ virtual void root_answer() {
 
         for (uint8_t i = 0; i < variables_index; i++){
           addToBuffer(F("\""));
-          addToBuffer(int_variables_names[i]);
+          addToBuffer(variable_names[i]);
           addToBuffer(F("\": "));
-          addToBuffer(*int_variables[i]);
+          variables[i]->addToBuffer(this);
           addToBuffer(F(", "));
         }
-
       }
-      if (string_variables_index > 0){
 
-        for (uint8_t i = 0; i < string_variables_index; i++){
-          addToBuffer(F("\""));
-          addToBuffer(string_variables_names[i]);
-          addToBuffer(F("\": \""));
-          addToBuffer(*string_variables[i]);
-          addToBuffer(F("\", "));
-        }
-
-      }
-      if (float_variables_index > 0){
-
-        for (uint8_t i = 0; i < float_variables_index; i++){
-          addToBuffer(F("\""));
-          addToBuffer(float_variables_names[i]);
-          addToBuffer(F("\": "));
-          addToBuffer(*float_variables[i]);
-          addToBuffer(F(", "));
-        }
-
-      }
       removeLastBufferChar();
       removeLastBufferChar();
       addToBuffer(F("}, "));
@@ -1433,17 +1375,17 @@ virtual void root_answer() {
 
       for (uint8_t i = 0; i < variables_index-1; i++){
         addToBuffer(F("\""));
-        addToBuffer(int_variables_names[i]);
+        addToBuffer(variable_names[i]);
         addToBuffer(F("\": "));
-        addToBuffer(*int_variables[i]);
+        variables[i]->addToBuffer(this);
         addToBuffer(F(", "));
       }
 
       // End
       addToBuffer(F("\""));
-      addToBuffer(int_variables_names[variables_index-1]);
+      addToBuffer(variable_names[variables_index-1]);
       addToBuffer(F("\": "));
-      addToBuffer(*int_variables[variables_index-1]);
+      variables[variables_index-1]->addToBuffer(this);
       addToBuffer(F("}, "));
     }
     else {
@@ -1466,38 +1408,8 @@ virtual void root_answer() {
   #else
   addToBuffer(F("\", \"connected\": true}\r\n"));
   #endif
-
 }
 
-void variable(char * variable_name, int *variable){
-
-  int_variables[variables_index] = variable;
-  int_variables_names[variables_index] = variable_name;
-  variables_index++;
-
-}
-
-// Float variables (Mega & ESP only, or without CC3000)
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-void variable(char * variable_name, float *variable){
-
-  float_variables[float_variables_index] = variable;
-  float_variables_names[float_variables_index] = variable_name;
-  float_variables_index++;
-
-}
-#endif
-
-// String variables (Mega & ESP only, or without CC3000)
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-void variable(char * variable_name, String *variable){
-
-  string_variables[string_variables_index] = variable;
-  string_variables_names[string_variables_index] = variable_name;
-  string_variables_index++;
-
-}
-#endif
 
 void function(char * function_name, int (*f)(String)){
 
@@ -1627,7 +1539,7 @@ void removeLastBufferChar() {
 }
 
 // Add to output buffer
-void addToBuffer(char * toAdd){
+void addToBuffer(const char * toAdd){
 
   if (DEBUG_MODE) {
     #if defined(ESP8266)|| defined (ESP32)
@@ -1898,8 +1810,8 @@ private:
 
   // Int variables arrays
   uint8_t variables_index;
-  int * int_variables[NUMBER_VARIABLES];
-  char * int_variables_names[NUMBER_VARIABLES];
+  Variable* variables[NUMBER_VARIABLES];
+  const char * variable_names[NUMBER_VARIABLES];
 
   // MQTT client
   #if defined(PubSubClient_h)
@@ -1923,19 +1835,6 @@ private:
 
   #endif
 
-  // Float variables arrays (Mega & ESP8266 only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-  uint8_t float_variables_index;
-  float * float_variables[NUMBER_VARIABLES];
-  char * float_variables_names[NUMBER_VARIABLES];
-  #endif
-
-  // String variables arrays (Mega & ESP8266 only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-  uint8_t string_variables_index;
-  String * string_variables[NUMBER_VARIABLES];
-  char * string_variables_names[NUMBER_VARIABLES];
-  #endif
 
   // Functions array
   uint8_t functions_index;
