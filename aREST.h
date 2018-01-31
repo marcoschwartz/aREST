@@ -326,10 +326,33 @@ void glow_led() {
 }
 #endif
 
+void addToBufferF(const __FlashStringHelper *toAdd){
+
+  if (DEBUG_MODE) {
+    #if defined(ESP8266)|| defined (ESP32)
+    Serial.print("Memory loss:");
+    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    freeMemory = ESP.getFreeHeap();
+    #endif
+    Serial.print(F("Added to buffer as progmem: "));
+    Serial.println(toAdd);
+  }
+
+  uint8_t idx = 0;
+
+  PGM_P p = reinterpret_cast<PGM_P>(toAdd);
+
+  for ( unsigned char c = pgm_read_byte(p++);
+        c != 0 && index < OUTPUT_BUFFER_SIZE;
+        c = pgm_read_byte(p++), index++) {
+    buffer[index] = c;
+  }
+}
+
 // Send HTTP headers for Ethernet & WiFi
 void send_http_headers(){
 
-  addToBuffer(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
+  addToBufferF(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
 
 }
 
@@ -1128,7 +1151,7 @@ bool send_command(bool headers, bool decodeArgs) {
 
      // Send feedback to client
      if (!LIGHTWEIGHT){
-       addToBuffer(F("{\"message\": \"Pin D"));
+       addToBufferF(F("{\"message\": \"Pin D"));
        addToBuffer(message_pin);
      }
 
@@ -1139,7 +1162,7 @@ bool send_command(bool headers, bool decodeArgs) {
       pinMode(pin,INPUT);
 
       // Send feedback to client
-      if (!LIGHTWEIGHT){addToBuffer(F(" set to input\", "));}
+      if (!LIGHTWEIGHT){addToBufferF(F(" set to input\", "));}
      }
 
      // Input with pullup
@@ -1149,7 +1172,7 @@ bool send_command(bool headers, bool decodeArgs) {
       pinMode(pin,INPUT_PULLUP);
 
       // Send feedback to client
-      if (!LIGHTWEIGHT){addToBuffer(F(" set to input with pullup\", "));}
+      if (!LIGHTWEIGHT){addToBufferF(F(" set to input with pullup\", "));}
      }
 
      // Output
@@ -1159,7 +1182,7 @@ bool send_command(bool headers, bool decodeArgs) {
        pinMode(pin,OUTPUT);
 
        // Send feedback to client
-       if (!LIGHTWEIGHT){addToBuffer(F(" set to output\", "));}
+       if (!LIGHTWEIGHT){addToBufferF(F(" set to output\", "));}
      }
 
    }
@@ -1174,15 +1197,15 @@ bool send_command(bool headers, bool decodeArgs) {
        // Send answer
        if (LIGHTWEIGHT){addToBuffer(value);}
        else {
-        addToBuffer(F("{\"return_value\": "));
+        addToBufferF(F("{\"return_value\": "));
         addToBuffer(value);
-        addToBuffer(F(", "));
+        addToBufferF(F(", "));
       }
      }
 
      #if !defined(__AVR_ATmega32U4__) || !defined(ADAFRUIT_CC3000_H)
      if (state == 'a') {
-       if (!LIGHTWEIGHT) {addToBuffer(F("{"));}
+       if (!LIGHTWEIGHT) {addToBufferF(F("{"));}
 
        for (uint8_t i = 0; i < NUMBER_DIGITAL_PINS; i++) {
 
@@ -1192,14 +1215,14 @@ bool send_command(bool headers, bool decodeArgs) {
          // Send feedback to client
          if (LIGHTWEIGHT){
            addToBuffer(value);
-           addToBuffer(F(","));
+           addToBufferF(F(","));
          }
          else {
-           addToBuffer(F("\"D"));
+           addToBufferF(F("\"D"));
            addToBuffer(i);
-           addToBuffer(F("\": "));
+           addToBufferF(F("\": "));
            addToBuffer(value);
-           addToBuffer(F(", "));
+           addToBufferF(F(", "));
          }
      }
     }
@@ -1217,11 +1240,11 @@ bool send_command(bool headers, bool decodeArgs) {
 
        // Send feedback to client
        if (!LIGHTWEIGHT){
-        addToBuffer(F("{\"message\": \"Pin D"));
+        addToBufferF(F("{\"message\": \"Pin D"));
         addToBuffer(message_pin);
-        addToBuffer(F(" set to "));
+        addToBufferF(F(" set to "));
         addToBuffer(value);
-        addToBuffer(F("\", "));
+        addToBufferF(F("\", "));
        }
      }
    }
@@ -1236,14 +1259,14 @@ bool send_command(bool headers, bool decodeArgs) {
        // Send feedback to client
        if (LIGHTWEIGHT){addToBuffer(value);}
        else {
-        addToBuffer(F("{\"return_value\": "));
+        addToBufferF(F("{\"return_value\": "));
         addToBuffer(value);
-        addToBuffer(F(", "));
+        addToBufferF(F(", "));
        }
      }
      #if !defined(__AVR_ATmega32U4__)
      if (state == 'a') {
-       if (!LIGHTWEIGHT) {addToBuffer(F("{"));}
+       if (!LIGHTWEIGHT) {addToBufferF(F("{"));}
 
        for (uint8_t i = 0; i < NUMBER_ANALOG_PINS; i++) {
 
@@ -1253,14 +1276,14 @@ bool send_command(bool headers, bool decodeArgs) {
          // Send feedback to client
          if (LIGHTWEIGHT){
            addToBuffer(value);
-           addToBuffer(F(","));
+           addToBufferF(F(","));
          }
          else {
-           addToBuffer(F("\"A"));
+           addToBufferF(F("\"A"));
            addToBuffer(i);
-           addToBuffer(F("\": "));
+           addToBufferF(F("\": "));
            addToBuffer(value);
-           addToBuffer(F(", "));
+           addToBufferF(F(", "));
          }
      }
    }
@@ -1273,29 +1296,28 @@ bool send_command(bool headers, bool decodeArgs) {
      #endif
 
      // Send feedback to client
-     addToBuffer(F("{\"message\": \"Pin D"));
+     addToBufferF(F("{\"message\": \"Pin D"));
      addToBuffer(message_pin);
-     addToBuffer(F(" set to "));
+     addToBufferF(F(" set to "));
      addToBuffer(value);
-     addToBuffer(F("\", "));
+     addToBufferF(F("\", "));
 
    }
   }
 
   // Variable selected
   if (command == 'v') {
-
-       // Send feedback to client
-       if (LIGHTWEIGHT){ 
-        variables[value]->addToBuffer(this);
-      }
-       else {
-        addToBuffer(F("{\""));
-        addToBuffer(variable_names[value]);
-        addToBuffer(F("\": "));
-        variables[value]->addToBuffer(this);
-        addToBuffer(F(", "));
-       }
+    // Send feedback to client 
+    if (LIGHTWEIGHT){  
+      variables[value]->addToBuffer(this); 
+    } 
+    else { 
+      addToBufferF(F("{\"")); 
+      addToBuffer(variable_names[value]); 
+      addToBufferF(F("\": ")); 
+      variables[value]->addToBuffer(this); 
+      addToBufferF(F(", ")); 
+    } 
   }
 
 
@@ -1310,12 +1332,12 @@ bool send_command(bool headers, bool decodeArgs) {
 
     // Send feedback to client
     if (!LIGHTWEIGHT) {
-     addToBuffer(F("{\"return_value\": "));
+     addToBufferF(F("{\"return_value\": "));
      addToBuffer(result);
-     addToBuffer(F(", "));
-     //addToBuffer(F(", \"message\": \""));
-     //addToBuffer(functions_names[value]);
-     //addToBuffer(F(" executed\", "));
+     addToBufferF(F(", "));
+     //addToBufferF(F(", \"message\": \""));
+     //addToBufferF(functions_names[value]);
+     //addToBufferF(F(" executed\", "));
     }
   }
 
@@ -1326,25 +1348,24 @@ bool send_command(bool headers, bool decodeArgs) {
   if (command == 'i') {
     if (LIGHTWEIGHT) {addToBuffer(id);}
     else {
-      addToBuffer(F("{"));
+      addToBufferF(F("{"));
     }
   }
 
    // End of message
    if (LIGHTWEIGHT){
-     addToBuffer(F("\r\n"));
+     addToBufferF(F("\r\n"));
    }
 
    else {
-
      if (command != 'r' && command != 'u') {
-       addToBuffer(F("\"id\": \""));
-       addToBuffer(id);
-       addToBuffer(F("\", \"name\": \""));
-       addToBuffer(name);
-       addToBuffer(F("\", \"hardware\": \""));
-       addToBuffer(HARDWARE);
-       addToBuffer(F("\", \"connected\": true}\r\n"));
+      addToBufferF(F("\"id\": \"")); 
+      addToBuffer(id); 
+      addToBufferF(F("\", \"name\": \"")); 
+      addToBuffer(name); 
+      addToBufferF(F("\", \"hardware\": \"")); 
+      addToBuffer(HARDWARE); 
+      addToBufferF(F("\", \"connected\": true}\r\n"));  
      }
    }
 
@@ -1367,7 +1388,7 @@ virtual void root_answer() {
   #if defined(ADAFRUIT_CC3000_H) || defined(ESP8266) || defined(ethernet_h) || defined(WiFi_h)
     #if !defined(PubSubClient_h)
       if (command != 'u') {
-        addToBuffer(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
+        addToBufferF(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
       }
     #endif
   #endif
@@ -1376,30 +1397,30 @@ virtual void root_answer() {
   else {
 
     // Start
-    addToBuffer(F("{\"variables\": {"));
+    addToBufferF(F("{\"variables\": {"));
 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
 
     // Int variables
     if (variables_index == 0){
-      addToBuffer(F(" }, "));
+      addToBufferF(F(" }, "));
     }
     else {
 
       if (variables_index > 0){
 
         for (uint8_t i = 0; i < variables_index; i++){
-          addToBuffer(F("\""));
+          addToBufferF(F("\""));
           addToBuffer(variable_names[i]);
-          addToBuffer(F("\": "));
+          addToBufferF(F("\": "));
           variables[i]->addToBuffer(this);
-          addToBuffer(F(", "));
+          addToBufferF(F(", "));
         }
       }
 
       removeLastBufferChar();
       removeLastBufferChar();
-      addToBuffer(F("}, "));
+      addToBufferF(F("}, "));
 
     }
     #else
@@ -1407,39 +1428,39 @@ virtual void root_answer() {
     if (variables_index > 0){
 
       for (uint8_t i = 0; i < variables_index-1; i++){
-        addToBuffer(F("\""));
+        addToBufferF(F("\""));
         addToBuffer(variable_names[i]);
-        addToBuffer(F("\": "));
+        addToBufferF(F("\": "));
         variables[i]->addToBuffer(this);
-        addToBuffer(F(", "));
+        addToBufferF(F(", "));
       }
 
       // End
-      addToBuffer(F("\""));
+      addToBufferF(F("\""));
       addToBuffer(variable_names[variables_index-1]);
-      addToBuffer(F("\": "));
+      addToBufferF(F("\": "));
       variables[variables_index-1]->addToBuffer(this);
-      addToBuffer(F("}, "));
+      addToBufferF(F("}, "));
     }
     else {
-      addToBuffer(F(" }, "));
+      addToBufferF(F(" }, "));
     }
     #endif
 
   }
 
   // End
-  addToBuffer(F("\"id\": \""));
+  addToBufferF(F("\"id\": \""));
   addToBuffer(id);
-  addToBuffer(F("\", \"name\": \""));
+  addToBufferF(F("\", \"name\": \""));
   addToBuffer(name);
-  addToBuffer(F("\", \"hardware\": \""));
+  addToBufferF(F("\", \"hardware\": \""));
   addToBuffer(HARDWARE);
 
   #if defined(PubSubClient_h)
-  addToBuffer(F("\", \"connected\": true}"));
+  addToBufferF(F("\", \"connected\": true}"));
   #else
-  addToBuffer(F("\", \"connected\": true}\r\n"));
+  addToBufferF(F("\", \"connected\": true}\r\n"));
   #endif
 }
 
