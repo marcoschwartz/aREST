@@ -548,6 +548,22 @@ void handle(WiFiClient& client){
   }
 }
 
+// Handle request on the Serial port
+void handle(HardwareSerial& serial){
+
+  if (serial.available()) {
+
+    // Handle request
+    handle_proto(serial,false,1);
+
+    // Answer
+    sendBuffer(serial,25,1);
+
+    // Reset variables for the next command
+    reset_status();
+  }
+}
+
 template <typename T>
 void publish(WiFiClient& client, const String& eventName, T value) {
 
