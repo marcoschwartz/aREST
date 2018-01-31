@@ -1323,9 +1323,15 @@ bool send_command(bool headers, bool decodeArgs) {
 
   // Variable selected
   if (command == 'v') {
-    addVariableToBuffer();  // Send feedback to client
+    // Send feedback to client
+    if (LIGHTWEIGHT){ 
+      variables[value]->addToBuffer(this);
+    }
+    else {
+      addToBufferF(F("{"));
+      addVariableToBuffer(value);
+    }
   }
-
 
   // Function selected
   if (command == 'f') {
@@ -1795,16 +1801,6 @@ uint8_t esp_12_pin_map(uint8_t pin) {
 
 }
 
-void addVariableToBuffer() {
-  // Send feedback to client
-  if (LIGHTWEIGHT){ 
-    variables[value]->addToBuffer(this);
-  }
-  else {
-    addToBufferF(F("{"));
-    addVariableToBuffer(value);
-  }
-}
 
 void addVariableToBuffer(uint8_t index) {
   addToBufferF(F("\""));
