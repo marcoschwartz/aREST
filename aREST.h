@@ -1394,20 +1394,17 @@ virtual void root_answer() {
     // Int variables
     if (variables_index > 0){
 
-      for (uint8_t i = 0; i < variables_index-1; i++){
         addToBufferF(F("\""));
         addToBuffer(variable_names[i]);
         addToBufferF(F("\": "));
         variables[i]->addToBuffer(this);
+      for (uint8_t i = 0; i < variables_index; i++){
         addToBufferF(F(", "));
       }
 
-      // End
-      addToBufferF(F("\""));
-      addToBuffer(variable_names[variables_index-1]);
-      addToBufferF(F("\": "));
-      variables[variables_index-1]->addToBuffer(this);
-      addToBufferF(F("}, "));
+      // Remove trailing comma and space
+      removeLastBufferChar();
+      removeLastBufferChar();
     }
     else {
       addToBufferF(F(" }, "));
