@@ -1165,7 +1165,9 @@ bool send_command(bool headers) {
        value = digitalRead(pin);
 
        // Send answer
-       if (LIGHTWEIGHT){addToBuffer(value, false);}
+       if (LIGHTWEIGHT){
+        addToBuffer(value, false);
+      }
        else {
         addToBufferF(F("{\"return_value\": "));
         addToBuffer(value, true);
