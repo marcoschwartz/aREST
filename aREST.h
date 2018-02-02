@@ -1185,15 +1185,14 @@ bool send_command(bool headers) {
          // Send feedback to client
          if (LIGHTWEIGHT){
            addToBuffer(value, false);
-           addToBufferF(F(","));
          }
          else {
            addToBufferF(F("\"D"));
            addToBuffer(i, false);
            addToBufferF(F("\": "));
            addToBuffer(value, true);
-           addToBufferF(F(", "));
          }
+         addToBufferF(F(","));
      }
     }
     #endif
@@ -1227,7 +1226,9 @@ bool send_command(bool headers) {
        value = analogRead(pin);
 
        // Send feedback to client
-       if (LIGHTWEIGHT){addToBuffer(value, false);}
+       if (LIGHTWEIGHT){
+        addToBuffer(value, false);
+      }
        else {
         addToBufferF(F("{\"return_value\": "));
         addToBuffer(value, true);
@@ -1246,15 +1247,14 @@ bool send_command(bool headers) {
          // Send feedback to client
          if (LIGHTWEIGHT){
            addToBuffer(value, false);
-           addToBufferF(F(","));
          }
          else {
            addToBufferF(F("\"A"));
            addToBuffer(i, false);
            addToBufferF(F("\": "));
            addToBuffer(value, true);
-           addToBufferF(F(", "));
          }
+         addToBufferF(F(", "));
      }
    }
    #endif
@@ -1287,7 +1287,8 @@ bool send_command(bool headers) {
       addToBufferF(F("\": ")); 
       addToBufferF(F(", ")); 
     } 
-      addToBufferF(F("{"));
+
+    addToBufferF(F("{"));
   }
 
 
@@ -1361,33 +1362,31 @@ virtual void root_answer() {
   #endif
 
   if (LIGHTWEIGHT) {
-    addToBuffer(id);
+    addToBuffer(id, false);
   }
   else {
     addToBufferF(F("{\"variables\": {"));
-    if (variables_index == 0){
-      addToBufferF(F(" }, "));
-    }
-    else {
-      for (uint8_t i = 0; i < variables_index; i++){
-        addToBuffer(variable_names[i], true);
-        addToBufferF(F(": "));
-        variables[i]->addToBuffer(this, true);
-        }
-          addToBufferF(F(", "));
-        if (i < variables_index - 1) {
+
+    for (uint8_t i = 0; i < variables_index; i++){
+      addToBuffer(variable_names[i], true);
+      addToBufferF(F(": "));
+      variables[i]->addToBuffer(this, true);
       }
-      addToBufferF(F("}, "));
+      if (i < variables_index - 1) {
+        addToBufferF(F(", "));
+      }
     }
+
+    addToBufferF(F(" }, "));
   }
 
   // End
   addToBufferF(F("\"id\": \""));
-  addToBuffer(id);
-  addToBufferF(F("\", \"name\": \""));
-  addToBuffer(name);
-  addToBufferF(F("\", \"hardware\": \""));
-  addToBuffer(HARDWARE);
+  addToBuffer(id, false);
+  addToBufferF(F("\", \"name\": "));
+  addToBuffer(name, true);
+  addToBufferF(F(", \"hardware\": "));
+  addToBuffer(HARDWARE, true);
 
   #if defined(PubSubClient_h)
   addToBufferF(F("\", \"connected\": true}"));
