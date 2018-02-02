@@ -1573,18 +1573,7 @@ void addToBuffer(const String& toAdd, bool quotable){
     Serial.println(toAdd);
   }
 
-  if(quotable) {
-    addQuote();
-  }
-
-  for (int i = 0; i < toAdd.length() && index < OUTPUT_BUFFER_SIZE; i++, index++){
-    buffer[index] = toAdd[i];
-  }
-
-  if(quotable) {
-    addQuote();
-  }
-
+  addToBuffer(toAdd.c_str(), quotable);
 }
 #endif
 
