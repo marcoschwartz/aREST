@@ -1551,6 +1551,14 @@ void addToBuffer(const char * toAdd, bool quotable){
   }
 
   for (int i = 0; i < strlen(toAdd) && index < OUTPUT_BUFFER_SIZE; i++, index++) {
+    // Handle quoting quotes and backslashes
+    if(toAdd[i] == '"' || toAdd[i] == '\\') {
+      if(index == OUTPUT_BUFFER_SIZE - 1)   // No room!
+        return;
+      buffer[index] = '\\';
+      index++;
+    }
+
     buffer[index] = toAdd[i];
   }
 
