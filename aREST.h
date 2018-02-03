@@ -1611,6 +1611,15 @@ void addToBuffer(int toAdd, bool quotable){
   addToBuffer(number, false);   // Numbers don't get quoted
 }
 
+// Add to output buffer
+void addToBuffer(uint32_t toAdd, bool quotable){
+
+  char number[10];
+  itoa(toAdd,number,10);
+
+  addToBuffer(number, false);   // Numbers don't get quoted
+}
+
 // Add to output buffer (Mega & ESP only)
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
 void addToBuffer(float toAdd, bool quotable){
