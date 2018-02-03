@@ -1187,14 +1187,15 @@ bool send_command(bool headers) {
          // Send feedback to client
          if (LIGHTWEIGHT){
            addToBuffer(value, false);
+           addToBufferF(F(","));
          }
          else {
            addToBufferF(F("\"D"));
            addToBuffer(i, false);
            addToBufferF(F("\": "));
            addToBuffer(value, true);
+           addToBufferF(F(", "));
          }
-         addToBufferF(F(","));
      }
     }
     #endif
