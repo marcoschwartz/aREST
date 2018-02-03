@@ -1599,7 +1599,7 @@ void addToBuffer(uint16_t toAdd, bool quotable){
 
 // Add to output buffer
 void addToBuffer(bool toAdd, bool quotable) {
-  addToBuffer(toAdd ? "True" : "False", false);
+  addToBuffer(toAdd ? "true" : "false", false);
 }
 
 // Add to output buffer
