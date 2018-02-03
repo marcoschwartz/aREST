@@ -1288,13 +1288,12 @@ bool send_command(bool headers) {
       variables[value]->addToBuffer(this);
     }
     else {
+      addToBufferF(F("{"));
       addToBuffer(variable_names[value], true); 
       addToBufferF(F("\": ")); 
       variables[value]->addToBuffer(this); 
       addToBufferF(F(", ")); 
     } 
-
-    addToBufferF(F("{"));
   }
 
 
