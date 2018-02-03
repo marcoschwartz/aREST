@@ -1281,12 +1281,12 @@ bool send_command(bool headers) {
   if (command == 'v') {
     // Send feedback to client
     if (LIGHTWEIGHT){ 
-      variables[value]->addToBuffer(this, false);
+      variables[value]->addToBuffer(this);
     }
     else {
-      addToBuffer(variable_names[value]); 
-      variables[value]->addToBuffer(this); 
+      addToBuffer(variable_names[value], true); 
       addToBufferF(F("\": ")); 
+      variables[value]->addToBuffer(this); 
       addToBufferF(F(", ")); 
     } 
 
@@ -1329,13 +1329,13 @@ bool send_command(bool headers) {
 
    else {
      if (command != 'r' && command != 'u') {
-      addToBufferF(F("\"id\": \"")); 
-      addToBuffer(id); 
-      addToBufferF(F("\", \"name\": \"")); 
-      addToBuffer(name); 
-      addToBufferF(F("\", \"hardware\": \"")); 
-      addToBuffer(HARDWARE); 
-      addToBufferF(F("\", \"connected\": true}\r\n"));  
+      addToBufferF(F("\"id\": ")); 
+      addToBuffer(id, true); 
+      addToBufferF(F(", \"name\": ")); 
+      addToBuffer(name, true); 
+      addToBufferF(F(", \"hardware\": ")); 
+      addToBuffer(HARDWARE, true); 
+      addToBufferF(F(", \"connected\": true}\r\n"));  
      }
    }
 
@@ -1372,8 +1372,8 @@ virtual void root_answer() {
     for (uint8_t i = 0; i < variables_index; i++){
       addToBuffer(variable_names[i], true);
       addToBufferF(F(": "));
-      variables[i]->addToBuffer(this, true);
-      }
+      variables[i]->addToBuffer(this);
+
       if (i < variables_index - 1) {
         addToBufferF(F(", "));
       }
@@ -1383,9 +1383,9 @@ virtual void root_answer() {
   }
 
   // End
-  addToBufferF(F("\"id\": \""));
-  addToBuffer(id, false);
-  addToBufferF(F("\", \"name\": "));
+  addToBufferF(F("\"id\": "));
+  addToBuffer(id, true);
+  addToBufferF(F(", \"name\": "));
   addToBuffer(name, true);
   addToBufferF(F(", \"hardware\": "));
   addToBuffer(HARDWARE, true);
@@ -1528,7 +1528,7 @@ void removeLastBufferChar() {
 
 void addQuote() {
   if(index < OUTPUT_BUFFER_SIZE) {
-    buffer[index] = "\"";
+    buffer[index] = '\"';
     index++;
   }  
 }
@@ -1781,7 +1781,7 @@ uint8_t esp_12_pin_map(uint8_t pin) {
 void addVariableToBuffer(uint8_t index) {
   addToBuffer(variable_names[index], true);
   addToBufferF(F(": "));
-  variables[index]->addToBuffer(this, true);
+  variables[index]->addToBuffer(this);
   addToBufferF(F(", "));
 }
 
