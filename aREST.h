@@ -1379,7 +1379,7 @@ virtual void root_answer() {
       }
     }
 
-    addToBufferF(F(" }, "));
+    addToBufferF(F("}, "));
   }
 
   // End
