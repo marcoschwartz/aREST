@@ -1355,7 +1355,7 @@ virtual void root_answer() {
   #if defined(ADAFRUIT_CC3000_H) || defined(ESP8266) || defined(ethernet_h) || defined(WiFi_h)
     #if !defined(PubSubClient_h)
       if (command != 'u') {
-        addToBufferF(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
+        send_http_headers();
       }
     #endif
   #endif
