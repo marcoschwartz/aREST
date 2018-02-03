@@ -1006,6 +1006,8 @@ void process(char c){
            // Set state
            command = 'v';
            value = i;
+
+           break;   // We found what we're looking for
          }
        }
 
@@ -1030,6 +1032,8 @@ void process(char c){
                footer_start -= 6; // length of " HTTP/"
              arguments = answer.substring(header_length + 8, footer_start);
            }
+
+           break;   // We found what we're looking for
          }
        }
 
