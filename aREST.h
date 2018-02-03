@@ -1635,7 +1635,21 @@ void addToBuffer(uint16_t toAdd, bool quotable){
 }
 
 // Add to output buffer
+void addToBuffer(bool toAdd, bool quotable) {
+  addToBuffer(toAdd ? "True" : "False", false);
+}
+
+// Add to output buffer
 void addToBuffer(int toAdd, bool quotable){
+
+  char number[10];
+  itoa(toAdd,number,10);
+
+  addToBuffer(number, false);   // Numbers don't get quoted
+}
+
+// Add to output buffer
+void addToBuffer(uint32_t toAdd, bool quotable){
 
   char number[10];
   itoa(toAdd,number,10);
