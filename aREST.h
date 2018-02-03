@@ -1228,7 +1228,7 @@ bool send_command(bool headers) {
        value = analogRead(pin);
 
        // Send feedback to client
-       if (LIGHTWEIGHT){
+       if (LIGHTWEIGHT) {
         addToBuffer(value, false);
       }
        else {
@@ -1239,7 +1239,9 @@ bool send_command(bool headers) {
      }
      #if !defined(__AVR_ATmega32U4__)
      if (state == 'a') {
-       if (!LIGHTWEIGHT) {addToBufferF(F("{"));}
+       if (!LIGHTWEIGHT) {
+        addToBufferF(F("{"));
+       }
 
        for (uint8_t i = 0; i < NUMBER_ANALOG_PINS; i++) {
 
@@ -1256,7 +1258,7 @@ bool send_command(bool headers) {
            addToBuffer(i, false);
            addToBufferF(F("\": "));
            addToBuffer(value, true);
-           addToBufferF(F(" ,"));
+           addToBufferF(F(", "));
          }
      }
    }
