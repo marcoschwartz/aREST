@@ -1360,60 +1360,26 @@ virtual void root_answer() {
     #endif
   #endif
 
-  if (LIGHTWEIGHT) {addToBuffer(id);}
+  if (LIGHTWEIGHT) {
+    addToBuffer(id);
+  }
   else {
-
-    // Start
     addToBufferF(F("{\"variables\": {"));
-
-    #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
-
-    // Int variables
     if (variables_index == 0){
       addToBufferF(F(" }, "));
     }
     else {
-
-      if (variables_index > 0){
-
-        for (uint8_t i = 0; i < variables_index; i++){
-          addToBufferF(F("\""));
-          addToBuffer(variable_names[i]);
-          addToBufferF(F("\": "));
-          variables[i]->addToBuffer(this);
-          addToBufferF(F(", "));
-        }
-      }
-
-      removeLastBufferChar();
-      removeLastBufferChar();
-      addToBufferF(F("}, "));
-
-    }
-    #else
-    // Int variables
-    if (variables_index > 0){
-
-      for (uint8_t i = 0; i < variables_index-1; i++){
+      for (uint8_t i = 0; i < variables_index; i++){
         addToBufferF(F("\""));
         addToBuffer(variable_names[i]);
         addToBufferF(F("\": "));
         variables[i]->addToBuffer(this);
-        addToBufferF(F(", "));
+        if (i < variables_index - 1) {
+          addToBufferF(F(", "));
+        }
       }
-
-      // End
-      addToBufferF(F("\""));
-      addToBuffer(variable_names[variables_index-1]);
-      addToBufferF(F("\": "));
-      variables[variables_index-1]->addToBuffer(this);
       addToBufferF(F("}, "));
     }
-    else {
-      addToBufferF(F(" }, "));
-    }
-    #endif
-
   }
 
   // End
