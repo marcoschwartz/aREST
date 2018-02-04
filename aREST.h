@@ -554,7 +554,7 @@ void handle(HardwareSerial& serial){
   if (serial.available()) {
 
     // Handle request
-    handle_proto(serial,false,1);
+    handle_proto(serial,false,1,false);
 
     // Answer
     sendBuffer(serial,25,1);
@@ -1339,13 +1339,9 @@ bool send_command(bool headers, bool decodeArgs) {
     }
     else {
       addToBufferF(F("{"));
-      addToBuffer(variable_names[value], true); 
-      addToBufferF(F("\": ")); 
-      variables[value]->addToBuffer(this); 
-      addToBufferF(F(", ")); 
-    } 
+      addVariableToBuffer(value);
+    }
   }
-
 
   // Function selected
   if (command == 'f') {
@@ -1385,13 +1381,8 @@ bool send_command(bool headers, bool decodeArgs) {
 
    else {
      if (command != 'r' && command != 'u') {
-      addToBufferF(F("\"id\": ")); 
-      addToBuffer(id, true); 
-      addToBufferF(F(", \"name\": ")); 
-      addToBuffer(name, true); 
-      addToBufferF(F(", \"hardware\": ")); 
-      addToBuffer(HARDWARE, true); 
-      addToBufferF(F(", \"connected\": true}\r\n"));  
+        addHardwareToBuffer();
+        addToBufferF(F("\r\n"));
      }
    }
 
@@ -1439,17 +1430,10 @@ virtual void root_answer() {
   }
 
   // End
-  addToBufferF(F("\"id\": "));
-  addToBuffer(id, true);
-  addToBufferF(F(", \"name\": "));
-  addToBuffer(name, true);
-  addToBufferF(F(", \"hardware\": "));
-  addToBuffer(HARDWARE, true);
+  addHardwareToBuffer();
 
-  #if defined(PubSubClient_h)
-  addToBufferF(F("\", \"connected\": true}"));
-  #else
-  addToBufferF(F("\", \"connected\": true}\r\n"));
+  #ifndef PubSubClient_h
+    addToBufferF(F("\r\n"));
   #endif
 }
 
@@ -1625,8 +1609,8 @@ void addToBuffer(const char * toAdd, bool quotable){
 
 // Add to output buffer
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
+void addToBuffer(const String& toAdd, bool quotable){
 
-void addToBuffer(const String& toAdd, bool quotable) {
   if (DEBUG_MODE) {
     #if defined(ESP8266)|| defined (ESP32)
     Serial.print("Memory loss:");
