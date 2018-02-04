@@ -1416,27 +1416,28 @@ virtual void root_answer() {
   else {
     addToBufferF(F("{\"variables\": {"));
 
-    for (uint8_t i = 0; i < variables_index; i++){
+    for (uint8_t i = 0; i < variables_index; i++) {
       addToBuffer(variable_names[i], true);
+    
       addToBufferF(F(": "));
       variables[i]->addToBuffer(this);
 
+      // Add a comma unless this is our last variable
       if (i < variables_index - 1) {
         addToBufferF(F(", "));
       }
     }
 
     addToBufferF(F("}, "));
+    // END
   }
 
-  // End
   addHardwareToBuffer();
 
   #ifndef PubSubClient_h
     addToBufferF(F("\r\n"));
   #endif
 }
-
 
 void function(char * function_name, int (*f)(String)){
 
@@ -1609,8 +1610,8 @@ void addToBuffer(const char * toAdd, bool quotable){
 
 // Add to output buffer
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-void addToBuffer(const String& toAdd, bool quotable){
 
+void addToBuffer(const String& toAdd, bool quotable) {
   if (DEBUG_MODE) {
     #if defined(ESP8266)|| defined (ESP32)
     Serial.print("Memory loss:");
@@ -1831,14 +1832,12 @@ uint8_t esp_12_pin_map(uint8_t pin) {
 
 }
 
-
 void addVariableToBuffer(uint8_t index) {
   addToBuffer(variable_names[index], true);
   addToBufferF(F(": "));
   variables[index]->addToBuffer(this);
   addToBufferF(F(", "));
 }
-
 
 void addHardwareToBuffer() {
   addToBufferF(F("\"id\": "));
@@ -1849,7 +1848,6 @@ void addHardwareToBuffer() {
   addToBuffer(HARDWARE, true);
   addToBufferF(F(", \"connected\": true}"));
 }
-
 
 // For non AVR boards
 #if defined (__arm__)
