@@ -1916,9 +1916,6 @@ private:
   char* mqtt_server = "104.131.78.157";
   bool private_mqtt_server;
 
-  // Key
-  char* proKey;
-
   #endif
 
 
