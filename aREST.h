@@ -554,7 +554,7 @@ void handle(HardwareSerial& serial){
   if (serial.available()) {
 
     // Handle request
-    handle_proto(serial,false,1);
+    handle_proto(serial,false,1,false);
 
     // Answer
     sendBuffer(serial,25,1);
@@ -1339,13 +1339,9 @@ bool send_command(bool headers, bool decodeArgs) {
     }
     else {
       addToBufferF(F("{"));
-      addToBuffer(variable_names[value], true); 
-      addToBufferF(F("\": ")); 
-      variables[value]->addToBuffer(this); 
-      addToBufferF(F(", ")); 
-    } 
+      addVariableToBuffer(value);
+    }
   }
-
 
   // Function selected
   if (command == 'f') {
@@ -1385,13 +1381,8 @@ bool send_command(bool headers, bool decodeArgs) {
 
    else {
      if (command != 'r' && command != 'u') {
-      addToBufferF(F("\"id\": ")); 
-      addToBuffer(id, true); 
-      addToBufferF(F(", \"name\": ")); 
-      addToBuffer(name, true); 
-      addToBufferF(F(", \"hardware\": ")); 
-      addToBuffer(HARDWARE, true); 
-      addToBufferF(F(", \"connected\": true}\r\n"));  
+        addHardwareToBuffer();
+        addToBufferF(F("\r\n"));
      }
    }
 
@@ -1425,34 +1416,28 @@ virtual void root_answer() {
   else {
     addToBufferF(F("{\"variables\": {"));
 
-    for (uint8_t i = 0; i < variables_index; i++){
+    for (uint8_t i = 0; i < variables_index; i++) {
       addToBuffer(variable_names[i], true);
+    
       addToBufferF(F(": "));
       variables[i]->addToBuffer(this);
 
+      // Add a comma unless this is our last variable
       if (i < variables_index - 1) {
         addToBufferF(F(", "));
       }
     }
 
     addToBufferF(F("}, "));
+    // END
   }
 
-  // End
-  addToBufferF(F("\"id\": "));
-  addToBuffer(id, true);
-  addToBufferF(F(", \"name\": "));
-  addToBuffer(name, true);
-  addToBufferF(F(", \"hardware\": "));
-  addToBuffer(HARDWARE, true);
+  addHardwareToBuffer();
 
-  #if defined(PubSubClient_h)
-  addToBufferF(F("\", \"connected\": true}"));
-  #else
-  addToBufferF(F("\", \"connected\": true}\r\n"));
+  #ifndef PubSubClient_h
+    addToBufferF(F("\r\n"));
   #endif
 }
-
 
 void function(char * function_name, int (*f)(String)){
 
@@ -1833,14 +1818,12 @@ uint8_t esp_12_pin_map(uint8_t pin) {
 
 }
 
-
 void addVariableToBuffer(uint8_t index) {
   addToBuffer(variable_names[index], true);
   addToBufferF(F(": "));
   variables[index]->addToBuffer(this);
   addToBufferF(F(", "));
 }
-
 
 void addHardwareToBuffer() {
   addToBufferF(F("\"id\": "));
@@ -1851,7 +1834,6 @@ void addHardwareToBuffer() {
   addToBuffer(HARDWARE, true);
   addToBufferF(F(", \"connected\": true}"));
 }
-
 
 // For non AVR boards
 #if defined (__arm__)
