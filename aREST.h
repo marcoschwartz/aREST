@@ -395,7 +395,7 @@ void handle(Adafruit_CC3000_ClientRef& client) {
   if (client.available()) {
 
     // Handle request
-    handle_proto(client,true,0);
+    handle_proto(client,true,0,false);
 
     // Answer
     sendBuffer(client,32,20);
@@ -422,7 +422,7 @@ void handle(YunClient& client) {
   if (client.available()) {
 
     // Handle request
-    handle_proto(client,false,0);
+    handle_proto(client,false,0,false);
 
     // Answer
     sendBuffer(client,25,10);
@@ -448,7 +448,7 @@ void handle(Adafruit_BLE_UART& serial) {
   if (serial.available()) {
 
     // Handle request
-    handle_proto(serial,false,0);
+    handle_proto(serial,false,0,false);
 
     // Answer
     sendBuffer(serial,100,1);
@@ -473,7 +473,7 @@ void handle(EthernetClient& client){
   if (client.available()) {
 
     // Handle request
-    handle_proto(client,true,0);
+    handle_proto(client,true,0,false);
 
     // Answer
     sendBuffer(client,50,0);
@@ -499,7 +499,7 @@ void handle(ESP8266Client& client){
   if (client.available()) {
 
     // Handle request
-    handle_proto(client,true,0);
+    handle_proto(client,true,0,true);
 
     // Answer
     sendBuffer(client,0,0);
@@ -530,7 +530,7 @@ void handle(WiFiClient& client){
     }
 
     // Handle request
-    handle_proto(client,true,0);
+    handle_proto(client,true,0,true);
 
     if (DEBUG_MODE) {
       Serial.print("Memory loss after handling:");
@@ -545,6 +545,22 @@ void handle(WiFiClient& client){
     // Reset variables for the next command
     reset_status();
 
+  }
+}
+
+// Handle request on the Serial port
+void handle(HardwareSerial& serial){
+
+  if (serial.available()) {
+
+    // Handle request
+    handle_proto(serial,false,1);
+
+    // Answer
+    sendBuffer(serial,25,1);
+
+    // Reset variables for the next command
+    reset_status();
   }
 }
 
@@ -565,7 +581,7 @@ void handle(WiFiClient& client){
     if (DEBUG_MODE) {Serial.println("Request received");}
 
     // Handle request
-    handle_proto(client,true,0);
+    handle_proto(client,true,0,true);
 
     // Answer
     sendBuffer(client,0,0);
@@ -593,7 +609,7 @@ void handle(WiFiClient& client){
     if (DEBUG_MODE) {Serial.println("Request received");}
 
     // Handle request
-    handle_proto(client,true,0);
+    handle_proto(client,true,0,true);
 
     // Answer
     sendBuffer(client,50,1);
@@ -619,7 +635,7 @@ void handle(usb_serial_class& serial){
   if (serial.available()) {
 
     // Handle request
-    handle_proto(serial,false,1);
+    handle_proto(serial,false,1,false);
 
     // Answer
     sendBuffer(serial,25,1);
@@ -644,7 +660,7 @@ void handle(Serial_& serial){
   if (serial.available()) {
 
     // Handle request
-    handle_proto(serial,false,1);
+    handle_proto(serial,false,1,false);
 
     // Answer
     sendBuffer(serial,25,1);
@@ -669,7 +685,7 @@ void handle(HardwareSerial& serial){
   if (serial.available()) {
 
     // Handle request
-    handle_proto(serial,false,1);
+    handle_proto(serial,false,1,false);
 
     // Answer
     sendBuffer(serial,25,1);
@@ -710,7 +726,7 @@ void handle_proto(char * string) {
   }
 
   // Send command
-  send_command(false);
+  send_command(false, false);
 }
 
 template <typename T, typename V>
@@ -739,7 +755,7 @@ void publish_proto(T& client, const String& eventName, V value) {
 }
 
 template <typename T>
-void handle_proto(T& serial, bool headers, uint8_t read_delay)
+void handle_proto(T& serial, bool headers, uint8_t read_delay, bool decode)
 {
 
   // Check if there is data available to read
@@ -757,7 +773,7 @@ void handle_proto(T& serial, bool headers, uint8_t read_delay)
    }
 
    // Send command
-   send_command(headers);
+   send_command(headers, decode);
 }
 
 #if defined(PubSubClient_h)
@@ -1029,6 +1045,8 @@ void process(char c){
            // Set state
            command = 'v';
            value = i;
+
+           break;   // We found what we're looking for
          }
        }
 
@@ -1053,6 +1071,8 @@ void process(char c){
                footer_start -= 6; // length of " HTTP/"
              arguments = answer.substring(header_length + 8, footer_start);
            }
+
+           break;   // We found what we're looking for
          }
        }
 
@@ -1094,7 +1114,37 @@ void process(char c){
     }
 }
 
-bool send_command(bool headers) {
+
+// Modifies arguments in place
+void urldecode(String &arguments) {
+  char a, b;
+  int j = 0;
+  for(int i = 0; i < arguments.length(); i++) {
+    // %20 ==> arguments[i] = '%', a = '2', b = '0'
+    if ((arguments[i] == '%') && ((a = arguments[i + 1]) && (b = arguments[i + 2])) && (isxdigit(a) && isxdigit(b))) {
+      if (a >= 'a') a -= 'a'-'A';
+      if (a >= 'A') a -= ('A' - 10);
+      else          a -= '0';
+
+      if (b >= 'a') b -= 'a'-'A';
+      if (b >= 'A') b -= ('A' - 10);
+      else          b -= '0';
+
+      arguments[j] = char(16 * a + b);
+      i += 2;   // Skip ahead
+    } else if (arguments[i] == '+') {
+      arguments[j] = ' ';
+    } else {
+     arguments[j] = arguments[i];
+    }
+    j++;
+  }
+
+  arguments.remove(j);    // Truncate string to new possibly reduced length
+}
+
+
+bool send_command(bool headers, bool decodeArgs) {
 
    if (DEBUG_MODE) {
 
@@ -1301,6 +1351,9 @@ bool send_command(bool headers) {
   if (command == 'f') {
 
     // Execute function
+    if(decodeArgs)
+      urldecode(arguments);   // Modifies arguments
+
     int result = functions[value](arguments);
 
     // Send feedback to client
@@ -1361,7 +1414,7 @@ virtual void root_answer() {
   #if defined(ADAFRUIT_CC3000_H) || defined(ESP8266) || defined(ethernet_h) || defined(WiFi_h)
     #if !defined(PubSubClient_h)
       if (command != 'u') {
-        addToBufferF(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
+        send_http_headers();
       }
     #endif
   #endif
@@ -1572,8 +1625,8 @@ void addToBuffer(const char * toAdd, bool quotable){
 
 // Add to output buffer
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-void addToBuffer(const String& toAdd, bool quotable){
 
+void addToBuffer(const String& toAdd, bool quotable) {
   if (DEBUG_MODE) {
     #if defined(ESP8266)|| defined (ESP32)
     Serial.print("Memory loss:");
