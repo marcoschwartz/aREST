@@ -151,7 +151,7 @@ struct TypedVariable: Variable {
   TypedVariable(T *v) : var{v} { }
 
   void addToBuffer(aREST *arest) const override { 
-    arest->addToBuffer(*var);
+    arest->addToBuffer(*var, true);
   }
 };
 
@@ -1172,7 +1172,7 @@ bool send_command(bool headers, bool decodeArgs) {
      // Send feedback to client
      if (!LIGHTWEIGHT){
        addToBufferF(F("{\"message\": \"Pin D"));
-       addToBuffer(message_pin);
+       addToBuffer(message_pin, false);
      }
 
      // Input
@@ -1215,10 +1215,12 @@ bool send_command(bool headers, bool decodeArgs) {
        value = digitalRead(pin);
 
        // Send answer
-       if (LIGHTWEIGHT){addToBuffer(value);}
+       if (LIGHTWEIGHT){
+        addToBuffer(value, false);
+      }
        else {
         addToBufferF(F("{\"return_value\": "));
-        addToBuffer(value);
+        addToBuffer(value, true);
         addToBufferF(F(", "));
       }
      }
@@ -1234,14 +1236,14 @@ bool send_command(bool headers, bool decodeArgs) {
 
          // Send feedback to client
          if (LIGHTWEIGHT){
-           addToBuffer(value);
+           addToBuffer(value, false);
            addToBufferF(F(","));
          }
          else {
            addToBufferF(F("\"D"));
-           addToBuffer(i);
+           addToBuffer(i, false);
            addToBufferF(F("\": "));
-           addToBuffer(value);
+           addToBuffer(value, true);
            addToBufferF(F(", "));
          }
      }
@@ -1261,9 +1263,9 @@ bool send_command(bool headers, bool decodeArgs) {
        // Send feedback to client
        if (!LIGHTWEIGHT){
         addToBufferF(F("{\"message\": \"Pin D"));
-        addToBuffer(message_pin);
+        addToBuffer(message_pin, false);
         addToBufferF(F(" set to "));
-        addToBuffer(value);
+        addToBuffer(value, false);
         addToBufferF(F("\", "));
        }
      }
@@ -1277,16 +1279,20 @@ bool send_command(bool headers, bool decodeArgs) {
        value = analogRead(pin);
 
        // Send feedback to client
-       if (LIGHTWEIGHT){addToBuffer(value);}
+       if (LIGHTWEIGHT) {
+        addToBuffer(value, false);
+      }
        else {
         addToBufferF(F("{\"return_value\": "));
-        addToBuffer(value);
+        addToBuffer(value, true);
         addToBufferF(F(", "));
        }
      }
      #if !defined(__AVR_ATmega32U4__)
      if (state == 'a') {
-       if (!LIGHTWEIGHT) {addToBufferF(F("{"));}
+       if (!LIGHTWEIGHT) {
+        addToBufferF(F("{"));
+       }
 
        for (uint8_t i = 0; i < NUMBER_ANALOG_PINS; i++) {
 
@@ -1295,14 +1301,14 @@ bool send_command(bool headers, bool decodeArgs) {
 
          // Send feedback to client
          if (LIGHTWEIGHT){
-           addToBuffer(value);
+           addToBuffer(value, false);
            addToBufferF(F(","));
          }
          else {
            addToBufferF(F("\"A"));
-           addToBuffer(i);
+           addToBuffer(i, false);
            addToBufferF(F("\": "));
-           addToBuffer(value);
+           addToBuffer(value, true);
            addToBufferF(F(", "));
          }
      }
@@ -1317,9 +1323,9 @@ bool send_command(bool headers, bool decodeArgs) {
 
      // Send feedback to client
      addToBufferF(F("{\"message\": \"Pin D"));
-     addToBuffer(message_pin);
+     addToBuffer(message_pin, false);
      addToBufferF(F(" set to "));
-     addToBuffer(value);
+     addToBuffer(value, false);
      addToBufferF(F("\", "));
 
    }
@@ -1349,7 +1355,7 @@ bool send_command(bool headers, bool decodeArgs) {
     // Send feedback to client
     if (!LIGHTWEIGHT) {
      addToBufferF(F("{\"return_value\": "));
-     addToBuffer(result);
+     addToBuffer(result, true);
      addToBufferF(F(", "));
      //addToBufferF(F(", \"message\": \""));
      //addToBufferF(functions_names[value]);
@@ -1362,7 +1368,7 @@ bool send_command(bool headers, bool decodeArgs) {
   }
 
   if (command == 'i') {
-    if (LIGHTWEIGHT) {addToBuffer(id);}
+    if (LIGHTWEIGHT) {addToBuffer(id, false);}
     else {
       addToBufferF(F("{"));
     }
@@ -1405,25 +1411,27 @@ virtual void root_answer() {
   #endif
 
   if (LIGHTWEIGHT) {
-    addToBuffer(id);
+    addToBuffer(id, false);
   }
   else {
     addToBufferF(F("{\"variables\": {"));
-    
+
     for (uint8_t i = 0; i < variables_index; i++) {
-      addToBuffer(variable_names[i]);
+      addToBuffer(variable_names[i], true);
+    
       addToBufferF(F(": "));
       variables[i]->addToBuffer(this);
 
+      // Add a comma unless this is our last variable
       if (i < variables_index - 1) {
         addToBufferF(F(", "));
       }
     }
 
     addToBufferF(F("}, "));
+    // END
   }
 
-  // End
   addHardwareToBuffer();
 
   #ifndef PubSubClient_h
@@ -1558,8 +1566,16 @@ void removeLastBufferChar() {
 
 }
 
+
+void addQuote() {
+  if(index < OUTPUT_BUFFER_SIZE) {
+    buffer[index] = '\"';
+    index++;
+  }  
+}
+
 // Add to output buffer
-void addToBuffer(const char * toAdd){
+void addToBuffer(const char * toAdd, bool quotable){
 
   if (DEBUG_MODE) {
     #if defined(ESP8266)|| defined (ESP32)
@@ -1571,17 +1587,31 @@ void addToBuffer(const char * toAdd){
     Serial.println(toAdd);
   }
 
-  for (int i = 0;
-       i < strlen(toAdd) && index < OUTPUT_BUFFER_SIZE;
-       i++, index++) {
+  if(quotable) {
+    addQuote();
+  }
+
+  for (int i = 0; i < strlen(toAdd) && index < OUTPUT_BUFFER_SIZE; i++, index++) {
+    // Handle quoting quotes and backslashes
+    if(toAdd[i] == '"' || toAdd[i] == '\\') {
+      if(index == OUTPUT_BUFFER_SIZE - 1)   // No room!
+        return;
+      buffer[index] = '\\';
+      index++;
+    }
+
     buffer[index] = toAdd[i];
+  }
+
+  if(quotable) {
+    addQuote();
   }
 }
 
 // Add to output buffer
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-void addToBuffer(const String& toAdd){
 
+void addToBuffer(const String& toAdd, bool quotable) {
   if (DEBUG_MODE) {
     #if defined(ESP8266)|| defined (ESP32)
     Serial.print("Memory loss:");
@@ -1592,43 +1622,41 @@ void addToBuffer(const String& toAdd){
     Serial.println(toAdd);
   }
 
-  for (int i = 0; i < toAdd.length() && index < OUTPUT_BUFFER_SIZE; i++, index++){
-    buffer[index] = toAdd[i];
-  }
+  addToBuffer(toAdd.c_str(), quotable);
 }
 #endif
 
 // Add to output buffer
-void addToBuffer(uint16_t toAdd){
+void addToBuffer(uint16_t toAdd, bool quotable){
 
   char number[10];
   itoa(toAdd,number,10);
 
-  addToBuffer(number);
+  addToBuffer(number, false);   // Numbers don't get quoted
 }
 
 // Add to output buffer
-void addToBuffer(int toAdd){
+void addToBuffer(int toAdd, bool quotable){
 
   char number[10];
   itoa(toAdd,number,10);
 
-  addToBuffer(number);
+  addToBuffer(number, false);   // Numbers don't get quoted
 }
 
 // Add to output buffer (Mega & ESP only)
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
-void addToBuffer(float toAdd){
+void addToBuffer(float toAdd, bool quotable){
 
   char number[10];
   dtostrf(toAdd, 5, 2, number);
 
-  addToBuffer(number);
+  addToBuffer(number, false);   // Numbers don't get quoted
 }
 #endif
 
 // Add to output buffer
-void addToBuffer(const __FlashStringHelper *toAdd){
+void addToBuffer(const __FlashStringHelper *toAdd, bool quotable){
 
   if (DEBUG_MODE) {
     #if defined(ESP8266)|| defined (ESP32)
@@ -1640,6 +1668,10 @@ void addToBuffer(const __FlashStringHelper *toAdd){
     Serial.println(toAdd);
   }
 
+  if(quotable) {
+    addQuote();
+  }
+
   uint8_t idx = 0;
 
   PGM_P p = reinterpret_cast<PGM_P>(toAdd);
@@ -1648,6 +1680,10 @@ void addToBuffer(const __FlashStringHelper *toAdd){
         c != 0 && index < OUTPUT_BUFFER_SIZE;
         c = pgm_read_byte(p++), index++) {
     buffer[index] = c;
+  }
+
+  if(quotable) {
+    addQuote();
   }
 }
 
@@ -1782,26 +1818,22 @@ uint8_t esp_12_pin_map(uint8_t pin) {
 
 }
 
-
 void addVariableToBuffer(uint8_t index) {
-  addToBufferF(F("\""));
-  addToBuffer(variable_names[index]);
-  addToBufferF(F("\": "));
+  addToBuffer(variable_names[index], true);
+  addToBufferF(F(": "));
   variables[index]->addToBuffer(this);
   addToBufferF(F(", "));
 }
 
-
 void addHardwareToBuffer() {
-  addToBufferF(F("\"id\": \""));
-  addToBuffer(id);
-  addToBufferF(F("\", \"name\": \""));
-  addToBuffer(name);
-  addToBufferF(F("\", \"hardware\": \""));
-  addToBuffer(HARDWARE);
-  addToBufferF(F("\", \"connected\": true}"));
+  addToBufferF(F("\"id\": "));
+  addToBuffer(id, true);
+  addToBufferF(F(", \"name\": "));
+  addToBuffer(name, true);
+  addToBufferF(F(", \"hardware\": "));
+  addToBuffer(HARDWARE, true);
+  addToBufferF(F(", \"connected\": true}"));
 }
-
 
 // For non AVR boards
 #if defined (__arm__)
