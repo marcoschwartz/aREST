@@ -231,7 +231,7 @@ char* get_topic() {
 }
 
 // Subscribe to events
-void subscribe(String device, String eventName) {
+void subscribe(const String& device, const String& eventName) {
 
   // Build topic
   String topic = device + "_" + eventName + "_in";
@@ -247,7 +247,7 @@ void subscribe(String device, String eventName) {
 
 // Publish to cloud
 template <typename T>
-void publish(PubSubClient& client, String eventName, T data) {
+void publish(PubSubClient& client, const String& eventName, T data) {
 
   // Get event data
   if (DEBUG_MODE) {
@@ -395,7 +395,7 @@ void handle(Adafruit_CC3000_ClientRef& client) {
   if (client.available()) {
 
     // Handle request
-    handle_proto(client,true,0);
+    handle_proto(client,true,0,false);
 
     // Answer
     sendBuffer(client,32,20);
@@ -408,7 +408,7 @@ void handle(Adafruit_CC3000_ClientRef& client) {
 }
 
 template <typename T>
-void publish(Adafruit_CC3000_ClientRef& client, String eventName, T value) {
+void publish(Adafruit_CC3000_ClientRef& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -422,7 +422,7 @@ void handle(YunClient& client) {
   if (client.available()) {
 
     // Handle request
-    handle_proto(client,false,0);
+    handle_proto(client,false,0,false);
 
     // Answer
     sendBuffer(client,25,10);
@@ -434,7 +434,7 @@ void handle(YunClient& client) {
 }
 
 template <typename T>
-void publish(YunClient& client, String eventName, T value) {
+void publish(YunClient& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -448,7 +448,7 @@ void handle(Adafruit_BLE_UART& serial) {
   if (serial.available()) {
 
     // Handle request
-    handle_proto(serial,false,0);
+    handle_proto(serial,false,0,false);
 
     // Answer
     sendBuffer(serial,100,1);
@@ -459,7 +459,7 @@ void handle(Adafruit_BLE_UART& serial) {
 }
 
 // template <typename T>
-// void publish(Adafruit_BLE_UART& serial, String eventName, T value) {
+// void publish(Adafruit_BLE_UART& serial, const String& eventName, T value) {
 
 //   // Publish request
 //   publish_proto(client, eventName, value);
@@ -473,7 +473,7 @@ void handle(EthernetClient& client){
   if (client.available()) {
 
     // Handle request
-    handle_proto(client,true,0);
+    handle_proto(client,true,0,false);
 
     // Answer
     sendBuffer(client,50,0);
@@ -485,7 +485,7 @@ void handle(EthernetClient& client){
 }
 
 template <typename T>
-void publish(EthernetClient& client, String eventName, T value) {
+void publish(EthernetClient& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -499,7 +499,7 @@ void handle(ESP8266Client& client){
   if (client.available()) {
 
     // Handle request
-    handle_proto(client,true,0);
+    handle_proto(client,true,0,true);
 
     // Answer
     sendBuffer(client,0,0);
@@ -530,7 +530,7 @@ void handle(WiFiClient& client){
     }
 
     // Handle request
-    handle_proto(client,true,0);
+    handle_proto(client,true,0,true);
 
     if (DEBUG_MODE) {
       Serial.print("Memory loss after handling:");
@@ -548,121 +548,6 @@ void handle(WiFiClient& client){
   }
 }
 
-template <typename T>
-void publish(WiFiClient& client, String eventName, T value) {
-
-  // Publish request
-  publish_proto(client, eventName, value);
-
-}
-
-// Handle request for the Arduino MKR1000 board
-#elif defined(WIFI_H)
-void handle(WiFiClient& client){
-
-  if (client.available()) {
-
-    if (DEBUG_MODE) {Serial.println("Request received");}
-
-    // Handle request
-    handle_proto(client,true,0);
-
-    // Answer
-    sendBuffer(client,0,0);
-    client.stop();
-
-    // Reset variables for the next command
-    reset_status();
-  }
-}
-
-template <typename T>
-void publish(WiFiClient& client, String eventName, T value) {
-
-  // Publish request
-  publish_proto(client, eventName, value);
-
-}
-
-// Handle request for the Arduino WiFi shield
-#elif defined(WiFi_h)
-void handle(WiFiClient& client){
-
-  if (client.available()) {
-
-    if (DEBUG_MODE) {Serial.println("Request received");}
-
-    // Handle request
-    handle_proto(client,true,0);
-
-    // Answer
-    sendBuffer(client,50,1);
-    client.stop();
-
-    // Reset variables for the next command
-    reset_status();
-  }
-}
-
-template <typename T>
-void publish(WiFiClient& client, String eventName, T value) {
-
-  // Publish request
-  publish_proto(client, eventName, value);
-
-}
-
-#elif defined(CORE_TEENSY)
-// Handle request on the Serial port
-void handle(usb_serial_class& serial){
-
-  if (serial.available()) {
-
-    // Handle request
-    handle_proto(serial,false,1);
-
-    // Answer
-    sendBuffer(serial,25,1);
-
-    // Reset variables for the next command
-    reset_status();
-  }
-}
-
-template <typename T>
-void publish(usb_serial_class& client, String eventName, T value) {
-
-  // Publish request
-  publish_proto(client, eventName, value);
-
-}
-
-#elif defined(__AVR_ATmega32U4__)
-// Handle request on the Serial port
-void handle(Serial_& serial){
-
-  if (serial.available()) {
-
-    // Handle request
-    handle_proto(serial,false,1);
-
-    // Answer
-    sendBuffer(serial,25,1);
-
-    // Reset variables for the next command
-    reset_status();
-  }
-}
-
-template <typename T>
-void publish(Serial_& client, String eventName, T value) {
-
-  // Publish request
-  publish_proto(client, eventName, value);
-
-}
-
-#else
 // Handle request on the Serial port
 void handle(HardwareSerial& serial){
 
@@ -680,7 +565,138 @@ void handle(HardwareSerial& serial){
 }
 
 template <typename T>
-void publish(HardwareSerial& client, String eventName, T value) {
+void publish(WiFiClient& client, const String& eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
+}
+
+// Handle request for the Arduino MKR1000 board
+#elif defined(WIFI_H)
+void handle(WiFiClient& client){
+
+  if (client.available()) {
+
+    if (DEBUG_MODE) {Serial.println("Request received");}
+
+    // Handle request
+    handle_proto(client,true,0,true);
+
+    // Answer
+    sendBuffer(client,0,0);
+    client.stop();
+
+    // Reset variables for the next command
+    reset_status();
+  }
+}
+
+template <typename T>
+void publish(WiFiClient& client, const String& eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
+}
+
+// Handle request for the Arduino WiFi shield
+#elif defined(WiFi_h)
+void handle(WiFiClient& client){
+
+  if (client.available()) {
+
+    if (DEBUG_MODE) {Serial.println("Request received");}
+
+    // Handle request
+    handle_proto(client,true,0,true);
+
+    // Answer
+    sendBuffer(client,50,1);
+    client.stop();
+
+    // Reset variables for the next command
+    reset_status();
+  }
+}
+
+template <typename T>
+void publish(WiFiClient& client, const String& eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
+}
+
+#elif defined(CORE_TEENSY)
+// Handle request on the Serial port
+void handle(usb_serial_class& serial){
+
+  if (serial.available()) {
+
+    // Handle request
+    handle_proto(serial,false,1,false);
+
+    // Answer
+    sendBuffer(serial,25,1);
+
+    // Reset variables for the next command
+    reset_status();
+  }
+}
+
+template <typename T>
+void publish(usb_serial_class& client, const String& eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
+}
+
+#elif defined(__AVR_ATmega32U4__)
+// Handle request on the Serial port
+void handle(Serial_& serial){
+
+  if (serial.available()) {
+
+    // Handle request
+    handle_proto(serial,false,1,false);
+
+    // Answer
+    sendBuffer(serial,25,1);
+
+    // Reset variables for the next command
+    reset_status();
+  }
+}
+
+template <typename T>
+void publish(Serial_& client, const String& eventName, T value) {
+
+  // Publish request
+  publish_proto(client, eventName, value);
+
+}
+
+#else
+// Handle request on the Serial port
+void handle(HardwareSerial& serial){
+
+  if (serial.available()) {
+
+    // Handle request
+    handle_proto(serial,false,1,false);
+
+    // Answer
+    sendBuffer(serial,25,1);
+
+    // Reset variables for the next command
+    reset_status();
+  }
+}
+
+template <typename T>
+void publish(HardwareSerial& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -710,11 +726,11 @@ void handle_proto(char * string) {
   }
 
   // Send command
-  send_command(false);
+  send_command(false, false);
 }
 
 template <typename T, typename V>
-void publish_proto(T& client, String eventName, V value) {
+void publish_proto(T& client, const String& eventName, V value) {
 
   // Format data
   String data = "name=" + eventName + "&data=" + String(value);
@@ -739,7 +755,7 @@ void publish_proto(T& client, String eventName, V value) {
 }
 
 template <typename T>
-void handle_proto(T& serial, bool headers, uint8_t read_delay)
+void handle_proto(T& serial, bool headers, uint8_t read_delay, bool decode)
 {
 
   // Check if there is data available to read
@@ -757,7 +773,7 @@ void handle_proto(T& serial, bool headers, uint8_t read_delay)
    }
 
    // Send command
-   send_command(headers);
+   send_command(headers, decode);
 }
 
 #if defined(PubSubClient_h)
@@ -1029,6 +1045,8 @@ void process(char c){
            // Set state
            command = 'v';
            value = i;
+
+           break;   // We found what we're looking for
          }
        }
 
@@ -1053,6 +1071,8 @@ void process(char c){
                footer_start -= 6; // length of " HTTP/"
              arguments = answer.substring(header_length + 8, footer_start);
            }
+
+           break;   // We found what we're looking for
          }
        }
 
@@ -1094,7 +1114,37 @@ void process(char c){
     }
 }
 
-bool send_command(bool headers) {
+
+// Modifies arguments in place
+void urldecode(String &arguments) {
+  char a, b;
+  int j = 0;
+  for(int i = 0; i < arguments.length(); i++) {
+    // %20 ==> arguments[i] = '%', a = '2', b = '0'
+    if ((arguments[i] == '%') && ((a = arguments[i + 1]) && (b = arguments[i + 2])) && (isxdigit(a) && isxdigit(b))) {
+      if (a >= 'a') a -= 'a'-'A';
+      if (a >= 'A') a -= ('A' - 10);
+      else          a -= '0';
+
+      if (b >= 'a') b -= 'a'-'A';
+      if (b >= 'A') b -= ('A' - 10);
+      else          b -= '0';
+
+      arguments[j] = char(16 * a + b);
+      i += 2;   // Skip ahead
+    } else if (arguments[i] == '+') {
+      arguments[j] = ' ';
+    } else {
+     arguments[j] = arguments[i];
+    }
+    j++;
+  }
+
+  arguments.remove(j);    // Truncate string to new possibly reduced length
+}
+
+
+bool send_command(bool headers, bool decodeArgs) {
 
    if (DEBUG_MODE) {
 
@@ -1291,6 +1341,9 @@ bool send_command(bool headers) {
   if (command == 'f') {
 
     // Execute function
+    if(decodeArgs)
+      urldecode(arguments);   // Modifies arguments
+
     int result = functions[value](arguments);
 
     // Send feedback to client
@@ -1346,48 +1399,26 @@ virtual void root_answer() {
   #if defined(ADAFRUIT_CC3000_H) || defined(ESP8266) || defined(ethernet_h) || defined(WiFi_h)
     #if !defined(PubSubClient_h)
       if (command != 'u') {
-        addToBufferF(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
+        send_http_headers();
       }
     #endif
   #endif
 
-  if (LIGHTWEIGHT) {addToBuffer(id);}
+  if (LIGHTWEIGHT) {
+    addToBuffer(id);
+  }
   else {
-
-    // Start
     addToBufferF(F("{\"variables\": {"));
+    
+    for (uint8_t i = 0; i < variables_index; i++) {
+      addToBuffer(variable_names[i], true);
+      addToBufferF(F(": "));
+      variables[i]->addToBuffer(this);
 
-    #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
-
-    // Int variables
-    if (variables_index > 0){
-      for (uint8_t i = 0; i < variables_index; i++){
-        addVariableToBuffer(i);
-      }
-
-      // Remove trailing comma and space
-      removeLastBufferChar();
-      removeLastBufferChar();
-    }
-    #else
-    // Int variables
-    if (variables_index > 0){
-
-      for (uint8_t i = 0; i < variables_index-1; i++){
-        addToBufferF(F("\""));
-        addToBuffer(variable_names[i]);
-        addToBufferF(F("\": "));
-        variables[i]->addToBuffer(this);
+      if (i < variables_index - 1) {
         addToBufferF(F(", "));
       }
-
-      // End
-      addToBufferF(F("\""));
-      addToBuffer(variable_names[variables_index-1]);
-      addToBufferF(F("\": "));
-      variables[variables_index-1]->addToBuffer(this);
     }
-    #endif
 
     addToBufferF(F("}, "));
   }
@@ -1399,7 +1430,6 @@ virtual void root_answer() {
     addToBufferF(F("\r\n"));
   #endif
 }
-
 
 void function(char * function_name, int (*f)(String)){
 
@@ -1509,13 +1539,13 @@ void set_name(char *device_name){
 }
 
 // Set device name
-void set_name(String device_name){
+void set_name(const String& device_name){
 
   device_name.toCharArray(name, NAME_SIZE);
 }
 
 // Set device ID
-void set_id(String device_id){
+void set_id(const String& device_id){
 
   device_id.toCharArray(id, ID_SIZE);
   set_id(id);
@@ -1550,7 +1580,7 @@ void addToBuffer(const char * toAdd){
 
 // Add to output buffer
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-void addToBuffer(String toAdd){
+void addToBuffer(const String& toAdd){
 
   if (DEBUG_MODE) {
     #if defined(ESP8266)|| defined (ESP32)
