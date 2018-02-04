@@ -138,6 +138,23 @@
 
 class aREST {
 
+private:
+struct Variable {
+  virtual void addToBuffer(aREST *arest) const = 0;
+};
+
+
+template<typename T>
+struct TypedVariable: Variable {
+  T *var;
+
+  TypedVariable(T *v) : var{v} { }
+
+  void addToBuffer(aREST *arest) const override { 
+    arest->addToBuffer(*var, true);
+  }
+};
+
 public:
 
 aREST() {
@@ -162,6 +179,14 @@ aREST(char* rest_remote_server, int rest_port) {
   port = rest_port;
 
 }
+
+template<typename T>
+void variable(const char *name, T *var) { 
+  variables[variables_index] = new TypedVariable<T>(var);
+  variable_names[variables_index] = name;
+  variables_index++;
+}
+
 
 #if defined(_ADAFRUIT_MQTT_FONA_H_)
 
@@ -206,7 +231,7 @@ char* get_topic() {
 }
 
 // Subscribe to events
-void subscribe(String device, String eventName) {
+void subscribe(const String& device, const String& eventName) {
 
   // Build topic
   String topic = device + "_" + eventName + "_in";
@@ -222,7 +247,7 @@ void subscribe(String device, String eventName) {
 
 // Publish to cloud
 template <typename T>
-void publish(PubSubClient& client, String eventName, T data) {
+void publish(PubSubClient& client, const String& eventName, T data) {
 
   // Get event data
   if (DEBUG_MODE) {
@@ -301,10 +326,33 @@ void glow_led() {
 }
 #endif
 
+void addToBufferF(const __FlashStringHelper *toAdd){
+
+  if (DEBUG_MODE) {
+    #if defined(ESP8266)|| defined (ESP32)
+    Serial.print("Memory loss:");
+    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    freeMemory = ESP.getFreeHeap();
+    #endif
+    Serial.print(F("Added to buffer as progmem: "));
+    Serial.println(toAdd);
+  }
+
+  uint8_t idx = 0;
+
+  PGM_P p = reinterpret_cast<PGM_P>(toAdd);
+
+  for ( unsigned char c = pgm_read_byte(p++);
+        c != 0 && index < OUTPUT_BUFFER_SIZE;
+        c = pgm_read_byte(p++), index++) {
+    buffer[index] = c;
+  }
+}
+
 // Send HTTP headers for Ethernet & WiFi
 void send_http_headers(){
 
-  addToBuffer(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
+  addToBufferF(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
 
 }
 
@@ -360,7 +408,7 @@ void handle(Adafruit_CC3000_ClientRef& client) {
 }
 
 template <typename T>
-void publish(Adafruit_CC3000_ClientRef& client, String eventName, T value) {
+void publish(Adafruit_CC3000_ClientRef& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -386,7 +434,7 @@ void handle(YunClient& client) {
 }
 
 template <typename T>
-void publish(YunClient& client, String eventName, T value) {
+void publish(YunClient& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -411,7 +459,7 @@ void handle(Adafruit_BLE_UART& serial) {
 }
 
 // template <typename T>
-// void publish(Adafruit_BLE_UART& serial, String eventName, T value) {
+// void publish(Adafruit_BLE_UART& serial, const String& eventName, T value) {
 
 //   // Publish request
 //   publish_proto(client, eventName, value);
@@ -437,7 +485,7 @@ void handle(EthernetClient& client){
 }
 
 template <typename T>
-void publish(EthernetClient& client, String eventName, T value) {
+void publish(EthernetClient& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -500,8 +548,24 @@ void handle(WiFiClient& client){
   }
 }
 
+// Handle request on the Serial port
+void handle(HardwareSerial& serial){
+
+  if (serial.available()) {
+
+    // Handle request
+    handle_proto(serial,false,1,false);
+
+    // Answer
+    sendBuffer(serial,25,1);
+
+    // Reset variables for the next command
+    reset_status();
+  }
+}
+
 template <typename T>
-void publish(WiFiClient& client, String eventName, T value) {
+void publish(WiFiClient& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -529,7 +593,7 @@ void handle(WiFiClient& client){
 }
 
 template <typename T>
-void publish(WiFiClient& client, String eventName, T value) {
+void publish(WiFiClient& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -557,7 +621,7 @@ void handle(WiFiClient& client){
 }
 
 template <typename T>
-void publish(WiFiClient& client, String eventName, T value) {
+void publish(WiFiClient& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -582,7 +646,7 @@ void handle(usb_serial_class& serial){
 }
 
 template <typename T>
-void publish(usb_serial_class& client, String eventName, T value) {
+void publish(usb_serial_class& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -607,7 +671,7 @@ void handle(Serial_& serial){
 }
 
 template <typename T>
-void publish(Serial_& client, String eventName, T value) {
+void publish(Serial_& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -632,7 +696,7 @@ void handle(HardwareSerial& serial){
 }
 
 template <typename T>
-void publish(HardwareSerial& client, String eventName, T value) {
+void publish(HardwareSerial& client, const String& eventName, T value) {
 
   // Publish request
   publish_proto(client, eventName, value);
@@ -666,7 +730,7 @@ void handle_proto(char * string) {
 }
 
 template <typename T, typename V>
-void publish_proto(T& client, String eventName, V value) {
+void publish_proto(T& client, const String& eventName, V value) {
 
   // Format data
   String data = "name=" + eventName + "&data=" + String(value);
@@ -972,7 +1036,7 @@ void process(char c){
 
        // Check if variable name is in int array
        for (uint8_t i = 0; i < variables_index; i++){
-         if(answer.startsWith(int_variables_names[i])) {
+         if(answer.startsWith(variable_names[i])) {
 
            // End here
            pin_selected = true;
@@ -981,40 +1045,10 @@ void process(char c){
            // Set state
            command = 'v';
            value = i;
+
+           break;   // We found what we're looking for
          }
        }
-
-       // Check if variable name is in float array (Mega & ESP8266 only)
-       #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-       for (uint8_t i = 0; i < float_variables_index; i++){
-         if(answer.startsWith(float_variables_names[i])) {
-
-           // End here
-           pin_selected = true;
-           state = 'x';
-
-           // Set state
-           command = 'l';
-           value = i;
-         }
-       }
-       #endif
-
-       // Check if variable name is in float array (Mega & ESP8266 only)
-       #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-       for (uint8_t i = 0; i < string_variables_index; i++){
-         if(answer.startsWith(string_variables_names[i])) {
-
-           // End here
-           pin_selected = true;
-           state = 'x';
-
-           // Set state
-           command = 's';
-           value = i;
-         }
-       }
-       #endif
 
        // Check if function name is in array
        for (uint8_t i = 0; i < functions_index; i++){
@@ -1037,6 +1071,8 @@ void process(char c){
                footer_start -= 6; // length of " HTTP/"
              arguments = answer.substring(header_length + 8, footer_start);
            }
+
+           break;   // We found what we're looking for
          }
        }
 
@@ -1135,8 +1171,8 @@ bool send_command(bool headers, bool decodeArgs) {
 
      // Send feedback to client
      if (!LIGHTWEIGHT){
-       addToBuffer(F("{\"message\": \"Pin D"));
-       addToBuffer(message_pin);
+       addToBufferF(F("{\"message\": \"Pin D"));
+       addToBuffer(message_pin, false);
      }
 
      // Input
@@ -1146,7 +1182,7 @@ bool send_command(bool headers, bool decodeArgs) {
       pinMode(pin,INPUT);
 
       // Send feedback to client
-      if (!LIGHTWEIGHT){addToBuffer(F(" set to input\", "));}
+      if (!LIGHTWEIGHT){addToBufferF(F(" set to input\", "));}
      }
 
      // Input with pullup
@@ -1156,7 +1192,7 @@ bool send_command(bool headers, bool decodeArgs) {
       pinMode(pin,INPUT_PULLUP);
 
       // Send feedback to client
-      if (!LIGHTWEIGHT){addToBuffer(F(" set to input with pullup\", "));}
+      if (!LIGHTWEIGHT){addToBufferF(F(" set to input with pullup\", "));}
      }
 
      // Output
@@ -1166,7 +1202,7 @@ bool send_command(bool headers, bool decodeArgs) {
        pinMode(pin,OUTPUT);
 
        // Send feedback to client
-       if (!LIGHTWEIGHT){addToBuffer(F(" set to output\", "));}
+       if (!LIGHTWEIGHT){addToBufferF(F(" set to output\", "));}
      }
 
    }
@@ -1179,17 +1215,19 @@ bool send_command(bool headers, bool decodeArgs) {
        value = digitalRead(pin);
 
        // Send answer
-       if (LIGHTWEIGHT){addToBuffer(value);}
+       if (LIGHTWEIGHT){
+        addToBuffer(value, false);
+      }
        else {
-        addToBuffer(F("{\"return_value\": "));
-        addToBuffer(value);
-        addToBuffer(F(", "));
+        addToBufferF(F("{\"return_value\": "));
+        addToBuffer(value, true);
+        addToBufferF(F(", "));
       }
      }
 
      #if !defined(__AVR_ATmega32U4__) || !defined(ADAFRUIT_CC3000_H)
      if (state == 'a') {
-       if (!LIGHTWEIGHT) {addToBuffer(F("{"));}
+       if (!LIGHTWEIGHT) {addToBufferF(F("{"));}
 
        for (uint8_t i = 0; i < NUMBER_DIGITAL_PINS; i++) {
 
@@ -1198,15 +1236,15 @@ bool send_command(bool headers, bool decodeArgs) {
 
          // Send feedback to client
          if (LIGHTWEIGHT){
-           addToBuffer(value);
-           addToBuffer(F(","));
+           addToBuffer(value, false);
+           addToBufferF(F(","));
          }
          else {
-           addToBuffer(F("\"D"));
-           addToBuffer(i);
-           addToBuffer(F("\": "));
-           addToBuffer(value);
-           addToBuffer(F(", "));
+           addToBufferF(F("\"D"));
+           addToBuffer(i, false);
+           addToBufferF(F("\": "));
+           addToBuffer(value, true);
+           addToBufferF(F(", "));
          }
      }
     }
@@ -1224,11 +1262,11 @@ bool send_command(bool headers, bool decodeArgs) {
 
        // Send feedback to client
        if (!LIGHTWEIGHT){
-        addToBuffer(F("{\"message\": \"Pin D"));
-        addToBuffer(message_pin);
-        addToBuffer(F(" set to "));
-        addToBuffer(value);
-        addToBuffer(F("\", "));
+        addToBufferF(F("{\"message\": \"Pin D"));
+        addToBuffer(message_pin, false);
+        addToBufferF(F(" set to "));
+        addToBuffer(value, false);
+        addToBufferF(F("\", "));
        }
      }
    }
@@ -1241,16 +1279,20 @@ bool send_command(bool headers, bool decodeArgs) {
        value = analogRead(pin);
 
        // Send feedback to client
-       if (LIGHTWEIGHT){addToBuffer(value);}
+       if (LIGHTWEIGHT) {
+        addToBuffer(value, false);
+      }
        else {
-        addToBuffer(F("{\"return_value\": "));
-        addToBuffer(value);
-        addToBuffer(F(", "));
+        addToBufferF(F("{\"return_value\": "));
+        addToBuffer(value, true);
+        addToBufferF(F(", "));
        }
      }
      #if !defined(__AVR_ATmega32U4__)
      if (state == 'a') {
-       if (!LIGHTWEIGHT) {addToBuffer(F("{"));}
+       if (!LIGHTWEIGHT) {
+        addToBufferF(F("{"));
+       }
 
        for (uint8_t i = 0; i < NUMBER_ANALOG_PINS; i++) {
 
@@ -1259,15 +1301,15 @@ bool send_command(bool headers, bool decodeArgs) {
 
          // Send feedback to client
          if (LIGHTWEIGHT){
-           addToBuffer(value);
-           addToBuffer(F(","));
+           addToBuffer(value, false);
+           addToBufferF(F(","));
          }
          else {
-           addToBuffer(F("\"A"));
-           addToBuffer(i);
-           addToBuffer(F("\": "));
-           addToBuffer(value);
-           addToBuffer(F(", "));
+           addToBufferF(F("\"A"));
+           addToBuffer(i, false);
+           addToBufferF(F("\": "));
+           addToBuffer(value, true);
+           addToBufferF(F(", "));
          }
      }
    }
@@ -1280,60 +1322,26 @@ bool send_command(bool headers, bool decodeArgs) {
      #endif
 
      // Send feedback to client
-     addToBuffer(F("{\"message\": \"Pin D"));
-     addToBuffer(message_pin);
-     addToBuffer(F(" set to "));
-     addToBuffer(value);
-     addToBuffer(F("\", "));
+     addToBufferF(F("{\"message\": \"Pin D"));
+     addToBuffer(message_pin, false);
+     addToBufferF(F(" set to "));
+     addToBuffer(value, false);
+     addToBufferF(F("\", "));
 
    }
   }
 
   // Variable selected
   if (command == 'v') {
-
-       // Send feedback to client
-       if (LIGHTWEIGHT){addToBuffer(*int_variables[value]);}
-       else {
-        addToBuffer(F("{\""));
-        addToBuffer(int_variables_names[value]);
-        addToBuffer(F("\": "));
-        addToBuffer(*int_variables[value]);
-        addToBuffer(F(", "));
-       }
+    // Send feedback to client
+    if (LIGHTWEIGHT){ 
+      variables[value]->addToBuffer(this);
+    }
+    else {
+      addToBufferF(F("{"));
+      addVariableToBuffer(value);
+    }
   }
-
-  // Float ariable selected (Mega only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-  if (command == 'l') {
-
-       // Send feedback to client
-       if (LIGHTWEIGHT){addToBuffer(*float_variables[value]);}
-       else {
-        addToBuffer(F("{\""));
-        addToBuffer(float_variables_names[value]);
-        addToBuffer(F("\": "));
-        addToBuffer(*float_variables[value]);
-        addToBuffer(F(", "));
-       }
-  }
-  #endif
-
-  // String variable selected (Mega & ESP8266 only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-  if (command == 's') {
-
-       // Send feedback to client
-       if (LIGHTWEIGHT){addToBuffer(*string_variables[value]);}
-       else {
-        addToBuffer(F("{\""));
-        addToBuffer(string_variables_names[value]);
-        addToBuffer(F("\": \""));
-        addToBuffer(*string_variables[value]);
-        addToBuffer(F("\", "));
-       }
-  }
-  #endif
 
   // Function selected
   if (command == 'f') {
@@ -1346,12 +1354,12 @@ bool send_command(bool headers, bool decodeArgs) {
 
     // Send feedback to client
     if (!LIGHTWEIGHT) {
-     addToBuffer(F("{\"return_value\": "));
-     addToBuffer(result);
-     addToBuffer(F(", "));
-     //addToBuffer(F(", \"message\": \""));
-     //addToBuffer(functions_names[value]);
-     //addToBuffer(F(" executed\", "));
+     addToBufferF(F("{\"return_value\": "));
+     addToBuffer(result, true);
+     addToBufferF(F(", "));
+     //addToBufferF(F(", \"message\": \""));
+     //addToBufferF(functions_names[value]);
+     //addToBufferF(F(" executed\", "));
     }
   }
 
@@ -1360,27 +1368,21 @@ bool send_command(bool headers, bool decodeArgs) {
   }
 
   if (command == 'i') {
-    if (LIGHTWEIGHT) {addToBuffer(id);}
+    if (LIGHTWEIGHT) {addToBuffer(id, false);}
     else {
-      addToBuffer(F("{"));
+      addToBufferF(F("{"));
     }
   }
 
    // End of message
    if (LIGHTWEIGHT){
-     addToBuffer(F("\r\n"));
+     addToBufferF(F("\r\n"));
    }
 
    else {
-
      if (command != 'r' && command != 'u') {
-       addToBuffer(F("\"id\": \""));
-       addToBuffer(id);
-       addToBuffer(F("\", \"name\": \""));
-       addToBuffer(name);
-       addToBuffer(F("\", \"hardware\": \""));
-       addToBuffer(HARDWARE);
-       addToBuffer(F("\", \"connected\": true}\r\n"));
+        addHardwareToBuffer();
+        addToBufferF(F("\r\n"));
      }
    }
 
@@ -1403,134 +1405,38 @@ virtual void root_answer() {
   #if defined(ADAFRUIT_CC3000_H) || defined(ESP8266) || defined(ethernet_h) || defined(WiFi_h)
     #if !defined(PubSubClient_h)
       if (command != 'u') {
-        addToBuffer(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
+        send_http_headers();
       }
     #endif
   #endif
 
-  if (LIGHTWEIGHT) {addToBuffer(id);}
+  if (LIGHTWEIGHT) {
+    addToBuffer(id, false);
+  }
   else {
+    addToBufferF(F("{\"variables\": {"));
 
-    // Start
-    addToBuffer(F("{\"variables\": {"));
+    for (uint8_t i = 0; i < variables_index; i++){
+      addToBuffer(variable_names[i], true);
+      addToBufferF(F(": "));
+      variables[i]->addToBuffer(this);
 
-    #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
-
-    // Int variables
-    if (variables_index == 0 && string_variables_index == 0 && float_variables_index == 0){
-      addToBuffer(F(" }, "));
-    }
-    else {
-
-      if (variables_index > 0){
-
-        for (uint8_t i = 0; i < variables_index; i++){
-          addToBuffer(F("\""));
-          addToBuffer(int_variables_names[i]);
-          addToBuffer(F("\": "));
-          addToBuffer(*int_variables[i]);
-          addToBuffer(F(", "));
-        }
-
+      if (i < variables_index - 1) {
+        addToBufferF(F(", "));
       }
-      if (string_variables_index > 0){
-
-        for (uint8_t i = 0; i < string_variables_index; i++){
-          addToBuffer(F("\""));
-          addToBuffer(string_variables_names[i]);
-          addToBuffer(F("\": \""));
-          addToBuffer(*string_variables[i]);
-          addToBuffer(F("\", "));
-        }
-
-      }
-      if (float_variables_index > 0){
-
-        for (uint8_t i = 0; i < float_variables_index; i++){
-          addToBuffer(F("\""));
-          addToBuffer(float_variables_names[i]);
-          addToBuffer(F("\": "));
-          addToBuffer(*float_variables[i]);
-          addToBuffer(F(", "));
-        }
-
-      }
-      removeLastBufferChar();
-      removeLastBufferChar();
-      addToBuffer(F("}, "));
-
     }
-    #else
-    // Int variables
-    if (variables_index > 0){
 
-      for (uint8_t i = 0; i < variables_index-1; i++){
-        addToBuffer(F("\""));
-        addToBuffer(int_variables_names[i]);
-        addToBuffer(F("\": "));
-        addToBuffer(*int_variables[i]);
-        addToBuffer(F(", "));
-      }
-
-      // End
-      addToBuffer(F("\""));
-      addToBuffer(int_variables_names[variables_index-1]);
-      addToBuffer(F("\": "));
-      addToBuffer(*int_variables[variables_index-1]);
-      addToBuffer(F("}, "));
-    }
-    else {
-      addToBuffer(F(" }, "));
-    }
-    #endif
-
+    addToBufferF(F("}, "));
   }
 
   // End
-  addToBuffer(F("\"id\": \""));
-  addToBuffer(id);
-  addToBuffer(F("\", \"name\": \""));
-  addToBuffer(name);
-  addToBuffer(F("\", \"hardware\": \""));
-  addToBuffer(HARDWARE);
+  addHardwareToBuffer();
 
-  #if defined(PubSubClient_h)
-  addToBuffer(F("\", \"connected\": true}"));
-  #else
-  addToBuffer(F("\", \"connected\": true}\r\n"));
+  #ifndef PubSubClient_h
+    addToBufferF(F("\r\n"));
   #endif
-
 }
 
-void variable(char * variable_name, int *variable){
-
-  int_variables[variables_index] = variable;
-  int_variables_names[variables_index] = variable_name;
-  variables_index++;
-
-}
-
-// Float variables (Mega & ESP only, or without CC3000)
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-void variable(char * variable_name, float *variable){
-
-  float_variables[float_variables_index] = variable;
-  float_variables_names[float_variables_index] = variable_name;
-  float_variables_index++;
-
-}
-#endif
-
-// String variables (Mega & ESP only, or without CC3000)
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-void variable(char * variable_name, String *variable){
-
-  string_variables[string_variables_index] = variable;
-  string_variables_names[string_variables_index] = variable_name;
-  string_variables_index++;
-
-}
-#endif
 
 void function(char * function_name, int (*f)(String)){
 
@@ -1640,13 +1546,13 @@ void set_name(char *device_name){
 }
 
 // Set device name
-void set_name(String device_name){
+void set_name(const String& device_name){
 
   device_name.toCharArray(name, NAME_SIZE);
 }
 
 // Set device ID
-void set_id(String device_id){
+void set_id(const String& device_id){
 
   device_id.toCharArray(id, ID_SIZE);
   set_id(id);
@@ -1659,8 +1565,16 @@ void removeLastBufferChar() {
 
 }
 
+
+void addQuote() {
+  if(index < OUTPUT_BUFFER_SIZE) {
+    buffer[index] = '\"';
+    index++;
+  }  
+}
+
 // Add to output buffer
-void addToBuffer(char * toAdd){
+void addToBuffer(const char * toAdd, bool quotable){
 
   if (DEBUG_MODE) {
     #if defined(ESP8266)|| defined (ESP32)
@@ -1672,16 +1586,30 @@ void addToBuffer(char * toAdd){
     Serial.println(toAdd);
   }
 
-  for (int i = 0;
-       i < strlen(toAdd) && index < OUTPUT_BUFFER_SIZE;
-       i++, index++) {
+  if(quotable) {
+    addQuote();
+  }
+
+  for (int i = 0; i < strlen(toAdd) && index < OUTPUT_BUFFER_SIZE; i++, index++) {
+    // Handle quoting quotes and backslashes
+    if(toAdd[i] == '"' || toAdd[i] == '\\') {
+      if(index == OUTPUT_BUFFER_SIZE - 1)   // No room!
+        return;
+      buffer[index] = '\\';
+      index++;
+    }
+
     buffer[index] = toAdd[i];
+  }
+
+  if(quotable) {
+    addQuote();
   }
 }
 
 // Add to output buffer
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-void addToBuffer(String toAdd){
+void addToBuffer(const String& toAdd, bool quotable){
 
   if (DEBUG_MODE) {
     #if defined(ESP8266)|| defined (ESP32)
@@ -1693,43 +1621,55 @@ void addToBuffer(String toAdd){
     Serial.println(toAdd);
   }
 
-  for (int i = 0; i < toAdd.length() && index < OUTPUT_BUFFER_SIZE; i++, index++){
-    buffer[index] = toAdd[i];
-  }
+  addToBuffer(toAdd.c_str(), quotable);
 }
 #endif
 
 // Add to output buffer
-void addToBuffer(uint16_t toAdd){
+void addToBuffer(uint16_t toAdd, bool quotable){
 
   char number[10];
   itoa(toAdd,number,10);
 
-  addToBuffer(number);
+  addToBuffer(number, false);   // Numbers don't get quoted
 }
 
 // Add to output buffer
-void addToBuffer(int toAdd){
+void addToBuffer(bool toAdd, bool quotable) {
+  addToBuffer(toAdd ? "true" : "false", false);
+}
+
+// Add to output buffer
+void addToBuffer(int toAdd, bool quotable){
 
   char number[10];
   itoa(toAdd,number,10);
 
-  addToBuffer(number);
+  addToBuffer(number, false);   // Numbers don't get quoted
+}
+
+// Add to output buffer
+void addToBuffer(uint32_t toAdd, bool quotable){
+
+  char number[10];
+  itoa(toAdd,number,10);
+
+  addToBuffer(number, false);   // Numbers don't get quoted
 }
 
 // Add to output buffer (Mega & ESP only)
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
-void addToBuffer(float toAdd){
+void addToBuffer(float toAdd, bool quotable){
 
   char number[10];
   dtostrf(toAdd, 5, 2, number);
 
-  addToBuffer(number);
+  addToBuffer(number, false);   // Numbers don't get quoted
 }
 #endif
 
 // Add to output buffer
-void addToBuffer(const __FlashStringHelper *toAdd){
+void addToBuffer(const __FlashStringHelper *toAdd, bool quotable){
 
   if (DEBUG_MODE) {
     #if defined(ESP8266)|| defined (ESP32)
@@ -1741,6 +1681,10 @@ void addToBuffer(const __FlashStringHelper *toAdd){
     Serial.println(toAdd);
   }
 
+  if(quotable) {
+    addQuote();
+  }
+
   uint8_t idx = 0;
 
   PGM_P p = reinterpret_cast<PGM_P>(toAdd);
@@ -1749,6 +1693,10 @@ void addToBuffer(const __FlashStringHelper *toAdd){
         c != 0 && index < OUTPUT_BUFFER_SIZE;
         c = pgm_read_byte(p++), index++) {
     buffer[index] = c;
+  }
+
+  if(quotable) {
+    addQuote();
   }
 }
 
@@ -1883,6 +1831,26 @@ uint8_t esp_12_pin_map(uint8_t pin) {
 
 }
 
+
+void addVariableToBuffer(uint8_t index) {
+  addToBuffer(variable_names[index], true);
+  addToBufferF(F(": "));
+  variables[index]->addToBuffer(this);
+  addToBufferF(F(", "));
+}
+
+
+void addHardwareToBuffer() {
+  addToBufferF(F("\"id\": "));
+  addToBuffer(id, true);
+  addToBufferF(F(", \"name\": "));
+  addToBuffer(name, true);
+  addToBufferF(F(", \"hardware\": "));
+  addToBuffer(HARDWARE, true);
+  addToBufferF(F(", \"connected\": true}"));
+}
+
+
 // For non AVR boards
 #if defined (__arm__)
 char *dtostrf (double val, signed char width, unsigned char prec, char *sout) {
@@ -1931,8 +1899,8 @@ private:
 
   // Int variables arrays
   uint8_t variables_index;
-  int * int_variables[NUMBER_VARIABLES];
-  char * int_variables_names[NUMBER_VARIABLES];
+  Variable* variables[NUMBER_VARIABLES];
+  const char * variable_names[NUMBER_VARIABLES];
 
   // MQTT client
   #if defined(PubSubClient_h)
@@ -1956,19 +1924,6 @@ private:
 
   #endif
 
-  // Float variables arrays (Mega & ESP8266 only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-  uint8_t float_variables_index;
-  float * float_variables[NUMBER_VARIABLES];
-  char * float_variables_names[NUMBER_VARIABLES];
-  #endif
-
-  // String variables arrays (Mega & ESP8266 only)
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-  uint8_t string_variables_index;
-  String * string_variables[NUMBER_VARIABLES];
-  char * string_variables_names[NUMBER_VARIABLES];
-  #endif
 
   // Functions array
   uint8_t functions_index;
