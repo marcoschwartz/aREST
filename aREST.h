@@ -285,14 +285,14 @@ void setKey(char* proKey, PubSubClient& client) {
   id = gen_random(6);
 
   // Build topics IDs
-  String inTopic = randomId + String(proKey) + String("_in");
-  String outTopic = randomId + String(proKey) + String("_out");
+  String inTopic = id + String(proKey) + String("_in");
+  String outTopic = id + String(proKey) + String("_out");
 
   strcpy(in_topic, inTopic.c_str());
   strcpy(out_topic, outTopic.c_str());
 
   // Build client ID
-  String client_id = randomId + String(proKey);
+  String client_id = id + String(proKey);
 }
 
 #endif
@@ -1448,8 +1448,7 @@ void set_id(const String& device_id) {
   #if defined(PubSubClient_h)
 
   // Generate MQTT random ID
-  String randomId;
-  randomId = gen_random(6);
+  String randomId = gen_random(6);
 
   // Build topics IDs
   String inTopic = randomId + id + String("_in");
@@ -1621,7 +1620,21 @@ void addToBuffer(uint16_t toAdd, bool quotable){
 }
 
 // Add to output buffer
+void addToBuffer(bool toAdd, bool quotable) {
+  addToBuffer(toAdd ? "true" : "false", false);
+}
+
+// Add to output buffer
 void addToBuffer(int toAdd, bool quotable){
+
+  char number[10];
+  itoa(toAdd,number,10);
+
+  addToBuffer(number, false);   // Numbers don't get quoted
+}
+
+// Add to output buffer
+void addToBuffer(uint32_t toAdd, bool quotable){
 
   char number[10];
   itoa(toAdd,number,10);
