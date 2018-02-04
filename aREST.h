@@ -278,9 +278,6 @@ void setKey(char* proKey, PubSubClient& client) {
   // mqtt_server = "104.131.78.157";
   // client.setServer(mqtt_server, 1883);
 
-  // Set key
-  proKey = proKey;
-
   // Generate MQTT random ID
   String randomId;
   randomId = gen_random(6);
