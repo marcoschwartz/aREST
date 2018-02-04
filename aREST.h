@@ -1461,7 +1461,7 @@ void set_id(const String& device_id) {
   // outTopic.toCharArray(out_topic, outTopic.length());
 
   // Build client ID
-  String client_id = randomId + id;
+  client_id = randomId + id;
 
   if (DEBUG_MODE) {
     Serial.print("Input MQTT topic: ");
