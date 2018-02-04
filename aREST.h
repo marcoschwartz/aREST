@@ -554,7 +554,7 @@ void handle(HardwareSerial& serial){
   if (serial.available()) {
 
     // Handle request
-    handle_proto(serial,false,1);
+    handle_proto(serial,false,1,false);
 
     // Answer
     sendBuffer(serial,25,1);
@@ -1411,7 +1411,7 @@ virtual void root_answer() {
     addToBufferF(F("{\"variables\": {"));
     
     for (uint8_t i = 0; i < variables_index; i++) {
-      addToBuffer(variable_names[i], true);
+      addToBuffer(variable_names[i]);
       addToBufferF(F(": "));
       variables[i]->addToBuffer(this);
 
