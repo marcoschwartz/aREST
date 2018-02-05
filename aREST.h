@@ -278,9 +278,6 @@ void setKey(char* proKey, PubSubClient& client) {
   // mqtt_server = "104.131.78.157";
   // client.setServer(mqtt_server, 1883);
 
-  // Set key
-  proKey = proKey;
-
   // Generate MQTT random ID
   id = gen_random(6);
 
@@ -1902,9 +1899,6 @@ private:
   // aREST.io server
   char* mqtt_server = "104.131.78.157";
   bool private_mqtt_server;
-
-  // Key
-  char* proKey;
 
   #endif
 
