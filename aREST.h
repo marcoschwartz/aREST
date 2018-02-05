@@ -256,7 +256,7 @@ void publish(PubSubClient& client, const String& eventName, T data) {
   }
 
   // Build message
-  String message = "{\"client_id\": \"" + String(id) + "\", \"event_name\": \"" + eventName + "\", \"data\": \"" + String(data) + "\"}";
+  String message = "{\"client_id\": \"" + id + "\", \"event_name\": \"" + eventName + "\", \"data\": \"" + String(data) + "\"}";
 
   if (DEBUG_MODE) {
     Serial.print("Sending message via MQTT: ");
@@ -278,27 +278,18 @@ void setKey(char* proKey, PubSubClient& client) {
   // mqtt_server = "104.131.78.157";
   // client.setServer(mqtt_server, 1883);
 
-  // Set key
-  proKey = proKey;
-
   // Generate MQTT random ID
-  String randomId;
-  randomId = gen_random(6);
-
-  // Assign ID
-  strncpy(id, randomId.c_str(), ID_SIZE);
+  id = gen_random(6);
 
   // Build topics IDs
-  String inTopic = randomId + String(proKey) + String("_in");
-  String outTopic = randomId + String(proKey) + String("_out");
+  String inTopic = id + String(proKey) + String("_in");
+  String outTopic = id + String(proKey) + String("_out");
 
   strcpy(in_topic, inTopic.c_str());
   strcpy(out_topic, outTopic.c_str());
 
   // Build client ID
-  String clientId = randomId + String(proKey);
-  strcpy(client_id, clientId.c_str());
-
+  String client_id = id + String(proKey);
 }
 
 #endif
@@ -735,7 +726,7 @@ void publish_proto(T& client, const String& eventName, V value) {
   // Format data
   String data = "name=" + eventName + "&data=" + String(value);
 
-  Serial.println("POST /" + String(id) + "/events HTTP/1.1");
+  Serial.println("POST /" + id + "/events HTTP/1.1");
   Serial.println("Host: " + String(remote_server) + ":" + String(port));
   Serial.println(F("Content-Type: application/x-www-form-urlencoded"));
   Serial.print(F("Content-Length: "));
@@ -813,10 +804,10 @@ void handle_callback(PubSubClient& client, char* topic, byte* payload, unsigned 
       Serial.print("Size of MQTT message: ");
       Serial.println(strlen(answer));
       Serial.print("Size of client ID: ");
-      Serial.println(strlen(client_id));
+      Serial.println(client_id.length());
     }
 
-    int max_message_size = 128 - 20 - strlen(client_id);
+    int max_message_size = 128 - 20 - client_id.length();
 
     if (strlen(answer) < max_message_size) {
       client.publish(out_topic, answer);
@@ -882,7 +873,7 @@ void reconnect(PubSubClient& client) {
     Serial.print(F("Attempting MQTT connection..."));
 
       // Attempt to connect
-      if (client.connect(client_id)) {
+      if (client.connect(client_id.c_str())) {
         if (private_mqtt_server) {
           Serial.println(F("Connected to MQTT server"));
         }
@@ -1446,19 +1437,18 @@ void function(char * function_name, int (*f)(String)){
 }
 
 // Set device ID
-void set_id(char *device_id){
+void set_id(const String& device_id) {
 
-  strncpy(id, device_id, ID_SIZE);
+  id = device_id.substring(0, ID_SIZE);
 
   #if defined(PubSubClient_h)
 
   // Generate MQTT random ID
-  String randomId;
-  randomId = gen_random(6);
+  String randomId = gen_random(6);
 
   // Build topics IDs
-  String inTopic = randomId + String(id) + String("_in");
-  String outTopic = randomId + String(id) + String("_out");
+  String inTopic = randomId + id + String("_in");
+  String outTopic = randomId + id + String("_out");
 
   strcpy(in_topic, inTopic.c_str());
   strcpy(out_topic, outTopic.c_str());
@@ -1467,9 +1457,7 @@ void set_id(char *device_id){
   // outTopic.toCharArray(out_topic, outTopic.length());
 
   // Build client ID
-  String clientId = randomId + String(id);
-  strcpy(client_id, clientId.c_str());
-  // clientId.toCharArray(client_id, clientId.length());
+  client_id = randomId + id;
 
   if (DEBUG_MODE) {
     Serial.print("Input MQTT topic: ");
@@ -1551,13 +1539,6 @@ void set_name(const String& device_name){
   device_name.toCharArray(name, NAME_SIZE);
 }
 
-// Set device ID
-void set_id(const String& device_id){
-
-  device_id.toCharArray(id, ID_SIZE);
-  set_id(id);
-}
-
 // Remove last char from buffer
 void removeLastBufferChar() {
 
@@ -1626,12 +1607,8 @@ void addToBuffer(const String& toAdd, bool quotable){
 #endif
 
 // Add to output buffer
-void addToBuffer(uint16_t toAdd, bool quotable){
-
-  char number[10];
-  itoa(toAdd,number,10);
-
-  addToBuffer(number, false);   // Numbers don't get quoted
+void addToBuffer(uint16_t toAdd, bool quotable) {
+  addToBuffer(String(toAdd), false);   // Numbers don't get quoted
 }
 
 // Add to output buffer
@@ -1640,21 +1617,13 @@ void addToBuffer(bool toAdd, bool quotable) {
 }
 
 // Add to output buffer
-void addToBuffer(int toAdd, bool quotable){
-
-  char number[10];
-  itoa(toAdd,number,10);
-
-  addToBuffer(number, false);   // Numbers don't get quoted
+void addToBuffer(int toAdd, bool quotable) {
+  addToBuffer(String(toAdd), false);   // Numbers don't get quoted
 }
 
 // Add to output buffer
-void addToBuffer(uint32_t toAdd, bool quotable){
-
-  char number[10];
-  itoa(toAdd,number,10);
-
-  addToBuffer(number, false);   // Numbers don't get quoted
+void addToBuffer(uint32_t toAdd, bool quotable) {
+  addToBuffer(String(toAdd), false);   // Numbers don't get quoted
 }
 
 // Register a function instead of a plain old variable!
@@ -1665,12 +1634,8 @@ void addToBuffer(T(*toAdd)(), bool quotable) {
 
 // Add to output buffer (Mega & ESP only)
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
-void addToBuffer(float toAdd, bool quotable){
-
-  char number[10];
-  dtostrf(toAdd, 5, 2, number);
-
-  addToBuffer(number, false);   // Numbers don't get quoted
+void addToBuffer(float toAdd, bool quotable) {
+  addToBuffer(String(toAdd), false);   // Numbers don't get quoted
 }
 #endif
 
@@ -1893,7 +1858,7 @@ private:
   int port;
 
   char name[NAME_SIZE];
-  char id[ID_SIZE+1];
+  String id;
   String arguments;
 
   // Output uffer
@@ -1915,7 +1880,7 @@ private:
   char in_topic[ID_SIZE + 17];
   char out_topic[ID_SIZE + 17];
   char publish_topic[ID_SIZE + 10];
-  char client_id[ID_SIZE + 17];
+  String client_id;
 
   // Subscribe topics & handlers
   uint8_t subscriptions_index;
@@ -1924,9 +1889,6 @@ private:
   // aREST.io server
   char* mqtt_server = "104.131.78.157";
   bool private_mqtt_server;
-
-  // Key
-  char* proKey;
 
   #endif
 
