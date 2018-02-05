@@ -1658,7 +1658,7 @@ void addToBuffer(uint32_t toAdd, bool quotable){
 }
 
 void addToBuffer(uint32_t(*toAdd)(), bool quotable) { 
-  addToBuffer(String(toAdd()), false);   // Numbers don't get quoted 
+  addToBuffer(toAdd(), quotable);
 } 
 
 // Add to output buffer (Mega & ESP only)
