@@ -1657,7 +1657,9 @@ void addToBuffer(uint32_t toAdd, bool quotable){
   addToBuffer(number, false);   // Numbers don't get quoted
 }
 
-void addToBuffer(uint32_t(*toAdd)(), bool quotable) { 
+// Register a function instead of a plain old variable!
+template <typename T>
+void addToBuffer(T(*toAdd)(), bool quotable) { 
   addToBuffer(toAdd(), quotable);
 } 
 
