@@ -1626,12 +1626,8 @@ void addToBuffer(const String& toAdd, bool quotable){
 #endif
 
 // Add to output buffer
-void addToBuffer(uint16_t toAdd, bool quotable){
-
-  char number[10];
-  itoa(toAdd,number,10);
-
-  addToBuffer(number, false);   // Numbers don't get quoted
+void addToBuffer(uint16_t toAdd, bool quotable) {
+  addToBuffer(String(toAdd), false);   // Numbers don't get quoted
 }
 
 // Add to output buffer
@@ -1640,21 +1636,16 @@ void addToBuffer(bool toAdd, bool quotable) {
 }
 
 // Add to output buffer
-void addToBuffer(int toAdd, bool quotable){
-
-  char number[10];
-  itoa(toAdd,number,10);
-
-  addToBuffer(number, false);   // Numbers don't get quoted
+void addToBuffer(int toAdd, bool quotable) {
+  addToBuffer(String(toAdd), false);   // Numbers don't get quoted
 }
 
 // Add to output buffer
-void addToBuffer(uint32_t toAdd, bool quotable){
+void addToBuffer(uint32_t toAdd, bool quotable) {
+  addToBuffer(String(toAdd), false);   // Numbers don't get quoted
+}
 
-  char number[10];
-  itoa(toAdd,number,10);
 
-  addToBuffer(number, false);   // Numbers don't get quoted
 }
 
 // Add to output buffer (Mega & ESP only)
