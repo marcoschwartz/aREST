@@ -502,6 +502,24 @@ void handle(ESP8266Client& client){
   }
 }
 
+// Handle request for the uIP library based on breakouts of the ENC28J60 https://github.com/ntruchsess/arduino_uip
+#elif defined(UIPETHERNET_H)
+void handle(EthernetClient& client){
+
+  if (client.available()) {
+
+    // Handle request
+    handle_proto(client,true,0);
+
+    // Answer
+    sendBuffer(client,50,0);
+    client.stop();  
+   
+    // Reset variables for the next command
+    reset_status();   
+  }
+}
+
 // Handle request for the ESP8266 chip
 #elif defined(ESP8266) || defined (ESP32)
 void handle(WiFiClient& client){
