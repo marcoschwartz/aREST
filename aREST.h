@@ -1361,7 +1361,9 @@ bool send_command(bool headers, bool decodeArgs) {
   }
 
   if (command == 'i') {
-    if (LIGHTWEIGHT) {addToBuffer(id, false);}
+    if (LIGHTWEIGHT) {
+      addStringToBuffer(id.c_str(), false);
+    }
     else {
       addToBufferF(F("{"));
     }
@@ -1404,13 +1406,13 @@ virtual void root_answer() {
   #endif
 
   if (LIGHTWEIGHT) {
-    addToBuffer(id, false);
+    addStringToBuffer(id.c_str(), false);
   }
   else {
     addToBufferF(F("{\"variables\": {"));
 
     for (uint8_t i = 0; i < variables_index; i++){
-      addToBuffer(variable_names[i], true);
+      addStringToBuffer(variable_names[i], true);
       addToBufferF(F(": "));
       variables[i]->addToBuffer(this);
 
@@ -1551,13 +1553,13 @@ void removeLastBufferChar() {
 
 void addQuote() {
   if(index < OUTPUT_BUFFER_SIZE) {
-    buffer[index] = '\"';
+    buffer[index] = '"';
     index++;
   }  
 }
 
-// Add to output buffer
-void addToBuffer(const char * toAdd, bool quotable){
+
+void addStringToBuffer(const char * toAdd, bool quotable){
 
   if (DEBUG_MODE) {
     #if defined(ESP8266)|| defined (ESP32)
@@ -1590,42 +1592,12 @@ void addToBuffer(const char * toAdd, bool quotable){
   }
 }
 
-// Add to output buffer
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H) || defined(ESP32)
-void addToBuffer(const String& toAdd, bool quotable){
-
-  if (DEBUG_MODE) {
-    #if defined(ESP8266)|| defined (ESP32)
-    Serial.print("Memory loss:");
-    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-    freeMemory = ESP.getFreeHeap();
-    #endif
-    Serial.print(F("Added to buffer as String: "));
-    Serial.println(toAdd);
-  }
-
-  addToBuffer(toAdd.c_str(), quotable);
-}
-#endif
 
 // Add to output buffer
-void addToBuffer(uint16_t toAdd, bool quotable) {
-  addToBuffer(String(toAdd), false);   // Numbers don't get quoted
-}
 
-// Add to output buffer
-void addToBuffer(bool toAdd, bool quotable) {
-  addToBuffer(toAdd ? "true" : "false", false);
-}
-
-// Add to output buffer
-void addToBuffer(int toAdd, bool quotable) {
-  addToBuffer(String(toAdd), false);   // Numbers don't get quoted
-}
-
-// Add to output buffer
-void addToBuffer(uint32_t toAdd, bool quotable) {
-  addToBuffer(String(toAdd), false);   // Numbers don't get quoted
+template <typename T>
+void addToBuffer(T toAdd, bool quotable) {
+  addStringToBuffer(String(toAdd).c_str(), false);   // Except for our overrides, this will be adding numbers, which don't get quoted
 }
 
 // Register a function instead of a plain old variable!
@@ -1634,44 +1606,37 @@ void addToBuffer(T(*toAdd)(), bool quotable) {
   addToBuffer(toAdd(), quotable);
 } 
 
-// Add to output buffer (Mega & ESP only)
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
-void addToBuffer(float toAdd, bool quotable) {
-  addToBuffer(String(toAdd), false);   // Numbers don't get quoted
-}
-#endif
+// // Add to output buffer
+// void addToBuffer(const __FlashStringHelper *toAdd, bool quotable){
 
-// Add to output buffer
-void addToBuffer(const __FlashStringHelper *toAdd, bool quotable){
+//   if (DEBUG_MODE) {
+//     #if defined(ESP8266)|| defined (ESP32)
+//     Serial.print("Memory loss:");
+//     Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+//     freeMemory = ESP.getFreeHeap();
+//     #endif
+//     Serial.print(F("Added to buffer as progmem: "));
+//     Serial.println(toAdd);
+//   }
 
-  if (DEBUG_MODE) {
-    #if defined(ESP8266)|| defined (ESP32)
-    Serial.print("Memory loss:");
-    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-    freeMemory = ESP.getFreeHeap();
-    #endif
-    Serial.print(F("Added to buffer as progmem: "));
-    Serial.println(toAdd);
-  }
+//   if(quotable) {
+//     addQuote();
+//   }
 
-  if(quotable) {
-    addQuote();
-  }
+//   uint8_t idx = 0;
 
-  uint8_t idx = 0;
+//   PGM_P p = reinterpret_cast<PGM_P>(toAdd);
 
-  PGM_P p = reinterpret_cast<PGM_P>(toAdd);
+//   for ( unsigned char c = pgm_read_byte(p++);
+//         c != 0 && index < OUTPUT_BUFFER_SIZE;
+//         c = pgm_read_byte(p++), index++) {
+//     buffer[index] = c;
+//   }
 
-  for ( unsigned char c = pgm_read_byte(p++);
-        c != 0 && index < OUTPUT_BUFFER_SIZE;
-        c = pgm_read_byte(p++), index++) {
-    buffer[index] = c;
-  }
-
-  if(quotable) {
-    addQuote();
-  }
-}
+//   if(quotable) {
+//     addQuote();
+//   }
+// }
 
 template <typename T>
 void sendBuffer(T& client, uint8_t chunkSize, uint8_t wait_time) {
@@ -1806,7 +1771,7 @@ uint8_t esp_12_pin_map(uint8_t pin) {
 
 
 void addVariableToBuffer(uint8_t index) {
-  addToBuffer(variable_names[index], true);
+  addStringToBuffer(variable_names[index], true);
   addToBufferF(F(": "));
   variables[index]->addToBuffer(this);
   addToBufferF(F(", "));
@@ -1815,11 +1780,11 @@ void addVariableToBuffer(uint8_t index) {
 
 void addHardwareToBuffer() {
   addToBufferF(F("\"id\": "));
-  addToBuffer(id, true);
+  addStringToBuffer(id.c_str(), true);
   addToBufferF(F(", \"name\": "));
-  addToBuffer(name, true);
+  addStringToBuffer(name, true);
   addToBufferF(F(", \"hardware\": "));
-  addToBuffer(HARDWARE, true);
+  addStringToBuffer(HARDWARE, true);
   addToBufferF(F(", \"connected\": true}"));
 }
 
@@ -1906,5 +1871,38 @@ private:
   #endif
 
 };
+
+
+// Some specializations of our template
+template <>
+void aREST::addToBuffer(bool toAdd, bool quotable) {
+  addStringToBuffer(toAdd ? "true" : "false", false);   // Booleans aren't quoted in JSON
+}
+
+
+template <>
+void aREST::addToBuffer(const char *toAdd, bool quotable) {
+  addStringToBuffer(toAdd, true);                       // Strings must be quoted
+}
+
+
+template <>
+void aREST::addToBuffer(const String *toAdd, bool quotable) {
+  addStringToBuffer(toAdd->c_str(), true);           // Strings must be quoted
+}
+
+
+template <>
+void aREST::addToBuffer(const String toAdd, bool quotable) {
+  addStringToBuffer(toAdd.c_str(), true);           // Strings must be quoted
+}
+
+
+template <>
+void aREST::addToBuffer(char toAdd[], bool quotable) {
+  addStringToBuffer(toAdd, true);           // Strings must be quoted
+}
+
+
 
 #endif
