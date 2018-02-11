@@ -1,5 +1,6 @@
 {
   "name": "aREST",
+  "version": "2.5.0",
   "keywords": "REST, wifi, ethernet, http, web, server, json, spi",
   "description": "RESTful API for Arduino using HTTP or Serial communications",
   "repository":
@@ -12,7 +13,8 @@
   [
     "atmelavr",
     "atmelsam",
-    "espressif",
+    "espressif8266",
+    "espressif32",
     "teensy"
   ]
 }
