@@ -1060,7 +1060,9 @@ void process(char c){
              uint8_t footer_start = answer.length();
              if (answer.endsWith(" HTTP/"))
                footer_start -= 6; // length of " HTTP/"
-             arguments = answer.substring(header_length + 8, footer_start);
+ 		     int eq_position = answer.indexOf('=', header_length); // Replacing 'magic number' 8 for fixed location of '='
+			 if(eq_position!=-1)
+               arguments = answer.substring(eq_position + 1, footer_start);
            }
 
            break;   // We found what we're looking for
@@ -1592,6 +1594,7 @@ void addStringToBuffer(const char * toAdd, bool quotable){
 
 
 // Add to output buffer
+
 template <typename T>
 void addToBuffer(T toAdd, bool quotable) {
   addStringToBuffer(String(toAdd).c_str(), false);   // Except for our overrides, this will be adding numbers, which don't get quoted
