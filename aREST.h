@@ -1626,10 +1626,15 @@ void addToBuffer(uint32_t toAdd, bool quotable) {
   addToBuffer(String(toAdd), false);   // Numbers don't get quoted
 }
 
+// Register a function instead of a plain old variable!
+template <typename T>
+void addToBuffer(T(*toAdd)(), bool quotable) { 
+  addToBuffer(toAdd(), quotable);
+} 
 
 // Add to output buffer (Mega & ESP only)
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(ESP8266) || defined(CORE_WILDFIRE) || !defined(ADAFRUIT_CC3000_H)
-void addToBuffer(float toAdd, bool quotable){
+void addToBuffer(float toAdd, bool quotable) {
   addToBuffer(String(toAdd), false);   // Numbers don't get quoted
 }
 #endif
