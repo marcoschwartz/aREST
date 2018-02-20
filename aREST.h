@@ -1157,198 +1157,203 @@ void urldecode(String &arguments) {
 
 bool send_command(bool headers, bool decodeArgs) {
 
-   if (DEBUG_MODE) {
+  if (DEBUG_MODE) {
 
-     #if defined(ESP8266)|| defined (ESP32)
-     Serial.print("Memory loss:");
-     Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-     freeMemory = ESP.getFreeHeap();
-     #endif
+    #if defined(ESP8266) || defined(ESP32)
+        Serial.print("Memory loss:");
+        Serial.println(freeMemory - ESP.getFreeHeap(), DEC);
+        freeMemory = ESP.getFreeHeap();
+    #endif
 
-     Serial.println(F("Sending command"));
-     Serial.print(F("Command: "));
-     Serial.println(command);
-     Serial.print(F("State: "));
-     Serial.println(state);
-     Serial.print(F("State of buffer at the start: "));
-     Serial.println(buffer);
-   }
+    Serial.println(F("Sending command"));
+    Serial.print(F("Command: "));
+    Serial.println(command);
+    Serial.print(F("State: "));
+    Serial.println(state);
+    Serial.print(F("State of buffer at the start: "));
+    Serial.println(buffer);
+  }
 
-   // Start of message
-   if (headers && command != 'r') {send_http_headers();}
+  // Start of message
+  if (headers && command != 'r') {
+    send_http_headers();
+  }
 
-   // Mode selected
-   if (command == 'm'){
+  // Mode selected
+  if (command == 'm') {
 
-     // Send feedback to client
-     if (!LIGHTWEIGHT){
-       addToBufferF(F("{\"message\": \"Pin D"));
-       addToBuffer(message_pin, false);
-     }
+    // Send feedback to client
+    if (!LIGHTWEIGHT) {
+      addToBufferF(F("{\"message\": \"Pin D"));
+      addToBuffer(message_pin, false);
+    }
 
-     // Input
-     if (state == 'i'){
+    // Input
+    if (state == 'i') {
 
       // Set pin to Input
-      pinMode(pin,INPUT);
+      pinMode(pin, INPUT);
 
       // Send feedback to client
-      if (!LIGHTWEIGHT){addToBufferF(F(" set to input\", "));}
-     }
+      if (!LIGHTWEIGHT) {
+        addToBufferF(F(" set to input\", "));
+      }
+    }
 
-     // Input with pullup
-     if (state == 'I'){
+    // Input with pullup
+    if (state == 'I') {
 
       // Set pin to Input with pullup
-      pinMode(pin,INPUT_PULLUP);
+      pinMode(pin, INPUT_PULLUP);
 
       // Send feedback to client
-      if (!LIGHTWEIGHT){addToBufferF(F(" set to input with pullup\", "));}
-     }
-
-     // Output
-     if (state == 'o'){
-
-       // Set to Output
-       pinMode(pin,OUTPUT);
-
-       // Send feedback to client
-       if (!LIGHTWEIGHT){addToBufferF(F(" set to output\", "));}
-     }
-
-   }
-
-   // Digital selected
-   if (command == 'd') {
-     if (state == 'r'){
-
-       // Read from pin
-       value = digitalRead(pin);
-
-       // Send answer
-       if (LIGHTWEIGHT){
-        addToBuffer(value, false);
+      if (!LIGHTWEIGHT) {
+        addToBufferF(F(" set to input with pullup\", "));
       }
-       else {
+    }
+
+    // Output
+    if (state == 'o') {
+
+      // Set to Output
+      pinMode(pin, OUTPUT);
+
+      // Send feedback to client
+      if (!LIGHTWEIGHT) {
+        addToBufferF(F(" set to output\", "));
+      }
+    }
+  }
+
+  // Digital selected
+  if (command == 'd') {
+    if (state == 'r') {
+
+      // Read from pin
+      value = digitalRead(pin);
+
+      // Send answer
+      if (LIGHTWEIGHT) {
+        addToBuffer(value, false);
+      } else {
         addToBufferF(F("{\"return_value\": "));
         addToBuffer(value, true);
         addToBufferF(F(", "));
       }
-     }
-
-     #if !defined(__AVR_ATmega32U4__) || !defined(ADAFRUIT_CC3000_H)
-     if (state == 'a') {
-       if (!LIGHTWEIGHT) {addToBufferF(F("{"));}
-
-       for (uint8_t i = 0; i < NUMBER_DIGITAL_PINS; i++) {
-
-         // Read analog value
-         value = digitalRead(i);
-
-         // Send feedback to client
-         if (LIGHTWEIGHT){
-           addToBuffer(value, false);
-           addToBufferF(F(","));
-         }
-         else {
-           addToBufferF(F("\"D"));
-           addToBuffer(i, false);
-           addToBufferF(F("\": "));
-           addToBuffer(value, true);
-           addToBufferF(F(", "));
-         }
-     }
     }
+
+    #if !defined(__AVR_ATmega32U4__) || !defined(ADAFRUIT_CC3000_H)
+      if (state == 'a') {
+        if (!LIGHTWEIGHT) {
+          addToBufferF(F("{"));
+        }
+
+        for (uint8_t i = 0; i < NUMBER_DIGITAL_PINS; i++) {
+
+          // Read analog value
+          value = digitalRead(i);
+
+          // Send feedback to client
+          if (LIGHTWEIGHT) {
+            addToBuffer(value, false);
+            addToBufferF(F(","));
+          } else {
+            addToBufferF(F("\"D"));
+            addToBuffer(i, false);
+            addToBufferF(F("\": "));
+            addToBuffer(value, true);
+            addToBufferF(F(", "));
+          }
+        }
+      }
     #endif
 
-     if (state == 'w') {
+    if (state == 'w') {
 
-       // Disable analogWrite if ESP8266
-       #if defined(ESP8266)
-       analogWrite(pin, 0);
-       #endif
+    // Disable analogWrite if ESP8266
+    #if defined(ESP8266)
+      analogWrite(pin, 0);
+    #endif
 
-       // Apply on the pin
-       digitalWrite(pin,value);
+      // Apply on the pin
+      digitalWrite(pin, value);
 
-       // Send feedback to client
-       if (!LIGHTWEIGHT){
+      // Send feedback to client
+      if (!LIGHTWEIGHT) {
         addToBufferF(F("{\"message\": \"Pin D"));
         addToBuffer(message_pin, false);
         addToBufferF(F(" set to "));
         addToBuffer(value, false);
         addToBufferF(F("\", "));
-       }
-     }
-   }
-
-   // Analog selected
-   if (command == 'a') {
-     if (state == 'r'){
-
-       // Read analog value
-       value = analogRead(pin);
-
-       // Send feedback to client
-       if (LIGHTWEIGHT) {
-        addToBuffer(value, false);
       }
-       else {
+    }
+  }
+
+  // Analog selected
+  if (command == 'a') {
+    if (state == 'r') {
+
+      // Read analog value
+      value = analogRead(pin);
+
+      // Send feedback to client
+      if (LIGHTWEIGHT) {
+        addToBuffer(value, false);
+      } else {
         addToBufferF(F("{\"return_value\": "));
         addToBuffer(value, true);
         addToBufferF(F(", "));
-       }
-     }
-     #if !defined(__AVR_ATmega32U4__)
-     if (state == 'a') {
-       if (!LIGHTWEIGHT) {
-        addToBufferF(F("{"));
-       }
+      }
+    }
+    
+    #if !defined(__AVR_ATmega32U4__)
+      if (state == 'a') {
+        if (!LIGHTWEIGHT) {
+          addToBufferF(F("{"));
+        }
 
-       for (uint8_t i = 0; i < NUMBER_ANALOG_PINS; i++) {
+        for (uint8_t i = 0; i < NUMBER_ANALOG_PINS; i++) {
 
-         // Read analog value
-         value = analogRead(i);
+          // Read analog value
+          value = analogRead(i);
 
-         // Send feedback to client
-         if (LIGHTWEIGHT){
-           addToBuffer(value, false);
-           addToBufferF(F(","));
-         }
-         else {
-           addToBufferF(F("\"A"));
-           addToBuffer(i, false);
-           addToBufferF(F("\": "));
-           addToBuffer(value, true);
-           addToBufferF(F(", "));
-         }
-     }
-   }
-   #endif
-   if (state == 'w') {
+          // Send feedback to client
+          if (LIGHTWEIGHT) {
+            addToBuffer(value, false);
+            addToBufferF(F(","));
+          } else {
+            addToBufferF(F("\"A"));
+            addToBuffer(i, false);
+            addToBufferF(F("\": "));
+            addToBuffer(value, true);
+            addToBufferF(F(", "));
+          }
+        }
+      }
+    #endif
 
-     // Write output value
-     #if !defined(ESP32)
-     analogWrite(pin,value);
-     #endif
+    if (state == 'w') {
 
-     // Send feedback to client
-     addToBufferF(F("{\"message\": \"Pin D"));
-     addToBuffer(message_pin, false);
-     addToBufferF(F(" set to "));
-     addToBuffer(value, false);
-     addToBufferF(F("\", "));
+      // Write output value
+      #if !defined(ESP32)
+            analogWrite(pin, value);
+      #endif
 
-   }
+      // Send feedback to client
+      addToBufferF(F("{\"message\": \"Pin D"));
+      addToBuffer(message_pin, false);
+      addToBufferF(F(" set to "));
+      addToBuffer(value, false);
+      addToBufferF(F("\", "));
+    }
   }
 
   // Variable selected
   if (command == 'v') {
     // Send feedback to client
-    if (LIGHTWEIGHT){ 
+    if (LIGHTWEIGHT) {
       variables[value]->addToBuffer(this);
-    }
-    else {
+    } else {
       addToBufferF(F("{"));
       addVariableToBuffer(value);
     }
@@ -1358,19 +1363,19 @@ bool send_command(bool headers, bool decodeArgs) {
   if (command == 'f') {
 
     // Execute function
-    if(decodeArgs)
-      urldecode(arguments);   // Modifies arguments
+    if (decodeArgs)
+      urldecode(arguments); // Modifies arguments
 
     int result = functions[value](arguments);
 
     // Send feedback to client
     if (!LIGHTWEIGHT) {
-     addToBufferF(F("{\"return_value\": "));
-     addToBuffer(result, true);
-     addToBufferF(F(", "));
-     //addToBufferF(F(", \"message\": \""));
-     //addToBufferF(functions_names[value]);
-     //addToBufferF(F(" executed\", "));
+      addToBufferF(F("{\"return_value\": "));
+      addToBuffer(result, true);
+      addToBufferF(F(", "));
+      // addToBufferF(F(", \"message\": \""));
+      // addToBufferF(functions_names[value]);
+      // addToBufferF(F(" executed\", "));
     }
   }
 
@@ -1381,37 +1386,37 @@ bool send_command(bool headers, bool decodeArgs) {
   if (command == 'i') {
     if (LIGHTWEIGHT) {
       addStringToBuffer(id.c_str(), false);
-    }
-    else {
+    } else {
       addToBufferF(F("{"));
     }
   }
 
-   // End of message
-   if (LIGHTWEIGHT){
-     addToBufferF(F("\r\n"));
-   }
+  // End of message
+  if (LIGHTWEIGHT) {
+    addToBufferF(F("\r\n"));
+  }
 
-   else {
-     if (command != 'r' && command != 'u') {
-        addHardwareToBuffer();
-        addToBufferF(F("\r\n"));
-     }
-   }
+  else {
+    if (command != 'r' && command != 'u') {
+      addHardwareToBuffer();
+      addToBufferF(F("\r\n"));
+    }
+  }
 
-   if (DEBUG_MODE) {
-     #if defined(ESP8266)|| defined (ESP32)
-     Serial.print("Memory loss:");
-     Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-     freeMemory = ESP.getFreeHeap();
-     #endif
-     Serial.print(F("State of buffer at the end: "));
-     Serial.println(buffer);
-   }
+  if (DEBUG_MODE) {
+    #if defined(ESP8266) || defined(ESP32)
+        Serial.print("Memory loss:");
+        Serial.println(freeMemory - ESP.getFreeHeap(), DEC);
+        freeMemory = ESP.getFreeHeap();
+    #endif
+    Serial.print(F("State of buffer at the end: "));
+    Serial.println(buffer);
+  }
 
-   // End here
-   return true;
+  // End here
+  return true;
 }
+
 
 virtual void root_answer() {
 
