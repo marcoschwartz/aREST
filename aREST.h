@@ -1160,9 +1160,9 @@ bool send_command(bool headers, bool decodeArgs) {
   if (DEBUG_MODE) {
 
     #if defined(ESP8266) || defined(ESP32)
-        Serial.print("Memory loss:");
-        Serial.println(freeMemory - ESP.getFreeHeap(), DEC);
-        freeMemory = ESP.getFreeHeap();
+      Serial.print("Memory loss:");
+      Serial.println(freeMemory - ESP.getFreeHeap(), DEC);
+      freeMemory = ESP.getFreeHeap();
     #endif
 
     Serial.println(F("Sending command"));
