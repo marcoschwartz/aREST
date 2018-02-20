@@ -910,202 +910,219 @@ void reconnect(PubSubClient& client) {
 }
 #endif
 
-void process(char c){
+void process(char c) {
 
   // Check if we are receveing useful data and process it
   if ((c == '/' || c == '\r') && state == 'u') {
 
-      if (DEBUG_MODE) {
-        // #if defined(ESP8266)|| defined (ESP32)
-        // Serial.print("Memory loss:");
-        // Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-        // freeMemory = ESP.getFreeHeap();
-        // #endif
-        Serial.println(answer);
+    if (DEBUG_MODE) {
+      // #if defined(ESP8266)|| defined (ESP32)
+      // Serial.print("Memory loss:");
+      // Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+      // freeMemory = ESP.getFreeHeap();
+      // #endif
+      Serial.println(answer);
+    }
+
+    // If the command is mode, and the pin is already selected
+    if (command == 'm' && pin_selected && state == 'u') {
+
+      // Get state
+      state = answer[0];
+    }
+
+    // If a digital command has been received, process the data accordingly
+    if (command == 'd' && pin_selected && state == 'u') {
+
+      // If it's a read command, read from the pin and send data back
+      if (answer[0] == 'r') {
+        state = 'r';
       }
 
-      // If the command is mode, and the pin is already selected
-      if (command == 'm' && pin_selected && state == 'u') {
+      // If not, get value we want to apply to the pin
+      else {
+        value = answer.toInt();
+        state = 'w';
+      }
+    }
 
-        // Get state
-        state = answer[0];
+    // If analog command has been selected, process the data accordingly
+    if (command == 'a' && pin_selected && state == 'u') {
 
-     }
+      // If it's a read, read from the correct pin
+      if (answer[0] == 'r') {
+        state = 'r';
+      }
 
-     // If a digital command has been received, process the data accordingly
-     if (command == 'd' && pin_selected && state == 'u') {
+      // Else, write analog value
+      else {
+        value = answer.toInt();
+        state = 'w';
+      }
+    }
 
-       // If it's a read command, read from the pin and send data back
-       if (answer[0] == 'r') {state = 'r';}
+    // If the command is already selected, get the pin
+    if (command != 'u' && pin_selected == false) {
 
-       // If not, get value we want to apply to the pin
-       else {value = answer.toInt(); state = 'w';}
-     }
+      // Get pin
+      if (answer[0] == 'A') {
+        pin = 14 + answer[1] - '0';
+      } else {
+        pin = answer.toInt();
+      }
 
-     // If analog command has been selected, process the data accordingly
-     if (command == 'a' && pin_selected && state == 'u') {
+      // Save pin for message
+      message_pin = pin;
 
-       // If it's a read, read from the correct pin
-       if (answer[0] == 'r') {state = 'r';}
+      // For ESP8266-12 boards (NODEMCU)
+      #if defined(ARDUINO_ESP8266_NODEMCU) || defined(ARDUINO_ESP8266_WEMOS_D1MINI)
+        pin = esp_12_pin_map(pin);
+      #endif
 
-       // Else, write analog value
-       else {value = answer.toInt(); state = 'w';}
-     }
-
-     // If the command is already selected, get the pin
-     if (command != 'u' && pin_selected == false) {
-
-       // Get pin
-       if (answer[0] == 'A') {
-         pin = 14 + answer[1] - '0';
-       }
-       else {
-         pin = answer.toInt();
-       }
-
-       // Save pin for message
-       message_pin = pin;
-
-       // For ESP8266-12 boards (NODEMCU)
-       #if defined(ARDUINO_ESP8266_NODEMCU) || defined(ARDUINO_ESP8266_WEMOS_D1MINI)
-         pin = esp_12_pin_map(pin);
-       #endif
-
-       if (DEBUG_MODE) {
+      if (DEBUG_MODE) {
         Serial.print("Selected pin: ");
         Serial.println(pin);
-       }
+      }
 
-       // Mark pin as selected
-       pin_selected = true;
+      // Mark pin as selected
+      pin_selected = true;
 
-       // Nothing more ?
-       if ((answer[1] != '/' && answer[2] != '/')
-        || (answer[1] == ' ' && answer[2] == '/')
-        || (answer[2] == ' ' && answer[3] == '/')) {
+      // Nothing more ?
+      if ((answer[1] != '/' && answer[2] != '/') ||
+          (answer[1] == ' ' && answer[2] == '/') ||
+          (answer[2] == ' ' && answer[3] == '/')) {
 
         // Nothing more & digital ?
         if (command == 'd') {
 
           // Read all digital ?
-          if (answer[0] == 'a') {state = 'a';}
+          if (answer[0] == 'a') {
+            state = 'a';
+          }
 
           // Save state & end there
-          else {state = 'r';}
+          else {
+            state = 'r';
+          }
         }
 
-       // Nothing more & analog ?
-       if (command == 'a') {
+        // Nothing more & analog ?
+        if (command == 'a') {
 
-         // Read all analog ?
-         if (answer[0] == 'a') {state = 'a';}
+          // Read all analog ?
+          if (answer[0] == 'a') {
+            state = 'a';
+          }
 
-         // Save state & end there
-         else {state = 'r';}
-       }
-     }
+          // Save state & end there
+          else {
+            state = 'r';
+          }
+        }
+      }
+    }
 
-   }
+    // Digital command received ?
+    if (answer.startsWith("digital")) {
+      command = 'd';
+    }
 
-     // Digital command received ?
-     if (answer.startsWith("digital")) {command = 'd';}
+    // Mode command received ?
+    if (answer.startsWith("mode")) {
+      command = 'm';
+    }
 
-     // Mode command received ?
-     if (answer.startsWith("mode")) {command = 'm';}
-
-     // Analog command received ?
-     if (answer.startsWith("analog")) {
+    // Analog command received ?
+    if (answer.startsWith("analog")) {
       command = 'a';
 
       #if defined(ESP8266)
-      analogWriteRange(255);
+        analogWriteRange(255);
       #endif
-
-     }
-
-     // Variable or function request received ?
-     if (command == 'u') {
-
-       // Check if variable name is in int array
-       for (uint8_t i = 0; i < variables_index; i++){
-         if(answer.startsWith(variable_names[i])) {
-
-           // End here
-           pin_selected = true;
-           state = 'x';
-
-           // Set state
-           command = 'v';
-           value = i;
-
-           break;   // We found what we're looking for
-         }
-       }
-
-       // Check if function name is in array
-       for (uint8_t i = 0; i < functions_index; i++){
-         if(answer.startsWith(functions_names[i])) {
-
-           // End here
-           pin_selected = true;
-           state = 'x';
-
-           // Set state
-           command = 'f';
-           value = i;
-
-           // Get command
-           arguments = "";
-           uint8_t header_length = strlen(functions_names[i]);
-           if (answer.substring(header_length, header_length + 1) == "?") {
-             uint8_t footer_start = answer.length();
-             if (answer.endsWith(" HTTP/"))
-               footer_start -= 6; // length of " HTTP/"
- 		     int eq_position = answer.indexOf('=', header_length); // Replacing 'magic number' 8 for fixed location of '='
-			 if(eq_position!=-1)
-               arguments = answer.substring(eq_position + 1, footer_start);
-           }
-
-           break;   // We found what we're looking for
-         }
-       }
-
-       // If the command is "id", return device id, name and status
-       if ( (answer[0] == 'i' && answer[1] == 'd') ){
-
-           // Set state
-           command = 'i';
-
-           // End here
-           pin_selected = true;
-           state = 'x';
-       }
-
-       if (answer[0] == ' '){
-
-           // Set state
-           command = 'r';
-
-           // End here
-           pin_selected = true;
-           state = 'x';
-       }
-
-       // Check the type of HTTP request
-       // if (answer.startsWith("GET")) {method = "GET";}
-       // if (answer.startsWith("POST")) {method = "POST";}
-       // if (answer.startsWith("PUT")) {method = "PUT";}
-       // if (answer.startsWith("DELETE")) {method = "DELETE";}
-
-       // if (DEBUG_MODE && method != "") {
-       //  Serial.print("Selected method: ");
-       //  Serial.println(method);
-       // }
-
-     }
-
-     answer = "";
     }
+
+    // Variable or function request received ?
+    if (command == 'u') {
+
+      // Check if variable name is in int array
+      for (uint8_t i = 0; i < variables_index; i++) {
+        if (answer.startsWith(variable_names[i])) {
+
+          // End here
+          pin_selected = true;
+          state = 'x';
+
+          // Set state
+          command = 'v';
+          value = i;
+
+          break; // We found what we're looking for
+        }
+      }
+
+      // Check if function name is in array
+      for (uint8_t i = 0; i < functions_index; i++) {
+        if (answer.startsWith(functions_names[i])) {
+
+          // End here
+          pin_selected = true;
+          state = 'x';
+
+          // Set state
+          command = 'f';
+          value = i;
+
+          // Get command
+          arguments = "";
+          uint8_t header_length = strlen(functions_names[i]);
+          if (answer.substring(header_length, header_length + 1) == "?") {
+            uint8_t footer_start = answer.length();
+            if (answer.endsWith(" HTTP/"))
+              footer_start -= 6; // length of " HTTP/"
+            int eq_position = answer.indexOf('=', header_length); // Replacing 'magic number' 8 for fixed location of '='
+            if (eq_position != -1)
+              arguments = answer.substring(eq_position + 1, footer_start);
+          }
+
+          break; // We found what we're looking for
+        }
+      }
+
+      // If the command is "id", return device id, name and status
+      if ((answer[0] == 'i' && answer[1] == 'd')) {
+
+        // Set state
+        command = 'i';
+
+        // End here
+        pin_selected = true;
+        state = 'x';
+      }
+
+      if (answer[0] == ' ') {
+
+        // Set state
+        command = 'r';
+
+        // End here
+        pin_selected = true;
+        state = 'x';
+      }
+
+      // Check the type of HTTP request
+      // if (answer.startsWith("GET")) {method = "GET";}
+      // if (answer.startsWith("POST")) {method = "POST";}
+      // if (answer.startsWith("PUT")) {method = "PUT";}
+      // if (answer.startsWith("DELETE")) {method = "DELETE";}
+
+      // if (DEBUG_MODE && method != "") {
+      //  Serial.print("Selected method: ");
+      //  Serial.println(method);
+      // }
+    }
+
+    answer = "";
+  }
 }
 
 
@@ -1140,198 +1157,203 @@ void urldecode(String &arguments) {
 
 bool send_command(bool headers, bool decodeArgs) {
 
-   if (DEBUG_MODE) {
+  if (DEBUG_MODE) {
 
-     #if defined(ESP8266)|| defined (ESP32)
-     Serial.print("Memory loss:");
-     Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-     freeMemory = ESP.getFreeHeap();
-     #endif
+    #if defined(ESP8266) || defined(ESP32)
+      Serial.print("Memory loss:");
+      Serial.println(freeMemory - ESP.getFreeHeap(), DEC);
+      freeMemory = ESP.getFreeHeap();
+    #endif
 
-     Serial.println(F("Sending command"));
-     Serial.print(F("Command: "));
-     Serial.println(command);
-     Serial.print(F("State: "));
-     Serial.println(state);
-     Serial.print(F("State of buffer at the start: "));
-     Serial.println(buffer);
-   }
+    Serial.println(F("Sending command"));
+    Serial.print(F("Command: "));
+    Serial.println(command);
+    Serial.print(F("State: "));
+    Serial.println(state);
+    Serial.print(F("State of buffer at the start: "));
+    Serial.println(buffer);
+  }
 
-   // Start of message
-   if (headers && command != 'r') {send_http_headers();}
+  // Start of message
+  if (headers && command != 'r') {
+    send_http_headers();
+  }
 
-   // Mode selected
-   if (command == 'm'){
+  // Mode selected
+  if (command == 'm') {
 
-     // Send feedback to client
-     if (!LIGHTWEIGHT){
-       addToBufferF(F("{\"message\": \"Pin D"));
-       addToBuffer(message_pin, false);
-     }
+    // Send feedback to client
+    if (!LIGHTWEIGHT) {
+      addToBufferF(F("{\"message\": \"Pin D"));
+      addToBuffer(message_pin, false);
+    }
 
-     // Input
-     if (state == 'i'){
+    // Input
+    if (state == 'i') {
 
       // Set pin to Input
-      pinMode(pin,INPUT);
+      pinMode(pin, INPUT);
 
       // Send feedback to client
-      if (!LIGHTWEIGHT){addToBufferF(F(" set to input\", "));}
-     }
+      if (!LIGHTWEIGHT) {
+        addToBufferF(F(" set to input\", "));
+      }
+    }
 
-     // Input with pullup
-     if (state == 'I'){
+    // Input with pullup
+    if (state == 'I') {
 
       // Set pin to Input with pullup
-      pinMode(pin,INPUT_PULLUP);
+      pinMode(pin, INPUT_PULLUP);
 
       // Send feedback to client
-      if (!LIGHTWEIGHT){addToBufferF(F(" set to input with pullup\", "));}
-     }
-
-     // Output
-     if (state == 'o'){
-
-       // Set to Output
-       pinMode(pin,OUTPUT);
-
-       // Send feedback to client
-       if (!LIGHTWEIGHT){addToBufferF(F(" set to output\", "));}
-     }
-
-   }
-
-   // Digital selected
-   if (command == 'd') {
-     if (state == 'r'){
-
-       // Read from pin
-       value = digitalRead(pin);
-
-       // Send answer
-       if (LIGHTWEIGHT){
-        addToBuffer(value, false);
+      if (!LIGHTWEIGHT) {
+        addToBufferF(F(" set to input with pullup\", "));
       }
-       else {
+    }
+
+    // Output
+    if (state == 'o') {
+
+      // Set to Output
+      pinMode(pin, OUTPUT);
+
+      // Send feedback to client
+      if (!LIGHTWEIGHT) {
+        addToBufferF(F(" set to output\", "));
+      }
+    }
+  }
+
+  // Digital selected
+  if (command == 'd') {
+    if (state == 'r') {
+
+      // Read from pin
+      value = digitalRead(pin);
+
+      // Send answer
+      if (LIGHTWEIGHT) {
+        addToBuffer(value, false);
+      } else {
         addToBufferF(F("{\"return_value\": "));
         addToBuffer(value, true);
         addToBufferF(F(", "));
       }
-     }
-
-     #if !defined(__AVR_ATmega32U4__) || !defined(ADAFRUIT_CC3000_H)
-     if (state == 'a') {
-       if (!LIGHTWEIGHT) {addToBufferF(F("{"));}
-
-       for (uint8_t i = 0; i < NUMBER_DIGITAL_PINS; i++) {
-
-         // Read analog value
-         value = digitalRead(i);
-
-         // Send feedback to client
-         if (LIGHTWEIGHT){
-           addToBuffer(value, false);
-           addToBufferF(F(","));
-         }
-         else {
-           addToBufferF(F("\"D"));
-           addToBuffer(i, false);
-           addToBufferF(F("\": "));
-           addToBuffer(value, true);
-           addToBufferF(F(", "));
-         }
-     }
     }
+
+    #if !defined(__AVR_ATmega32U4__) || !defined(ADAFRUIT_CC3000_H)
+      if (state == 'a') {
+        if (!LIGHTWEIGHT) {
+          addToBufferF(F("{"));
+        }
+
+        for (uint8_t i = 0; i < NUMBER_DIGITAL_PINS; i++) {
+
+          // Read analog value
+          value = digitalRead(i);
+
+          // Send feedback to client
+          if (LIGHTWEIGHT) {
+            addToBuffer(value, false);
+            addToBufferF(F(","));
+          } else {
+            addToBufferF(F("\"D"));
+            addToBuffer(i, false);
+            addToBufferF(F("\": "));
+            addToBuffer(value, true);
+            addToBufferF(F(", "));
+          }
+        }
+      }
     #endif
 
-     if (state == 'w') {
+    if (state == 'w') {
 
-       // Disable analogWrite if ESP8266
-       #if defined(ESP8266)
-       analogWrite(pin, 0);
-       #endif
+    // Disable analogWrite if ESP8266
+    #if defined(ESP8266)
+      analogWrite(pin, 0);
+    #endif
 
-       // Apply on the pin
-       digitalWrite(pin,value);
+      // Apply on the pin
+      digitalWrite(pin, value);
 
-       // Send feedback to client
-       if (!LIGHTWEIGHT){
+      // Send feedback to client
+      if (!LIGHTWEIGHT) {
         addToBufferF(F("{\"message\": \"Pin D"));
         addToBuffer(message_pin, false);
         addToBufferF(F(" set to "));
         addToBuffer(value, false);
         addToBufferF(F("\", "));
-       }
-     }
-   }
-
-   // Analog selected
-   if (command == 'a') {
-     if (state == 'r'){
-
-       // Read analog value
-       value = analogRead(pin);
-
-       // Send feedback to client
-       if (LIGHTWEIGHT) {
-        addToBuffer(value, false);
       }
-       else {
+    }
+  }
+
+  // Analog selected
+  if (command == 'a') {
+    if (state == 'r') {
+
+      // Read analog value
+      value = analogRead(pin);
+
+      // Send feedback to client
+      if (LIGHTWEIGHT) {
+        addToBuffer(value, false);
+      } else {
         addToBufferF(F("{\"return_value\": "));
         addToBuffer(value, true);
         addToBufferF(F(", "));
-       }
-     }
-     #if !defined(__AVR_ATmega32U4__)
-     if (state == 'a') {
-       if (!LIGHTWEIGHT) {
-        addToBufferF(F("{"));
-       }
+      }
+    }
+    
+    #if !defined(__AVR_ATmega32U4__)
+      if (state == 'a') {
+        if (!LIGHTWEIGHT) {
+          addToBufferF(F("{"));
+        }
 
-       for (uint8_t i = 0; i < NUMBER_ANALOG_PINS; i++) {
+        for (uint8_t i = 0; i < NUMBER_ANALOG_PINS; i++) {
 
-         // Read analog value
-         value = analogRead(i);
+          // Read analog value
+          value = analogRead(i);
 
-         // Send feedback to client
-         if (LIGHTWEIGHT){
-           addToBuffer(value, false);
-           addToBufferF(F(","));
-         }
-         else {
-           addToBufferF(F("\"A"));
-           addToBuffer(i, false);
-           addToBufferF(F("\": "));
-           addToBuffer(value, true);
-           addToBufferF(F(", "));
-         }
-     }
-   }
-   #endif
-   if (state == 'w') {
+          // Send feedback to client
+          if (LIGHTWEIGHT) {
+            addToBuffer(value, false);
+            addToBufferF(F(","));
+          } else {
+            addToBufferF(F("\"A"));
+            addToBuffer(i, false);
+            addToBufferF(F("\": "));
+            addToBuffer(value, true);
+            addToBufferF(F(", "));
+          }
+        }
+      }
+    #endif
 
-     // Write output value
-     #if !defined(ESP32)
-     analogWrite(pin,value);
-     #endif
+    if (state == 'w') {
 
-     // Send feedback to client
-     addToBufferF(F("{\"message\": \"Pin D"));
-     addToBuffer(message_pin, false);
-     addToBufferF(F(" set to "));
-     addToBuffer(value, false);
-     addToBufferF(F("\", "));
+      // Write output value
+      #if !defined(ESP32)
+            analogWrite(pin, value);
+      #endif
 
-   }
+      // Send feedback to client
+      addToBufferF(F("{\"message\": \"Pin D"));
+      addToBuffer(message_pin, false);
+      addToBufferF(F(" set to "));
+      addToBuffer(value, false);
+      addToBufferF(F("\", "));
+    }
   }
 
   // Variable selected
   if (command == 'v') {
     // Send feedback to client
-    if (LIGHTWEIGHT){ 
+    if (LIGHTWEIGHT) {
       variables[value]->addToBuffer(this);
-    }
-    else {
+    } else {
       addToBufferF(F("{"));
       addVariableToBuffer(value);
     }
@@ -1341,19 +1363,19 @@ bool send_command(bool headers, bool decodeArgs) {
   if (command == 'f') {
 
     // Execute function
-    if(decodeArgs)
-      urldecode(arguments);   // Modifies arguments
+    if (decodeArgs)
+      urldecode(arguments); // Modifies arguments
 
     int result = functions[value](arguments);
 
     // Send feedback to client
     if (!LIGHTWEIGHT) {
-     addToBufferF(F("{\"return_value\": "));
-     addToBuffer(result, true);
-     addToBufferF(F(", "));
-     //addToBufferF(F(", \"message\": \""));
-     //addToBufferF(functions_names[value]);
-     //addToBufferF(F(" executed\", "));
+      addToBufferF(F("{\"return_value\": "));
+      addToBuffer(result, true);
+      addToBufferF(F(", "));
+      // addToBufferF(F(", \"message\": \""));
+      // addToBufferF(functions_names[value]);
+      // addToBufferF(F(" executed\", "));
     }
   }
 
@@ -1364,37 +1386,37 @@ bool send_command(bool headers, bool decodeArgs) {
   if (command == 'i') {
     if (LIGHTWEIGHT) {
       addStringToBuffer(id.c_str(), false);
-    }
-    else {
+    } else {
       addToBufferF(F("{"));
     }
   }
 
-   // End of message
-   if (LIGHTWEIGHT){
-     addToBufferF(F("\r\n"));
-   }
+  // End of message
+  if (LIGHTWEIGHT) {
+    addToBufferF(F("\r\n"));
+  }
 
-   else {
-     if (command != 'r' && command != 'u') {
-        addHardwareToBuffer();
-        addToBufferF(F("\r\n"));
-     }
-   }
+  else {
+    if (command != 'r' && command != 'u') {
+      addHardwareToBuffer();
+      addToBufferF(F("\r\n"));
+    }
+  }
 
-   if (DEBUG_MODE) {
-     #if defined(ESP8266)|| defined (ESP32)
-     Serial.print("Memory loss:");
-     Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-     freeMemory = ESP.getFreeHeap();
-     #endif
-     Serial.print(F("State of buffer at the end: "));
-     Serial.println(buffer);
-   }
+  if (DEBUG_MODE) {
+    #if defined(ESP8266) || defined(ESP32)
+        Serial.print("Memory loss:");
+        Serial.println(freeMemory - ESP.getFreeHeap(), DEC);
+        freeMemory = ESP.getFreeHeap();
+    #endif
+    Serial.print(F("State of buffer at the end: "));
+    Serial.println(buffer);
+  }
 
-   // End here
-   return true;
+  // End here
+  return true;
 }
+
 
 virtual void root_answer() {
 
@@ -1564,9 +1586,9 @@ void addStringToBuffer(const char * toAdd, bool quotable){
 
   if (DEBUG_MODE) {
     #if defined(ESP8266)|| defined (ESP32)
-    Serial.print("Memory loss:");
-    Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-    freeMemory = ESP.getFreeHeap();
+      Serial.print("Memory loss:");
+      Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+      freeMemory = ESP.getFreeHeap();
     #endif
     Serial.print(F("Added to buffer as char: "));
     Serial.println(toAdd);
