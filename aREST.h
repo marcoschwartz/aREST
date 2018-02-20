@@ -158,14 +158,10 @@ struct TypedVariable: Variable {
 
 public:
 
+public:
+
 aREST() {
-
-  command = 'u';
-  pin_selected = false;
-
-  status_led_pin = 255;
-  state = 'u';
-
+  initialize();
 }
 
 aREST(char* rest_remote_server, int rest_port) {
@@ -189,22 +185,29 @@ void variable(const char *name, T *var) {
 }
 
 
-#if defined(_ADAFRUIT_MQTT_FONA_H_)
+private:
 
+void initialize() {
+  reset();
+  status_led_pin = 255;
+}
 
+// Used when resetting object back to oringial state
+void reset() {
+  command = 'u';
+  state = 'u';
+  pin_selected = false;
+}
 
-#endif
+public:
+
 
 #if defined(PubSubClient_h)
 
 // With default server
 aREST(PubSubClient& client) {
 
-  command = 'u';
-  pin_selected = false;
-
-  status_led_pin = 255;
-  state = 'u';
+  initialize();
 
   private_mqtt_server = false;
   client.setServer(mqtt_server, 1883);
@@ -214,11 +217,7 @@ aREST(PubSubClient& client) {
 // With another server
 aREST(PubSubClient& client, char* new_mqtt_server) {
 
-  command = 'u';
-  pin_selected = false;
-
-  status_led_pin = 255;
-  state = 'u';
+  initialize();
 
   private_mqtt_server = true;
   setMQTTServer(new_mqtt_server);
@@ -302,7 +301,7 @@ void set_status_led(uint8_t pin){
   status_led_pin = pin;
 
   // Set pin as output
-  pinMode(status_led_pin,OUTPUT);
+  pinMode(status_led_pin, OUTPUT);
 }
 
 #if !defined(ESP32)
@@ -359,10 +358,8 @@ void reset_status() {
     #endif
   }
 
+  reset();
   answer = "";
-  command = 'u';
-  pin_selected = false;
-  state = 'u';
   arguments = "";
 
   index = 0;
