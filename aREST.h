@@ -158,14 +158,10 @@ struct TypedVariable: Variable {
 
 public:
 
+public:
+
 aREST() {
-
-  command = 'u';
-  pin_selected = false;
-
-  status_led_pin = 255;
-  state = 'u';
-
+  initialize();
 }
 
 aREST(char* rest_remote_server, int rest_port) {
@@ -189,22 +185,29 @@ void variable(const char *name, T *var) {
 }
 
 
-#if defined(_ADAFRUIT_MQTT_FONA_H_)
+private:
 
+void initialize() {
+  reset();
+  status_led_pin = 255;
+}
 
+// Used when resetting object back to oringial state
+void reset() {
+  command = 'u';
+  state = 'u';
+  pin_selected = false;
+}
 
-#endif
+public:
+
 
 #if defined(PubSubClient_h)
 
 // With default server
 aREST(PubSubClient& client) {
 
-  command = 'u';
-  pin_selected = false;
-
-  status_led_pin = 255;
-  state = 'u';
+  initialize();
 
   private_mqtt_server = false;
   client.setServer(mqtt_server, 1883);
@@ -214,11 +217,7 @@ aREST(PubSubClient& client) {
 // With another server
 aREST(PubSubClient& client, char* new_mqtt_server) {
 
-  command = 'u';
-  pin_selected = false;
-
-  status_led_pin = 255;
-  state = 'u';
+  initialize();
 
   private_mqtt_server = true;
   setMQTTServer(new_mqtt_server);
@@ -302,7 +301,7 @@ void set_status_led(uint8_t pin){
   status_led_pin = pin;
 
   // Set pin as output
-  pinMode(status_led_pin,OUTPUT);
+  pinMode(status_led_pin, OUTPUT);
 }
 
 #if !defined(ESP32)
@@ -359,10 +358,8 @@ void reset_status() {
     #endif
   }
 
+  reset();
   answer = "";
-  command = 'u';
-  pin_selected = false;
-  state = 'u';
   arguments = "";
 
   index = 0;
@@ -913,216 +910,221 @@ void reconnect(PubSubClient& client) {
 void process(char c) {
 
   // Check if we are receveing useful data and process it
-  if ((c == '/' || c == '\r') && state == 'u') {
+
+  if(state != 'u')
+    return;
+
+  if(c != '/' && c != '\r')
+    return;
+
+
+  if (DEBUG_MODE) {
+    // #if defined(ESP8266)|| defined (ESP32)
+    // Serial.print("Memory loss:");
+    // Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+    // freeMemory = ESP.getFreeHeap();
+    // #endif
+    Serial.println(answer);
+  }
+
+  // If the command is mode, and the pin is already selected
+  if (command == 'm' && pin_selected && state == 'u') {
+
+    // Get state
+    state = answer[0];
+  }
+
+  // If a digital command has been received, process the data accordingly
+  if (command == 'd' && pin_selected && state == 'u') {
+
+    // If it's a read command, read from the pin and send data back
+    if (answer[0] == 'r') {
+      state = 'r';
+    }
+
+    // If not, get value we want to apply to the pin
+    else {
+      value = answer.toInt();
+      state = 'w';
+    }
+  }
+
+  // If analog command has been selected, process the data accordingly
+  if (command == 'a' && pin_selected && state == 'u') {
+
+    // If it's a read, read from the correct pin
+    if (answer[0] == 'r') {
+      state = 'r';
+    }
+
+    // Else, write analog value
+    else {
+      value = answer.toInt();
+      state = 'w';
+    }
+  }
+
+  // If the command is already selected, get the pin
+  if (command != 'u' && pin_selected == false) {
+
+    // Get pin
+    if (answer[0] == 'A') {
+      pin = 14 + answer[1] - '0';
+    } else {
+      pin = answer.toInt();
+    }
+
+    // Save pin for message
+    message_pin = pin;
+
+    // For ESP8266-12 boards (NODEMCU)
+    #if defined(ARDUINO_ESP8266_NODEMCU) || defined(ARDUINO_ESP8266_WEMOS_D1MINI)
+      pin = esp_12_pin_map(pin);
+    #endif
 
     if (DEBUG_MODE) {
-      // #if defined(ESP8266)|| defined (ESP32)
-      // Serial.print("Memory loss:");
-      // Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-      // freeMemory = ESP.getFreeHeap();
-      // #endif
-      Serial.println(answer);
+      Serial.print("Selected pin: ");
+      Serial.println(pin);
     }
 
-    // If the command is mode, and the pin is already selected
-    if (command == 'm' && pin_selected && state == 'u') {
+    // Mark pin as selected
+    pin_selected = true;
 
-      // Get state
-      state = answer[0];
-    }
+    // Nothing more ?
+    if ((answer[1] != '/' && answer[2] != '/') ||
+        (answer[1] == ' ' && answer[2] == '/') ||
+        (answer[2] == ' ' && answer[3] == '/')) {
 
-    // If a digital command has been received, process the data accordingly
-    if (command == 'd' && pin_selected && state == 'u') {
+      // Nothing more & digital ?
+      if (command == 'd') {
 
-      // If it's a read command, read from the pin and send data back
-      if (answer[0] == 'r') {
-        state = 'r';
-      }
-
-      // If not, get value we want to apply to the pin
-      else {
-        value = answer.toInt();
-        state = 'w';
-      }
-    }
-
-    // If analog command has been selected, process the data accordingly
-    if (command == 'a' && pin_selected && state == 'u') {
-
-      // If it's a read, read from the correct pin
-      if (answer[0] == 'r') {
-        state = 'r';
-      }
-
-      // Else, write analog value
-      else {
-        value = answer.toInt();
-        state = 'w';
-      }
-    }
-
-    // If the command is already selected, get the pin
-    if (command != 'u' && pin_selected == false) {
-
-      // Get pin
-      if (answer[0] == 'A') {
-        pin = 14 + answer[1] - '0';
-      } else {
-        pin = answer.toInt();
-      }
-
-      // Save pin for message
-      message_pin = pin;
-
-      // For ESP8266-12 boards (NODEMCU)
-      #if defined(ARDUINO_ESP8266_NODEMCU) || defined(ARDUINO_ESP8266_WEMOS_D1MINI)
-        pin = esp_12_pin_map(pin);
-      #endif
-
-      if (DEBUG_MODE) {
-        Serial.print("Selected pin: ");
-        Serial.println(pin);
-      }
-
-      // Mark pin as selected
-      pin_selected = true;
-
-      // Nothing more ?
-      if ((answer[1] != '/' && answer[2] != '/') ||
-          (answer[1] == ' ' && answer[2] == '/') ||
-          (answer[2] == ' ' && answer[3] == '/')) {
-
-        // Nothing more & digital ?
-        if (command == 'd') {
-
-          // Read all digital ?
-          if (answer[0] == 'a') {
-            state = 'a';
-          }
-
-          // Save state & end there
-          else {
-            state = 'r';
-          }
+        // Read all digital ?
+        if (answer[0] == 'a') {
+          state = 'a';
         }
 
-        // Nothing more & analog ?
-        if (command == 'a') {
-
-          // Read all analog ?
-          if (answer[0] == 'a') {
-            state = 'a';
-          }
-
-          // Save state & end there
-          else {
-            state = 'r';
-          }
-        }
-      }
-    }
-
-    // Digital command received ?
-    if (answer.startsWith("digital")) {
-      command = 'd';
-    }
-
-    // Mode command received ?
-    if (answer.startsWith("mode")) {
-      command = 'm';
-    }
-
-    // Analog command received ?
-    if (answer.startsWith("analog")) {
-      command = 'a';
-
-      #if defined(ESP8266)
-        analogWriteRange(255);
-      #endif
-    }
-
-    // Variable or function request received ?
-    if (command == 'u') {
-
-      // Check if variable name is in int array
-      for (uint8_t i = 0; i < variables_index; i++) {
-        if (answer.startsWith(variable_names[i])) {
-
-          // End here
-          pin_selected = true;
-          state = 'x';
-
-          // Set state
-          command = 'v';
-          value = i;
-
-          break; // We found what we're looking for
+        // Save state & end there
+        else {
+          state = 'r';
         }
       }
 
-      // Check if function name is in array
-      for (uint8_t i = 0; i < functions_index; i++) {
-        if (answer.startsWith(functions_names[i])) {
+      // Nothing more & analog ?
+      if (command == 'a') {
 
-          // End here
-          pin_selected = true;
-          state = 'x';
+        // Read all analog ?
+        if (answer[0] == 'a') {
+          state = 'a';
+        }
 
-          // Set state
-          command = 'f';
-          value = i;
-
-          // Get command
-          arguments = "";
-          uint8_t header_length = strlen(functions_names[i]);
-          if (answer.substring(header_length, header_length + 1) == "?") {
-            uint8_t footer_start = answer.length();
-            if (answer.endsWith(" HTTP/"))
-              footer_start -= 6; // length of " HTTP/"
-            int eq_position = answer.indexOf('=', header_length); // Replacing 'magic number' 8 for fixed location of '='
-            if (eq_position != -1)
-              arguments = answer.substring(eq_position + 1, footer_start);
-          }
-
-          break; // We found what we're looking for
+        // Save state & end there
+        else {
+          state = 'r';
         }
       }
-
-      // If the command is "id", return device id, name and status
-      if ((answer[0] == 'i' && answer[1] == 'd')) {
-
-        // Set state
-        command = 'i';
-
-        // End here
-        pin_selected = true;
-        state = 'x';
-      }
-
-      if (answer[0] == ' ') {
-
-        // Set state
-        command = 'r';
-
-        // End here
-        pin_selected = true;
-        state = 'x';
-      }
-
-      // Check the type of HTTP request
-      // if (answer.startsWith("GET")) {method = "GET";}
-      // if (answer.startsWith("POST")) {method = "POST";}
-      // if (answer.startsWith("PUT")) {method = "PUT";}
-      // if (answer.startsWith("DELETE")) {method = "DELETE";}
-
-      // if (DEBUG_MODE && method != "") {
-      //  Serial.print("Selected method: ");
-      //  Serial.println(method);
-      // }
     }
-
-    answer = "";
   }
+
+  // Digital command received ?
+  if (answer.startsWith("digital")) {
+    command = 'd';
+  }
+
+  // Mode command received ?
+  if (answer.startsWith("mode")) {
+    command = 'm';
+  }
+
+  // Analog command received ?
+  if (answer.startsWith("analog")) {
+    command = 'a';
+
+    #if defined(ESP8266)
+      analogWriteRange(255);
+    #endif
+  }
+
+  // Variable or function request received ?
+  if (command == 'u') {
+
+    // Check if variable name is in int array
+    for (uint8_t i = 0; i < variables_index; i++) {
+      if (answer.startsWith(variable_names[i])) {
+
+        // End here
+        pin_selected = true;
+        state = 'x';
+
+        // Set state
+        command = 'v';
+        value = i;
+
+        break; // We found what we're looking for
+      }
+    }
+
+    // Check if function name is in array
+    for (uint8_t i = 0; i < functions_index; i++) {
+      if (answer.startsWith(functions_names[i])) {
+
+        // End here
+        pin_selected = true;
+        state = 'x';
+
+        // Set state
+        command = 'f';
+        value = i;
+
+        // Get command
+        arguments = "";
+        uint8_t header_length = strlen(functions_names[i]);
+        if (answer.substring(header_length, header_length + 1) == "?") {
+          uint8_t footer_start = answer.length();
+          if (answer.endsWith(" HTTP/"))
+            footer_start -= 6; // length of " HTTP/"
+          int eq_position = answer.indexOf('=', header_length); // Replacing 'magic number' 8 for fixed location of '='
+          if (eq_position != -1)
+            arguments = answer.substring(eq_position + 1, footer_start);
+        }
+
+        break; // We found what we're looking for
+      }
+    }
+
+    // If the command is "id", return device id, name and status
+    if ((answer[0] == 'i' && answer[1] == 'd')) {
+
+      // Set state
+      command = 'i';
+
+      // End here
+      pin_selected = true;
+      state = 'x';
+    }
+
+    if (answer[0] == ' ') {
+
+      // Set state
+      command = 'r';
+
+      // End here
+      pin_selected = true;
+      state = 'x';
+    }
+
+    // Check the type of HTTP request
+    // if (answer.startsWith("GET")) {method = "GET";}
+    // if (answer.startsWith("POST")) {method = "POST";}
+    // if (answer.startsWith("PUT")) {method = "PUT";}
+    // if (answer.startsWith("DELETE")) {method = "DELETE";}
+
+    // if (DEBUG_MODE && method != "") {
+    //  Serial.print("Selected method: ");
+    //  Serial.println(method);
+    // }
+  }
+
+  answer = "";
 }
 
 
