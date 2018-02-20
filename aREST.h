@@ -1075,7 +1075,10 @@ void process(char c) {
         command = 'f';
         value = i;
 
-        // Get command
+        answer.trim();
+
+        // We're expecting a string of the form <functionName>?xxxxx=<arguments>, where xxxxx can be almost anything as long as it's followed by an '='
+        // Get command -- Anything following the first '=' in answer will be put in the arguments string.
         arguments = "";
         uint8_t header_length = strlen(functions_names[i]);
         if (answer.substring(header_length, header_length + 1) == "?") {
