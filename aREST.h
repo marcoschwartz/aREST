@@ -148,12 +148,13 @@ struct Variable {
 template<typename T>
 struct TypedVariable: Variable {
   T *var;
+  bool quotable;
 
-  TypedVariable(T *v) : var{v} { }
+  TypedVariable(T *v, bool q) : var{v} { quotable = q; }
 
   void addToBuffer(aREST *arest) const override { 
-    arest->addToBuffer(*var, true);
-  }
+    arest->addToBuffer(*var, quotable);
+  }  
 };
 
 public:
@@ -177,11 +178,17 @@ aREST(char* rest_remote_server, int rest_port) {
 
 }
 
+
 template<typename T>
-void variable(const char *name, T *var) { 
-  variables[variables_index] = new TypedVariable<T>(var);
+void variable(const char *name, T *var, bool quotable) { 
+  variables[variables_index] = new TypedVariable<T>(var, quotable);
   variable_names[variables_index] = name;
   variables_index++;
+}
+
+template<typename T>
+void variable(const char *name, T *var) { 
+  variable(name, var, true);
 }
 
 
@@ -1605,7 +1612,7 @@ void addStringToBuffer(const char * toAdd, bool quotable){
 
   for (int i = 0; i < strlen(toAdd) && index < OUTPUT_BUFFER_SIZE; i++, index++) {
     // Handle quoting quotes and backslashes
-    if(toAdd[i] == '"' || toAdd[i] == '\\') {
+    if(quotable && (toAdd[i] == '"' || toAdd[i] == '\\')) {
       if(index == OUTPUT_BUFFER_SIZE - 1)   // No room!
         return;
       buffer[index] = '\\';
@@ -1633,6 +1640,7 @@ template <typename T>
 void addToBuffer(T(*toAdd)(), bool quotable) { 
   addToBuffer(toAdd(), quotable);
 } 
+
 
 // // Add to output buffer
 // void addToBuffer(const __FlashStringHelper *toAdd, bool quotable){
@@ -1910,25 +1918,25 @@ void aREST::addToBuffer(bool toAdd, bool quotable) {
 
 template <>
 void aREST::addToBuffer(const char *toAdd, bool quotable) {
-  addStringToBuffer(toAdd, true);                       // Strings must be quoted
+  addStringToBuffer(toAdd, quotable);                       // Strings must be quoted
 }
 
 
 template <>
 void aREST::addToBuffer(const String *toAdd, bool quotable) {
-  addStringToBuffer(toAdd->c_str(), true);           // Strings must be quoted
+  addStringToBuffer(toAdd->c_str(), quotable);           // Strings must be quoted
 }
 
 
 template <>
 void aREST::addToBuffer(const String toAdd, bool quotable) {
-  addStringToBuffer(toAdd.c_str(), true);           // Strings must be quoted
+  addStringToBuffer(toAdd.c_str(), quotable);           // Strings must be quoted
 }
 
 
 template <>
 void aREST::addToBuffer(char toAdd[], bool quotable) {
-  addStringToBuffer(toAdd, true);           // Strings must be quoted
+  addStringToBuffer(toAdd, quotable);           // Strings must be quoted
 }
 
 
