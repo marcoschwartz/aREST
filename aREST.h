@@ -119,6 +119,14 @@
 #define LIGHTWEIGHT 0
 #endif
 
+#ifdef AREST_NUMBER_VARIABLES
+#define NUMBER_VARIABLES AREST_NUMBER_VARIABLES
+#endif
+
+#ifdef AREST_NUMBER_FUNCTIONS
+#define NUMBER_FUNCTIONS AREST_NUMBER_FUNCTIONS
+#endif
+
 // Default number of max. exposed variables
 #ifndef NUMBER_VARIABLES
   #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)|| defined(ESP32) || !defined(ADAFRUIT_CC3000_H)
