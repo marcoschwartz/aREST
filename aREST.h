@@ -145,6 +145,12 @@
   #endif
 #endif
 
+
+#ifdef AREST_BUFFER_SIZE
+  #define OUTPUT_BUFFER_SIZE AREST_BUFFER_SIZE
+#endif
+
+
 class aREST {
 
 private:
