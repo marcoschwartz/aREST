@@ -1645,13 +1645,13 @@ void addStringToBuffer(const char * toAdd, bool quotable){
 // Add to output buffer
 
 template <typename T>
-void addToBuffer(T toAdd, bool quotable) {
+void addToBuffer(T toAdd, bool quotable=false) {
   addStringToBuffer(String(toAdd).c_str(), false);   // Except for our overrides, this will be adding numbers, which don't get quoted
 }
 
 // Register a function instead of a plain old variable!
 template <typename T>
-void addToBuffer(T(*toAdd)(), bool quotable) { 
+void addToBuffer(T(*toAdd)(), bool quotable=true) { 
   addToBuffer(toAdd(), quotable);
 } 
 
