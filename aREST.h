@@ -115,6 +115,19 @@
 #define DEBUG_MODE 0
 #endif
 
+
+// Use AREST_PARAMS_MODE to control how parameters are parsed when using the function() method.
+// Use 0 for standard operation, where everything before the first "=" is stripped before passing the parameter string to the function.
+// Useful for simple functions, where only the value is important
+//    function?params=hello    ==> hello gets passed to the function
+//
+// Use 1 to pass the entire parameter string to the function, which will be responsible for parsing the parameter string
+// Useful for more complex situations, where the key name as well as its value is important, or there are mutliple key-value pairs
+//    function?params=hello    ==> params=hello gets passed to the function
+#ifndef AREST_PARAMS_MODE
+#define AREST_PARAMS_MODE 0
+#endif
+
 // Use light answer mode
 #ifndef LIGHTWEIGHT
 #define LIGHTWEIGHT 0
@@ -1107,9 +1120,17 @@ void process(char c) {
           uint8_t footer_start = answer.length();
           if (answer.endsWith(" HTTP/"))
             footer_start -= 6; // length of " HTTP/"
-          int eq_position = answer.indexOf('=', header_length); // Replacing 'magic number' 8 for fixed location of '='
-          if (eq_position != -1)
-            arguments = answer.substring(eq_position + 1, footer_start);
+
+          // Standard operation --> strip off anything preceeding the first "=", pass the rest to the function
+          if(AREST_PARAMS_MODE == 0) {
+            int eq_position = answer.indexOf('=', header_length); // Replacing 'magic number' 8 for fixed location of '='
+            if (eq_position != -1)
+              arguments = answer.substring(eq_position + 1, footer_start);
+          } 
+          // All params mode --> pass all parameters, if any, to the function.  Function will be resonsible for parsing
+          else if(AREST_PARAMS_MODE == 1) {
+            arguments = answer.substring(header_length + 1, footer_start);
+          }
         }
 
         break; // We found what we're looking for
