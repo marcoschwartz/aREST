@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.7.0
+  Version 2.7.1
   Changelog:
 
+  Version 2.7.1: Additional fixes & optimisations by @eykamp 
   Version 2.7.0: Several fixes & optimisations by @eykamp 
   Version 2.6.0: Added support for new aREST cloud app
   Version 2.5.0: Added support for the ESP32 WiFi chip (local & cloud)
