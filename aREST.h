@@ -141,6 +141,10 @@
 #define NUMBER_FUNCTIONS AREST_NUMBER_FUNCTIONS
 #endif
 
+#ifdef AREST_NUMBER_PAGES
+#define NUMBER_PAGES AREST_NUMBER_PAGES
+#endif
+
 // Default number of max. exposed variables
 #ifndef NUMBER_VARIABLES
   #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)|| defined(ESP32) || !defined(ADAFRUIT_CC3000_H)
@@ -159,6 +163,14 @@
   #endif
 #endif
 
+// Default number of max. exposed pages
+#ifndef NUMBER_PAGES
+  #if defined(__AVR_ATmega1280__) || defined(ESP32) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)
+  #define NUMBER_PAGES 10
+  #else
+  #define NUMBER_PAGES 5
+  #endif
+#endif
 
 #ifdef AREST_BUFFER_SIZE
   #define OUTPUT_BUFFER_SIZE AREST_BUFFER_SIZE
@@ -375,10 +387,46 @@ void addToBufferF(const __FlashStringHelper *toAdd){
   }
 }
 
+void addStringToBuffer(const char * toAdd, bool quotable){
+
+  if (DEBUG_MODE) {
+    #if defined(ESP8266)|| defined (ESP32)
+      Serial.print("Memory loss:");
+      Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
+      freeMemory = ESP.getFreeHeap();
+    #endif
+    Serial.print(F("Added to buffer as char: "));
+    Serial.println(toAdd);
+  }
+
+  if(quotable) {
+    addQuote();
+  }
+
+  for (int i = 0; i < strlen(toAdd) && index < OUTPUT_BUFFER_SIZE; i++, index++) {
+    // Handle quoting quotes and backslashes
+    if(quotable && (toAdd[i] == '"' || toAdd[i] == '\\')) {
+      if(index == OUTPUT_BUFFER_SIZE - 1)   // No room!
+        return;
+      buffer[index] = '\\';
+      index++;
+    }
+
+    buffer[index] = toAdd[i];
+  }
+
+  if(quotable) {
+    addQuote();
+  }
+}
+
+
 // Send HTTP headers for Ethernet & WiFi
 void send_http_headers(){
 
-  addToBufferF(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"));
+  addToBufferF(F("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, PUT, OPTIONS\r\nContent-Type: "));
+  addStringToBuffer(content_type.c_str(), false);
+  addToBufferF(F("\r\nConnection: close\r\n\r\n"));
 
 }
 
@@ -1137,6 +1185,47 @@ void process(char c) {
       }
     }
 
+    // Check if page name is in array
+    for (uint8_t i = 0; i < pages_index; i++) {
+      if (answer.startsWith(pages_names[i])) {
+
+        // End here
+        pin_selected = true;
+        state = 'x';
+
+        // Set state
+        command = 'p';
+        value = i;
+
+        content_type = pages_content_type[i];
+
+        answer.trim();
+
+        // We're expecting a string of the form <functionName>?xxxxx=<arguments>, where xxxxx can be almost anything as long as it's followed by an '='
+        // Get command -- Anything following the first '=' in answer will be put in the arguments string.
+        arguments = "";
+        uint16_t header_length = strlen(pages_names[i]);
+        if (answer.substring(header_length, header_length + 1) == "?") {
+          uint16_t footer_start = answer.length();
+          if (answer.endsWith(" HTTP/"))
+            footer_start -= 6; // length of " HTTP/"
+
+          // Standard operation --> strip off anything preceeding the first "=", pass the rest to the function
+          if(AREST_PARAMS_MODE == 0) {
+            uint16_t eq_position = answer.indexOf('=', header_length); // Replacing 'magic number' 8 for fixed location of '='
+            if (eq_position != -1)
+              arguments = answer.substring(eq_position + 1, footer_start);
+          } 
+          // All params mode --> pass all parameters, if any, to the function.  Function will be resonsible for parsing
+          else if(AREST_PARAMS_MODE == 1) {
+            arguments = answer.substring(header_length + 1, footer_start);
+          }
+        }
+
+        break; // We found what we're looking for
+      }
+    }
+
     // If the command is "id", return device id, name and status
     if ((answer[0] == 'i' && answer[1] == 'd')) {
 
@@ -1157,7 +1246,12 @@ void process(char c) {
       pin_selected = true;
       state = 'x';
     }
-
+    
+    // Check if we return content type as json
+    if (command != 'p')
+    {
+      content_type = "application/json";
+    }
     // Check the type of HTTP request
     // if (answer.startsWith("GET")) {method = "GET";}
     // if (answer.startsWith("POST")) {method = "POST";}
@@ -1427,6 +1521,17 @@ bool send_command(bool headers, bool decodeArgs) {
     }
   }
 
+   // page selected
+  if (command == 'p') {
+
+    // Execute function
+    if (decodeArgs)
+      urldecode(arguments); // Modifies arguments
+
+    String result = pages[value](arguments);
+    addStringToBuffer(result.c_str(), false);
+  }
+
   if (command == 'r' || command == 'u') {
     root_answer();
   }
@@ -1444,7 +1549,7 @@ bool send_command(bool headers, bool decodeArgs) {
     addToBufferF(F("\r\n"));
   }
 
-  else {
+  else if (command != 'p') {
     if (command != 'r' && command != 'u') {
       addHardwareToBuffer();
       addToBufferF(F("\r\n"));
@@ -1509,6 +1614,17 @@ void function(char * function_name, int (*f)(String)){
   functions_names[functions_index] = function_name;
   functions[functions_index] = f;
   functions_index++;
+}
+
+// To add static content page
+// page_content_type can be any type like application/json or text/html
+// it will be added automatically to the headers
+void page(char * page_name, char * page_content_type, String (*f)(String)){
+
+  pages_names[pages_index] = page_name;
+  pages_content_type[pages_index] = page_content_type;
+  pages[pages_index] = f;
+  pages_index++;
 }
 
 // Set device ID
@@ -1628,41 +1744,6 @@ void addQuote() {
     index++;
   }  
 }
-
-
-void addStringToBuffer(const char * toAdd, bool quotable){
-
-  if (DEBUG_MODE) {
-    #if defined(ESP8266)|| defined (ESP32)
-      Serial.print("Memory loss:");
-      Serial.println(freeMemory - ESP.getFreeHeap(),DEC);
-      freeMemory = ESP.getFreeHeap();
-    #endif
-    Serial.print(F("Added to buffer as char: "));
-    Serial.println(toAdd);
-  }
-
-  if(quotable) {
-    addQuote();
-  }
-
-  for (int i = 0; i < strlen(toAdd) && index < OUTPUT_BUFFER_SIZE; i++, index++) {
-    // Handle quoting quotes and backslashes
-    if(quotable && (toAdd[i] == '"' || toAdd[i] == '\\')) {
-      if(index == OUTPUT_BUFFER_SIZE - 1)   // No room!
-        return;
-      buffer[index] = '\\';
-      index++;
-    }
-
-    buffer[index] = toAdd[i];
-  }
-
-  if(quotable) {
-    addQuote();
-  }
-}
-
 
 // Add to output buffer
 
@@ -1892,6 +1973,7 @@ private:
   char state;
   uint16_t value;
   boolean pin_selected;
+  String content_type;
 
   char* remote_server;
   int port;
@@ -1936,6 +2018,12 @@ private:
   uint8_t functions_index;
   int (*functions[NUMBER_FUNCTIONS])(String);
   char * functions_names[NUMBER_FUNCTIONS];
+
+  // Pages array
+  uint8_t pages_index;
+  String (*pages[NUMBER_PAGES])(String);
+  char * pages_names[NUMBER_PAGES];
+  char * pages_content_type[NUMBER_PAGES];
 
   // Memory debug
   #if defined(ESP8266) || defined(ESP32)
