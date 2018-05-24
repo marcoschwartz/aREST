@@ -189,6 +189,12 @@ You can also define your own functions in your sketch that can be called using t
   * `rest.function("led",ledControl);` declares the function in the Arduino sketch
   * `/led?params=0` executes the function
 
+### Pages
+
+Like for the functions, you can also define your own String content in your sketch that can be called using the REST API. This can be useful is you want to return an XML file or a simple HTML page. To access a page defined in your sketch, you have to declare it first, and then call it from with a REST call. Note that all functions needs to take a String as the unique argument (for parameters to be passed to the function) and return a String. Note that during the declaration, the page need to specify the content type that will be returned. For example, if your aREST instance is called "rest" and the function "html":
+  * `rest.function("thml","text/hml",ledControl);` declares the page in the Arduino sketch
+  * `/html?params=0` executes the page
+
 ### Get data about the board
 
 You can also access a description of all the variables that were declared on the board with a single command. This is useful to automatically build graphical interfaces based on the variables exposed to the API. This can be done via the following calls:

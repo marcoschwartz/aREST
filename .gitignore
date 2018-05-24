@@ -3,3 +3,9 @@
 ################################################################################
 
 *.suo
+*.db
+*.opendb
+/.vs
+/.vscode
+/examples/ESP8266_page/.vs
+/examples/ESP8266_page/.vscode
