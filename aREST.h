@@ -204,9 +204,8 @@ struct FunctionHandler: Handler {
     int result = func(arguments);
 
     if (!LIGHTWEIGHT) {
-      arest->addToBufferF(F("{\"return_value\": "));
+      arest->addToBufferF(F("\"return_value\": "));
       arest->addToBuffer(result, true);
-      arest->addToBufferF(F(", "));
       // arest->addToBufferF(F(", \"message\": \""));
       // arest->addStringToBuffer(name.c_str());
       // arest->addToBufferF(F(" executed\", "));
