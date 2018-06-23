@@ -1404,6 +1404,7 @@ bool send_command(bool headers, bool decodeArgs) {
     } else {
       addToBufferF(F("{"));
       addVariableToBuffer(value);
+      addToBufferF(F(", "));
     }
   }
 
@@ -1483,9 +1484,7 @@ virtual void root_answer() {
     addToBufferF(F("{\"variables\": {"));
 
     for (uint8_t i = 0; i < variables_index; i++){
-      addStringToBuffer(variable_names[i], true);
-      addToBufferF(F(": "));
-      variables[i]->addToBuffer(this);
+      addVariableToBuffer(i);
 
       if (i < variables_index - 1) {
         addToBufferF(F(", "));
@@ -1846,7 +1845,6 @@ void addVariableToBuffer(uint8_t index) {
   addStringToBuffer(variable_names[index], true);
   addToBufferF(F(": "));
   variables[index]->addToBuffer(this);
-  addToBufferF(F(", "));
 }
 
 
