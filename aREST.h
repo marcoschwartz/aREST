@@ -156,12 +156,18 @@ class aREST {
 
 private:
 struct Handler {
+  bool include_into_root_answer;
+
+  Handler() : include_into_root_answer{false} { }
+  Handler(bool include) : include_into_root_answer{include} { }
+
   virtual void addToBuffer(aREST *arest, const String& name, const String& arguments) const = 0;
 };
 
 
-template<bool INCLUDE_INTO_ROOT_ANSWER>
-struct RootVariable: Handler {
+struct Variable: Handler {
+  Variable() : Handler(true) { }
+
   virtual void addToBuffer(aREST *arest) const = 0;
 
   void addToBuffer(aREST *arest, const String& name, const String& arguments) const override {
@@ -176,8 +182,8 @@ struct RootVariable: Handler {
 };
 
 
-template<typename T, bool INCLUDE_INTO_ROOT_ANSWER>
-struct TypedVariable: RootVariable<INCLUDE_INTO_ROOT_ANSWER> {
+template<typename T>
+struct TypedVariable: Variable {
   T *var;
   bool quotable;
 
@@ -232,7 +238,7 @@ aREST(char* rest_remote_server, int rest_port) {
 
 template<typename T>
 void variable(const char *name, T *var, bool quotable) { 
-  handlers[handlers_index] = new TypedVariable<T, true>(var, quotable);
+  handlers[handlers_index] = new TypedVariable<T>(var, quotable);
   handler_names[handlers_index] = name;
   handlers_index++;
 }
@@ -1482,7 +1488,7 @@ virtual void root_answer() {
 
     bool isFirst = true;
     for (uint8_t i = 0; i < handlers_index; i++){
-      if (dynamic_cast<RootVariable<true>*>(handlers[i])) {
+      if (handlers[i]->include_into_root_answer) {
         // variable should be included into root answer
         if (isFirst) {
           isFirst = false;
