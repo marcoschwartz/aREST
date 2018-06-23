@@ -154,7 +154,7 @@ To install the library, simply clone this repository in the /libraries folder of
 
 ## API documentation
 
-The API currently supports five type of commands: digital, analog, and mode, variables, and user-defined functions.
+The API currently supports five type of commands: digital, analog, and mode, variables, and user-defined functions and api-extensions.
 
 ### Digital
 
@@ -188,6 +188,12 @@ To access a variable in your sketch, you have to declare it first, and then call
 You can also define your own functions in your sketch that can be called using the REST API. To access a function defined in your sketch, you have to declare it first, and then call it from with a REST call. Note that all functions needs to take a String as the unique argument (for parameters to be passed to the function) and return an integer. For example, if your aREST instance is called "rest" and the function "ledControl":
   * `rest.function("led",ledControl);` declares the function in the Arduino sketch
   * `/led?params=0` executes the function
+
+### API-Extensions
+
+You can also define your api extensions in your sketch that can be called using the REST API. To access an user-defined api-extension defined in your sketch, you have to declare it first, and then call it from with a REST call. Note that all api-extension functions need to have the following signature `void api_extension(aREST *arest, const String& name, const String& command)`. For example, if your aREST instance is called "rest" and the function "temperaturesController":
+  * `rest.api_extension("temperatures",temperaturesController);` declares the api extension in the Arduino sketch
+  * `/temperatures/set_limit/lower?value=3` executes the api-extionsion function
 
 ### Get data about the board
 

@@ -286,7 +286,7 @@ void function(const char *name, int (*f)(String)) {
 }
 
 
-void api_handler(const char *name, void (*f)(aREST *, const String&, const String&)) {
+void api_extension(const char *name, void (*f)(aREST *, const String&, const String&)) {
   handlers[handlers_index] = new ApiHandler(f);
   handler_names[handlers_index] = name;
   handlers_index++;
