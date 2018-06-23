@@ -1168,8 +1168,6 @@ void process(char c) {
           command = 'h';
           value = i;
 
-          answer.trim();
-
           request_url = "/" + answer.substring(0, answer.length() - 6); // length of " HTTP/"
 
           break; // We found what we're looking for
