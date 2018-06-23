@@ -216,7 +216,7 @@ struct FunctionHandler: Handler {
   String extractParams(const String& name, const String& request_url) const {
     // We're expecting a string of the form <handlerName>?xxxxx=<arguments>, where xxxxx can be almost anything as long as it's followed by an '='
     // Get command -- Anything following the first '=' in answer will be put in the arguments string.
-    uint16_t header_length = name.length();
+    uint16_t header_length = name.length() + 1; // +1 for the '/' at the start
     if (request_url.substring(header_length, header_length + 1) == "?") {
       // Standard operation --> strip off anything preceeding the first "=", pass the rest to the handler
       if(AREST_PARAMS_MODE == 0) {
