@@ -195,11 +195,7 @@ aREST() {
 
 aREST(char* rest_remote_server, int rest_port) {
 
-  command = 'u';
-  pin_selected = false;
-
-  status_led_pin = 255;
-  state = 'u';
+  initialize();
 
   remote_server = rest_remote_server;
   port = rest_port;
