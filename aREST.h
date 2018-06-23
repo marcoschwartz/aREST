@@ -1423,7 +1423,7 @@ bool send_command(bool headers, bool decodeArgs) {
       addToBuffer(result, true);
       addToBufferF(F(", "));
       // addToBufferF(F(", \"message\": \""));
-      // addToBufferF(functions_names[value]);
+      // addStringToBuffer(functions_names[value]);
       // addToBufferF(F(" executed\", "));
     }
   }
