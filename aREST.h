@@ -1155,27 +1155,25 @@ void process(char c) {
   // Handler request received ?
   if (command == 'u') {
 
-    // Check if handler name is register in array
-    for (uint8_t i = 0; i < handlers_index; i++) {
-      if (answer.startsWith(handler_names[i])) {
+    if (answer.endsWith(" HTTP/")) {
+      // Check if handler name is register in array
+      for (uint8_t i = 0; i < handlers_index; i++) {
+        if (answer.startsWith(handler_names[i])) {
 
-        // End here
-        pin_selected = true;
-        state = 'x';
+          // End here
+          pin_selected = true;
+          state = 'x';
 
-        // Set state
-        command = 'h';
-        value = i;
+          // Set state
+          command = 'h';
+          value = i;
 
-        answer.trim();
+          answer.trim();
 
-      if (answer.endsWith(" HTTP/")) {
-        request_url = "/" + answer.substring(0, answer.length() - 6); // length of " HTTP/"
-      } else {
-        request_url = "/" + answer;
-      }
+          request_url = "/" + answer.substring(0, answer.length() - 6); // length of " HTTP/"
 
-        break; // We found what we're looking for
+          break; // We found what we're looking for
+        }
       }
     }
 
@@ -1210,9 +1208,13 @@ void process(char c) {
     //  Serial.print("Selected method: ");
     //  Serial.println(method);
     // }
+  } else {
+    answer = "";
   }
 
-  answer = "";
+  if (c == '\r' || answer.startsWith("GET /")) {
+    answer = "";
+  }
 }
 
 
