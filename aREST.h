@@ -213,6 +213,17 @@ struct FunctionHandler: Handler {
   }
 };
 
+
+struct ApiHandler: Handler {
+  void (*func)(aREST *, const String&, const String&);
+
+  ApiHandler(void (*f)(aREST *, const String&, const String&)) : func{f} { }
+
+  void addToBuffer(aREST *arest, const String& name, const String& arguments) const override {
+    func(arest, name, arguments);
+  }
+};
+
 public:
 
 public:
@@ -250,6 +261,13 @@ void variable(const char *name, T *var) {
 
 void function(const char *name, int (*f)(String)) {
   handlers[handlers_index] = new FunctionHandler(f);
+  handler_names[handlers_index] = name;
+  handlers_index++;
+}
+
+
+void api_handler(const char *name, void (*f)(aREST *, const String&, const String&)) {
+  handlers[handlers_index] = new ApiHandler(f);
   handler_names[handlers_index] = name;
   handlers_index++;
 }
