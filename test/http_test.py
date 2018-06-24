@@ -128,7 +128,7 @@ class TestSequenceFunctions(unittest.TestCase):
 
     # Call set of limit
     answer = json.loads(curl_call(target, "/aquarium/water_limit/lower/set/45"))
-    self.assertEqual(answer['message'], "lower limit set to 45cm")
+    self.assertEqual(answer['message'], "lower water limit set to 45cm")
 
 if __name__ == '__main__':
   unittest.main()
