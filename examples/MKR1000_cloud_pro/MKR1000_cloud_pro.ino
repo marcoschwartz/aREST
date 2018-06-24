@@ -96,13 +96,9 @@ int ledControl(String command) {
 }
 
 void aquariumController(aREST *arest, const String& name, const String& command) {
-  Serial.print(F("============= controller: "));
-  Serial.println(command);
   // check format of command
   if (command == F("/aquarium")
       || command == F("/aquarium/")) {
-    Serial.println(F("list of sensors"));
-
     // Send feedback to client
     if (LIGHTWEIGHT) {
       bool isFirstSensor = true;
@@ -135,9 +131,6 @@ void aquariumController(aREST *arest, const String& name, const String& command)
     }
   } else if (command.startsWith(F("/aquarium/water_limit/lower/set/"))) {
     String args = command.substring(32); // 32 = length of "/aquarium/water_limit/lower/set/"
-
-    Serial.print(F("set lower water limit to "));
-    Serial.println(args);
 
     // Send feedback to client
     if (!LIGHTWEIGHT) {
