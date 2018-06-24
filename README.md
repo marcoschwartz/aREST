@@ -191,9 +191,9 @@ You can also define your own functions in your sketch that can be called using t
 
 ### API-Extensions
 
-You can also define your api extensions in your sketch that can be called using the REST API. To access an user-defined api-extension defined in your sketch, you have to declare it first, and then call it from with a REST call. Note that all api-extension functions need to have the following signature `void api_extension(aREST *arest, const String& name, const String& command)`. For example, if your aREST instance is called "rest" and the function "temperaturesController":
-  * `rest.api_extension("temperatures",temperaturesController);` declares the api extension in the Arduino sketch
-  * `/temperatures/set_limit/lower?value=3` executes the api-extionsion function
+You can also define your api extensions in your sketch that can be called using the REST API. To access an user-defined api-extension defined in your sketch, you have to declare it first, and then call it from with a REST call. Note that all api-extension functions need to have the following signature `void api_extension(aREST *arest, const String& name, const String& command)`. For example, if your aREST instance is called "rest" and the function "aquariumController":
+  * `rest.api_extension("aquarium",aquariumController);` declares the api extension in the Arduino sketch
+  * `/aquarium/water_limit/lower/set/65` executes the api-extionsion function
 
 ### Get data about the board
 
