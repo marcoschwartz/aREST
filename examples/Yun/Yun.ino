@@ -23,7 +23,7 @@ int humidity;
 
 // Declare functions to be exposed to the API
 int ledControl(String command);
-void aquariumController(aREST *arest, const String& name, const String& command);
+void aquariumController(aREST *arest, const String& name, const String& request_url);
 
 void setup(void)
 {
@@ -71,10 +71,10 @@ int ledControl(String command) {
   return 1;
 }
 
-void aquariumController(aREST *arest, const String& name, const String& command) {
-  // check format of command
-  if (command == F("/aquarium")
-      || command == F("/aquarium/")) {
+void aquariumController(aREST *arest, const String& name, const String& request_url) {
+  // check format of request_url
+  if (request_url == F("/aquarium")
+      || request_url == F("/aquarium/")) {
     // Send feedback to client
     if (LIGHTWEIGHT) {
       bool isFirstSensor = true;
@@ -105,8 +105,8 @@ void aquariumController(aREST *arest, const String& name, const String& command)
       }
       arest->addToBufferF(F("]"));
     }
-  } else if (command.startsWith(F("/aquarium/water_limit/lower/set/"))) {
-    String args = command.substring(32); // 32 = length of "/aquarium/water_limit/lower/set/"
+  } else if (request_url.startsWith(F("/aquarium/water_limit/lower/set/"))) {
+    String args = request_url.substring(32); // 32 = length of "/aquarium/water_limit/lower/set/"
 
     // Send feedback to client
     if (!LIGHTWEIGHT) {
@@ -115,8 +115,8 @@ void aquariumController(aREST *arest, const String& name, const String& command)
       arest->addToBufferF(F("cm\""));
     }
   } else {
-    arest->addToBufferF(F("\"message\": \"Unknown command '"));
-    arest->addToBuffer(command);
+    arest->addToBufferF(F("\"message\": \"Unknown request_url '"));
+    arest->addToBuffer(request_url);
     arest->addToBufferF(F("'.\""));
   }
 }
