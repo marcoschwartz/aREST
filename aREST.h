@@ -133,6 +133,36 @@
 #define LIGHTWEIGHT 0
 #endif
 
+
+// -------- for backwards compatibility --------
+#ifdef AREST_NUMBER_VARIABLES
+#define NUMBER_VARIABLES AREST_NUMBER_VARIABLES
+#endif
+
+#ifdef AREST_NUMBER_FUNCTIONS
+#define NUMBER_FUNCTIONS AREST_NUMBER_FUNCTIONS
+#endif
+
+#if defined(NUMBER_VARIABLES) && defined(NUMBER_FUNCTIONS)
+  #define AREST_NUMBER_HANDLERS (NUMBER_VARIABLES + NUMBER_FUNCTIONS)
+#elif defined(NUMBER_VARIABLES)
+  #if defined(__AVR_ATmega1280__) || defined(ESP32) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)
+  #define NUMBER_FUNCTIONS 10
+  #else
+  #define NUMBER_FUNCTIONS 5
+  #endif
+  #define AREST_NUMBER_HANDLERS (NUMBER_VARIABLES + NUMBER_FUNCTIONS)
+#elif defined(NUMBER_FUNCTIONS)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)|| defined(ESP32) || !defined(ADAFRUIT_CC3000_H)
+  #define NUMBER_VARIABLES 10
+  #else
+  #define NUMBER_VARIABLES 5
+  #endif
+  #define AREST_NUMBER_HANDLERS (NUMBER_VARIABLES + NUMBER_FUNCTIONS)
+#endif
+// -------- end --------
+
+
 #ifdef AREST_NUMBER_HANDLERS
 #define NUMBER_HANDLERS AREST_NUMBER_HANDLERS
 #endif
