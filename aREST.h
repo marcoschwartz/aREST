@@ -137,7 +137,7 @@
 #define NUMBER_HANDLERS AREST_NUMBER_HANDLERS
 #endif
 
-// Default number of max. exposed variables
+// Default number of max. exposed handlers
 #ifndef NUMBER_HANDLERS
   #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)|| defined(ESP32) || !defined(ADAFRUIT_CC3000_H)
   #define NUMBER_HANDLERS 20
