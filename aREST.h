@@ -324,7 +324,7 @@ void setKey(char* proKey, PubSubClient& client) {
   strcpy(out_topic, outTopic.c_str());
 
   // Build client ID
-  String client_id = id + String(proKey);
+  client_id = id + String(proKey);
 }
 
 #endif
