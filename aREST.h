@@ -1140,7 +1140,7 @@ void process(char c) {
     }
 
     // If the command is "id", return device id, name and status
-    if ((answer[0] == 'i' && answer[1] == 'd')) {
+    if (command == 'u' && (answer[0] == 'i' && answer[1] == 'd')) {
 
       // Set state
       command = 'i';
@@ -1150,7 +1150,7 @@ void process(char c) {
       state = 'x';
     }
 
-    if (answer[0] == ' ') {
+    if (command == 'u' && answer[0] == ' ') {
 
       // Set state
       command = 'r';
