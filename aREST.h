@@ -196,11 +196,7 @@ aREST() {
 
 aREST(char* rest_remote_server, int rest_port) {
 
-  command = 'u';
-  pin_selected = false;
-
-  status_led_pin = 255;
-  state = 'u';
+  initialize();
 
   remote_server = rest_remote_server;
   port = rest_port;
@@ -1406,6 +1402,7 @@ bool send_command(bool headers, bool decodeArgs) {
     } else {
       addToBufferF(F("{"));
       addVariableToBuffer(value);
+      addToBufferF(F(", "));
     }
   }
 
@@ -1424,7 +1421,7 @@ bool send_command(bool headers, bool decodeArgs) {
       addToBuffer(result, true);
       addToBufferF(F(", "));
       // addToBufferF(F(", \"message\": \""));
-      // addToBufferF(functions_names[value]);
+      // addStringToBuffer(functions_names[value]);
       // addToBufferF(F(" executed\", "));
     }
   }
@@ -1485,9 +1482,7 @@ virtual void root_answer() {
     addToBufferF(F("{\"variables\": {"));
 
     for (uint8_t i = 0; i < variables_index; i++){
-      addStringToBuffer(variable_names[i], true);
-      addToBufferF(F(": "));
-      variables[i]->addToBuffer(this);
+      addVariableToBuffer(i);
 
       if (i < variables_index - 1) {
         addToBufferF(F(", "));
@@ -1848,7 +1843,6 @@ void addVariableToBuffer(uint8_t index) {
   addStringToBuffer(variable_names[index], true);
   addToBufferF(F(": "));
   variables[index]->addToBuffer(this);
-  addToBufferF(F(", "));
 }
 
 
