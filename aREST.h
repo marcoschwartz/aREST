@@ -1144,7 +1144,7 @@ void process(char c) {
   // Handler request received ?
   if (command == 'u') {
 
-    // Check if handler name is register in array
+    // Check if handler name is registered in array
     for (uint8_t i = 0; i < handlers_index; i++) {
       if (answer.startsWith(handler_names[i])) {
 
