@@ -1183,7 +1183,7 @@ void process(char c) {
   if (command == 'u') {
 
     if (answer.endsWith(" HTTP/") || answer.endsWith("\r")) {
-      // Check if handler name is register in array
+      // Check if handler name is registered in array
       for (uint8_t i = 0; i < handlers_index; i++) {
         if (answer.startsWith(handler_names[i])) {
 
