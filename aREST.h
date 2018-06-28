@@ -1481,8 +1481,12 @@ bool send_command(bool headers, bool decodeArgs) {
       addHandlerToBuffer(value, request_url);
     } else {
       addToBufferF(F("{"));
+      auto bufferPos = index;
       addHandlerToBuffer(value, request_url);
-      addToBufferF(F(", "));
+      if (bufferPos < index) {
+        // index has changed -> the handler added some stuff to the buffer
+        addToBufferF(F(", "));
+      }
     }
   }
 
