@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.7.1
+  Version 2.7.2
   Changelog:
 
+  Version 2.7.2: Bug fixes for aREST.io
   Version 2.7.1: Additional fixes & optimisations by @eykamp 
   Version 2.7.0: Several fixes & optimisations by @eykamp 
   Version 2.6.0: Added support for new aREST cloud app
@@ -253,11 +254,7 @@ aREST() {
 
 aREST(char* rest_remote_server, int rest_port) {
 
-  command = 'u';
-  pin_selected = false;
-
-  status_led_pin = 255;
-  state = 'u';
+  initialize();
 
   remote_server = rest_remote_server;
   port = rest_port;
@@ -389,7 +386,7 @@ void setKey(char* proKey, PubSubClient& client) {
   strcpy(out_topic, outTopic.c_str());
 
   // Build client ID
-  String client_id = id + String(proKey);
+  client_id = id + String(proKey);
 }
 
 #endif
@@ -1187,7 +1184,7 @@ void process(char c) {
     }
 
     // If the command is "id", return device id, name and status
-    if ((answer[0] == 'i' && answer[1] == 'd')) {
+    if (command == 'u' && (answer[0] == 'i' && answer[1] == 'd')) {
 
       // Set state
       command = 'i';
@@ -1197,7 +1194,7 @@ void process(char c) {
       state = 'x';
     }
 
-    if (answer[0] == ' ') {
+    if (command == 'u' && answer[0] == ' ') {
 
       // Set state
       command = 'r';
