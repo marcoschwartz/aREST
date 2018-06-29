@@ -18,6 +18,10 @@ class TestSequenceFunctions(unittest.TestCase):
     # Open Serial connection
     self.serial = serial.Serial(serial_port, serial_speed, timeout=1)
     time.sleep(2)
+    self.serial.write("\r\r")
+    time.sleep(0.1)
+    self.serial.reset_input_buffer()
+    self.serial.reset_output_buffer()
 
   # Mode basic test
   def test_mode(self):
