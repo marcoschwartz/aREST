@@ -154,7 +154,7 @@ To install the library, simply clone this repository in the /libraries folder of
 
 ## API documentation
 
-The API currently supports five type of commands: digital, analog, and mode, variables, and user-defined functions.
+The API currently supports five type of commands: digital, analog, and mode, variables, and user-defined functions and api-extensions.
 
 ### Digital
 
@@ -188,6 +188,24 @@ To access a variable in your sketch, you have to declare it first, and then call
 You can also define your own functions in your sketch that can be called using the REST API. To access a function defined in your sketch, you have to declare it first, and then call it from with a REST call. Note that all functions needs to take a String as the unique argument (for parameters to be passed to the function) and return an integer. For example, if your aREST instance is called "rest" and the function "ledControl":
   * `rest.function("led",ledControl);` declares the function in the Arduino sketch
   * `/led?params=0` executes the function
+
+### API-Extensions
+
+With api-extensions you have the possibility to extend the api by your own subcommands and customized responses.
+
+You define your api extensions in your sketch that can be called using the REST API. To access an user-defined api-extension defined in your sketch, you have to declare it first, and then call it from with a REST call. Note that all api-extension functions need to have the following signature `void api_extension(aREST *arest, const String& name, const String& request_url)`. For example, if your aREST instance is called "rest" and the function "aquariumController":
+  * `rest.api_extension("aquarium",aquariumController);` declares the api extension in the Arduino sketch
+  * `/aquarium/water_limit/lower/set/65` executes the api-extension function and passes the value `"/aquarium/water_limit/lower/set/65"` as the third parameter (`request_url`) into the api-extension function
+  * You can then customize your JSON result and extend it to something like this:
+    ```
+    {
+        "sensor-ids": ["100", "101", "102", "103", "104"],
+        "id": "008",
+        "name": "dapper_drake",
+        "hardware": "arduino",
+        "connected": true
+    }
+    ```
 
 ### Get data about the board
 

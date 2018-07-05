@@ -83,5 +83,17 @@ class TestSequenceFunctions(unittest.TestCase):
     answer = curl_call(target,"/digital/6")
     self.assertEqual(int(answer),0)
 
+  # API-Extension call check
+  def test_api_extension(self):
+
+    # Call list of sensors
+    answer = curl_call(target, "/aquarium")
+    l = [int(val) for val in answer.split(',')]
+    self.assertEqual(l, [100, 101, 102, 103, 104])
+
+    # Call set of limit
+    answer = curl_call(target, "/aquarium/water_limit/lower/set/45")
+    self.assertEqual(answer.strip(), "")
+
 if __name__ == '__main__':
   unittest.main()
