@@ -192,7 +192,7 @@ struct Handler {
   Handler() : include_into_root_answer{false} { }
   Handler(bool include) : include_into_root_answer{include} { }
 
-  virtual void addToBuffer(aREST *arest, const String& name, const String& request_url) const = 0;
+  virtual void addToBuffer(aREST *arest, const String& name, const String& arguments) const = 0;
 };
 
 
@@ -201,7 +201,7 @@ struct Variable: Handler {
 
   virtual void addToBuffer(aREST *arest) const = 0;
 
-  void addToBuffer(aREST *arest, const String& name, const String& request_url) const override {
+  void addToBuffer(aREST *arest, const String& name, const String& arguments) const override {
     if (LIGHTWEIGHT) {
       addToBuffer(arest);
     } else {
@@ -231,8 +231,7 @@ struct FunctionHandler: Handler {
 
   FunctionHandler(int (*f)(String)) : func{f} { }
 
-  void addToBuffer(aREST *arest, const String& name, const String& request_url) const override {
-    String arguments = extractParams(name, request_url);
+  void addToBuffer(aREST *arest, const String& name, const String& arguments) const override {
     int result = func(arguments);
 
     if (!LIGHTWEIGHT) {
@@ -242,36 +241,6 @@ struct FunctionHandler: Handler {
       // arest->addStringToBuffer(name.c_str());
       // arest->addToBufferF(F(" executed\", "));
     }
-  }
-
-  String extractParams(const String& name, const String& request_url) const {
-    // We're expecting a string of the form <handlerName>?xxxxx=<arguments>, where xxxxx can be almost anything as long as it's followed by an '='
-    // Get command -- Anything following the first '=' in answer will be put in the arguments string.
-    uint16_t header_length = name.length() + 1; // +1 for the '/' at the start
-    if (request_url.substring(header_length, header_length + 1) == "?") {
-      // Standard operation --> strip off anything preceeding the first "=", pass the rest to the handler
-      if(AREST_PARAMS_MODE == 0) {
-        uint16_t eq_position = request_url.indexOf('=', header_length); // Replacing 'magic number' 8 for fixed location of '='
-        if (eq_position != -1)
-          return request_url.substring(eq_position + 1, request_url.length());
-      } 
-      // All params mode --> pass all parameters, if any, to the handler.  Handler will be resonsible for parsing
-      else if(AREST_PARAMS_MODE == 1) {
-        return request_url.substring(header_length + 1, request_url.length());
-      }
-    }
-    return String("");
-  }
-};
-
-
-struct ApiHandler: Handler {
-  void (*func)(aREST *, const String&, const String&);
-
-  ApiHandler(void (*f)(aREST *, const String&, const String&)) : func{f} { }
-
-  void addToBuffer(aREST *arest, const String& name, const String& request_url) const override {
-    func(arest, name, request_url);
   }
 };
 
@@ -308,13 +277,6 @@ void variable(const char *name, T *var) {
 
 void function(const char *name, int (*f)(String)) {
   handlers[handlers_index] = new FunctionHandler(f);
-  handler_names[handlers_index] = name;
-  handlers_index++;
-}
-
-
-void api_extension(const char *name, void (*f)(aREST *, const String&, const String&)) {
-  handlers[handlers_index] = new ApiHandler(f);
   handler_names[handlers_index] = name;
   handlers_index++;
 }
@@ -495,7 +457,7 @@ void reset_status() {
 
   reset();
   answer = "";
-  request_url = "";
+  arguments = "";
 
   index = 0;
   //memset(&buffer[0], 0, sizeof(buffer));
@@ -1182,29 +1144,42 @@ void process(char c) {
   // Handler request received ?
   if (command == 'u') {
 
-    if (answer.endsWith(" HTTP/") || answer.endsWith("\r")) {
-      // Check if handler name is registered in array
-      for (uint8_t i = 0; i < handlers_index; i++) {
-        if (answer.startsWith(handler_names[i])) {
+    // Check if handler name is registered in array
+    for (uint8_t i = 0; i < handlers_index; i++) {
+      if (answer.startsWith(handler_names[i])) {
 
-          // End here
-          pin_selected = true;
-          state = 'x';
+        // End here
+        pin_selected = true;
+        state = 'x';
 
-          // Set state
-          command = 'h';
-          value = i;
+        // Set state
+        command = 'h';
+        value = i;
 
-          answer.trim();
+        answer.trim();
 
-          if (answer.endsWith(" HTTP/")) {
-            request_url = "/" + answer.substring(0, answer.length() - 6); // length of " HTTP/"
-          } else {
-            request_url = "/" + answer;
+        // We're expecting a string of the form <handlerName>?xxxxx=<arguments>, where xxxxx can be almost anything as long as it's followed by an '='
+        // Get command -- Anything following the first '=' in answer will be put in the arguments string.
+        arguments = "";
+        uint16_t header_length = strlen(handler_names[i]);
+        if (answer.substring(header_length, header_length + 1) == "?") {
+          uint16_t footer_start = answer.length();
+          if (answer.endsWith(" HTTP/"))
+            footer_start -= 6; // length of " HTTP/"
+
+          // Standard operation --> strip off anything preceeding the first "=", pass the rest to the handler
+          if(AREST_PARAMS_MODE == 0) {
+            uint16_t eq_position = answer.indexOf('=', header_length); // Replacing 'magic number' 8 for fixed location of '='
+            if (eq_position != -1)
+              arguments = answer.substring(eq_position + 1, footer_start);
+          } 
+          // All params mode --> pass all parameters, if any, to the handler.  Handler will be resonsible for parsing
+          else if(AREST_PARAMS_MODE == 1) {
+            arguments = answer.substring(header_length + 1, footer_start);
           }
-
-          break; // We found what we're looking for
         }
+
+        break; // We found what we're looking for
       }
     }
 
@@ -1239,23 +1214,19 @@ void process(char c) {
     //  Serial.print("Selected method: ");
     //  Serial.println(method);
     // }
-  } else {
-    answer = "";
   }
 
-  if (c == '\r' || answer.startsWith("GET /") || answer.startsWith("/")) {
-    answer = "";
-  }
+  answer = "";
 }
 
 
-// Modifies request_url in place
-void urldecode(String &request_url) {
+// Modifies arguments in place
+void urldecode(String &arguments) {
   char a, b;
   int j = 0;
-  for(int i = 0; i < request_url.length(); i++) {
-    // %20 ==> request_url[i] = '%', a = '2', b = '0'
-    if ((request_url[i] == '%') && ((a = request_url[i + 1]) && (b = request_url[i + 2])) && (isxdigit(a) && isxdigit(b))) {
+  for(int i = 0; i < arguments.length(); i++) {
+    // %20 ==> arguments[i] = '%', a = '2', b = '0'
+    if ((arguments[i] == '%') && ((a = arguments[i + 1]) && (b = arguments[i + 2])) && (isxdigit(a) && isxdigit(b))) {
       if (a >= 'a') a -= 'a'-'A';
       if (a >= 'A') a -= ('A' - 10);
       else          a -= '0';
@@ -1264,17 +1235,17 @@ void urldecode(String &request_url) {
       if (b >= 'A') b -= ('A' - 10);
       else          b -= '0';
 
-      request_url[j] = char(16 * a + b);
+      arguments[j] = char(16 * a + b);
       i += 2;   // Skip ahead
-    } else if (request_url[i] == '+') {
-      request_url[j] = ' ';
+    } else if (arguments[i] == '+') {
+      arguments[j] = ' ';
     } else {
-     request_url[j] = request_url[i];
+     arguments[j] = arguments[i];
     }
     j++;
   }
 
-  request_url.remove(j);    // Truncate string to new possibly reduced length
+  arguments.remove(j);    // Truncate string to new possibly reduced length
 }
 
 
@@ -1474,19 +1445,15 @@ bool send_command(bool headers, bool decodeArgs) {
   // Handler selected
   if (command == 'h') {
     if (decodeArgs) {
-      urldecode(request_url); // Modifies request_url
+      urldecode(arguments); // Modifies arguments
     }
     // Send feedback to client
     if (LIGHTWEIGHT) {
-      addHandlerToBuffer(value, request_url);
+      addHandlerToBuffer(value, arguments);
     } else {
       addToBufferF(F("{"));
-      auto bufferPos = index;
-      addHandlerToBuffer(value, request_url);
-      if (bufferPos < index) {
-        // index has changed -> the handler added some stuff to the buffer
-        addToBufferF(F(", "));
-      }
+      addHandlerToBuffer(value, arguments);
+      addToBufferF(F(", "));
     }
   }
 
@@ -1901,8 +1868,8 @@ uint8_t esp_12_pin_map(uint8_t pin) {
 }
 
 
-void addHandlerToBuffer(uint8_t index, const String& request_url) {
-  handlers[index]->addToBuffer(this, String(handler_names[index]), request_url);
+void addHandlerToBuffer(uint8_t index, const String& arguments) {
+  handlers[index]->addToBuffer(this, String(handler_names[index]), arguments);
 }
 
 
@@ -1954,7 +1921,7 @@ private:
 
   char name[NAME_SIZE];
   String id;
-  String request_url;
+  String arguments;
 
   // Output uffer
   char buffer[OUTPUT_BUFFER_SIZE];
