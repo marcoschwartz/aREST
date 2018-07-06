@@ -21,7 +21,7 @@ PubSubClient client(wifiClient);
 // Create aREST instance
 aREST rest = aREST(client);
 
-// aREST Pro key (that you can get at dashboard.arest.io)
+// aREST API key (that you can get at dashboard.arest.io)
 char * key = "your_arest_key";
 
 // WiFi parameters
@@ -90,7 +90,6 @@ int ledControl(String command) {
   digitalWrite(6,state);
   return 1;
 }
-
 
 // Handles message arrived on subscribed topic(s)
 void callback(char* topic, byte* payload, unsigned int length) {

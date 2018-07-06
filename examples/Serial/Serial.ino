@@ -17,6 +17,9 @@ aREST rest = aREST();
 int temperature;
 int humidity;
 
+// Declare functions to be exposed to the API
+int ledControl(String command);
+
 void setup(void)
 {
   // Start Serial

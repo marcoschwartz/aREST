@@ -18,7 +18,7 @@ PubSubClient client(espClient);
 // Create aREST instance
 aREST rest = aREST(client);
 
-// aREST Pro key (that you can get at dashboard.arest.io)
+// aREST API key (that you can get at dashboard.arest.io)
 char * key = "your_arest_key";
 
 // WiFi parameters

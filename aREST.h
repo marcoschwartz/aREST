@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.7.2
+  Version 2.7.3
   Changelog:
 
+  Version 2.7.3: Added support to set your own ID when using API key
   Version 2.7.2: Bug fixes for aREST.io
   Version 2.7.1: Additional fixes & optimisations by @eykamp 
   Version 2.7.0: Several fixes & optimisations by @eykamp 
@@ -304,23 +305,51 @@ void publish(PubSubClient& client, const String& eventName, T data) {
 
 }
 
-void setKey(char* proKey, PubSubClient& client) {
+void setKey(char* api_key) {
 
-  // Assign MQTT server
-  // mqtt_server = "104.131.78.157";
-  // client.setServer(mqtt_server, 1883);
+  // Set
+  proKey = String(api_key);
 
-  // Generate MQTT random ID
-  id = gen_random(6);
+  if (id.length() == 0) {
+
+    // Generate MQTT random ID
+    id = gen_random(6);
+
+  }
 
   // Build topics IDs
-  String inTopic = id + String(proKey) + String("_in");
-  String outTopic = id + String(proKey) + String("_out");
+  String inTopic = id + String(api_key) + String("_in");
+  String outTopic = id + String(api_key) + String("_out");
 
   strcpy(in_topic, inTopic.c_str());
   strcpy(out_topic, outTopic.c_str());
 
   // Build client ID
+  client_id = id + String(api_key);
+
+}
+
+void setKey(char* api_key, PubSubClient& client) {
+
+  // Set
+  proKey = String(api_key);
+
+  if (id.length() == 0) {
+
+    // Generate MQTT random ID
+    id = gen_random(6);
+
+  }
+
+  // Build topics IDs
+  String inTopic = id + String(api_key) + String("_in");
+  String outTopic = id + String(api_key) + String("_out");
+
+  strcpy(in_topic, inTopic.c_str());
+  strcpy(out_topic, outTopic.c_str());
+
+  // Build client ID
+  client_id = id + String(api_key);
   client_id = id + String(proKey);
 
 }
@@ -1515,31 +1544,34 @@ void set_id(const String& device_id) {
 
   #if defined(PubSubClient_h)
 
-  // Generate MQTT random ID
-  String randomId = gen_random(6);
+  if (proKey.length() == 0) {
 
-  // Build topics IDs
-  String inTopic = randomId + id + String("_in");
-  String outTopic = randomId + id + String("_out");
+      // Generate MQTT random ID
+      String randomId = gen_random(6);
 
-  strcpy(in_topic, inTopic.c_str());
-  strcpy(out_topic, outTopic.c_str());
+      // Build topics IDs
+      String inTopic = randomId + id + String("_in");
+      String outTopic = randomId + id + String("_out");
 
-  // inTopic.toCharArray(in_topic, inTopic.length());
-  // outTopic.toCharArray(out_topic, outTopic.length());
+      strcpy(in_topic, inTopic.c_str());
+      strcpy(out_topic, outTopic.c_str());
 
-  // Build client ID
-  client_id = randomId + id;
+      // Build client ID
+      client_id = randomId + id;
 
-  if (DEBUG_MODE) {
-    Serial.print("Input MQTT topic: ");
-    Serial.println(in_topic);
+  }
+  else {
 
-    Serial.print("Output MQTT topic: ");
-    Serial.println(out_topic);
+      // Build topics IDs
+      String inTopic = id + String(proKey) + String("_in");
+      String outTopic = id + String(proKey) + String("_out");
 
-    Serial.print("Client ID: ");
-    Serial.println(client_id);
+      strcpy(in_topic, inTopic.c_str());
+      strcpy(out_topic, outTopic.c_str());
+
+      // Build client ID
+      client_id = id + String(proKey);
+      
   }
 
   #endif
@@ -1894,6 +1926,7 @@ private:
 
   char name[NAME_SIZE];
   String id;
+  String proKey;
   String arguments;
 
   // Output uffer
@@ -1970,7 +2003,5 @@ template <>
 void aREST::addToBuffer(char toAdd[], bool quotable) {
   addStringToBuffer(toAdd, quotable);           // Strings must be quoted
 }
-
-
 
 #endif
