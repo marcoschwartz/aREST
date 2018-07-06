@@ -49,7 +49,7 @@ void setup(void)
   rest.variable("temperature",&temperature);
   rest.variable("humidity",&humidity);
 
-  // Give ID to device (optional if not set, a device ID will be auto-assigned to the device)
+  // Give ID to device (optional, if not set, a device ID will be auto-assigned to the device)
   // rest.set_id("unique_device_id");
 
   // Give name to device
