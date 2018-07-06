@@ -43,8 +43,8 @@ void setup(void)
   // Start Serial
   Serial.begin(115200);
 
-  // Set aREST key
-  rest.setKey(key, client);
+  // Set aREST API key
+  rest.setKey(key);
 
   // Set callback
   client.setCallback(callback);
@@ -57,6 +57,9 @@ void setup(void)
 
   // Function to be exposed
   rest.function("led",ledControl);
+
+  // Give ID to device (optional, if not set, a device ID will be auto-assigned to the device)
+  // rest.set_id("unique_device_id");
 
   // Give name to device
   rest.set_name("mkr1000");
