@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.7.2
+  Version 2.7.3
   Changelog:
 
+  Version 2.7.3: Added support to set your own ID when using API key
   Version 2.7.2: Bug fixes for aREST.io
   Version 2.7.1: Additional fixes & optimisations by @eykamp 
   Version 2.7.0: Several fixes & optimisations by @eykamp 
@@ -134,8 +135,6 @@
 #define LIGHTWEIGHT 0
 #endif
 
-
-// -------- for backwards compatibility --------
 #ifdef AREST_NUMBER_VARIABLES
 #define NUMBER_VARIABLES AREST_NUMBER_VARIABLES
 #endif
@@ -144,36 +143,21 @@
 #define NUMBER_FUNCTIONS AREST_NUMBER_FUNCTIONS
 #endif
 
-#if defined(NUMBER_VARIABLES) && defined(NUMBER_FUNCTIONS)
-  #define AREST_NUMBER_HANDLERS (NUMBER_VARIABLES + NUMBER_FUNCTIONS)
-#elif defined(NUMBER_VARIABLES)
-  #if defined(__AVR_ATmega1280__) || defined(ESP32) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)
-  #define NUMBER_FUNCTIONS 10
-  #else
-  #define NUMBER_FUNCTIONS 5
-  #endif
-  #define AREST_NUMBER_HANDLERS (NUMBER_VARIABLES + NUMBER_FUNCTIONS)
-#elif defined(NUMBER_FUNCTIONS)
+// Default number of max. exposed variables
+#ifndef NUMBER_VARIABLES
   #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)|| defined(ESP32) || !defined(ADAFRUIT_CC3000_H)
   #define NUMBER_VARIABLES 10
   #else
   #define NUMBER_VARIABLES 5
   #endif
-  #define AREST_NUMBER_HANDLERS (NUMBER_VARIABLES + NUMBER_FUNCTIONS)
-#endif
-// -------- end --------
-
-
-#ifdef AREST_NUMBER_HANDLERS
-#define NUMBER_HANDLERS AREST_NUMBER_HANDLERS
 #endif
 
-// Default number of max. exposed handlers
-#ifndef NUMBER_HANDLERS
-  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)|| defined(ESP32) || !defined(ADAFRUIT_CC3000_H)
-  #define NUMBER_HANDLERS 20
+// Default number of max. exposed functions
+#ifndef NUMBER_FUNCTIONS
+  #if defined(__AVR_ATmega1280__) || defined(ESP32) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)
+  #define NUMBER_FUNCTIONS 10
   #else
-  #define NUMBER_HANDLERS 10
+  #define NUMBER_FUNCTIONS 5
   #endif
 #endif
 
@@ -186,30 +170,8 @@
 class aREST {
 
 private:
-struct Handler {
-  bool include_into_root_answer;
-
-  Handler() : include_into_root_answer{false} { }
-  Handler(bool include) : include_into_root_answer{include} { }
-
-  virtual void addToBuffer(aREST *arest, const String& name, const String& arguments) const = 0;
-};
-
-
-struct Variable: Handler {
-  Variable() : Handler(true) { }
-
+struct Variable {
   virtual void addToBuffer(aREST *arest) const = 0;
-
-  void addToBuffer(aREST *arest, const String& name, const String& arguments) const override {
-    if (LIGHTWEIGHT) {
-      addToBuffer(arest);
-    } else {
-      arest->addStringToBuffer(name.c_str(), true);
-      arest->addToBufferF(F(": "));
-      addToBuffer(arest);
-    }
-  }
 };
 
 
@@ -223,25 +185,6 @@ struct TypedVariable: Variable {
   void addToBuffer(aREST *arest) const override { 
     arest->addToBuffer(*var, quotable);
   }  
-};
-
-
-struct FunctionHandler: Handler {
-  int (*func)(String);
-
-  FunctionHandler(int (*f)(String)) : func{f} { }
-
-  void addToBuffer(aREST *arest, const String& name, const String& arguments) const override {
-    int result = func(arguments);
-
-    if (!LIGHTWEIGHT) {
-      arest->addToBufferF(F("\"return_value\": "));
-      arest->addToBuffer(result, true);
-      // arest->addToBufferF(F(", \"message\": \""));
-      // arest->addStringToBuffer(name.c_str());
-      // arest->addToBufferF(F(" executed\", "));
-    }
-  }
 };
 
 public:
@@ -264,21 +207,14 @@ aREST(char* rest_remote_server, int rest_port) {
 
 template<typename T>
 void variable(const char *name, T *var, bool quotable) { 
-  handlers[handlers_index] = new TypedVariable<T>(var, quotable);
-  handler_names[handlers_index] = name;
-  handlers_index++;
+  variables[variables_index] = new TypedVariable<T>(var, quotable);
+  variable_names[variables_index] = name;
+  variables_index++;
 }
 
 template<typename T>
 void variable(const char *name, T *var) { 
   variable(name, var, true);
-}
-
-
-void function(const char *name, int (*f)(String)) {
-  handlers[handlers_index] = new FunctionHandler(f);
-  handler_names[handlers_index] = name;
-  handlers_index++;
 }
 
 
@@ -369,24 +305,53 @@ void publish(PubSubClient& client, const String& eventName, T data) {
 
 }
 
-void setKey(char* proKey, PubSubClient& client) {
+void setKey(char* api_key) {
 
-  // Assign MQTT server
-  // mqtt_server = "104.131.78.157";
-  // client.setServer(mqtt_server, 1883);
+  // Set
+  proKey = String(api_key);
 
-  // Generate MQTT random ID
-  id = gen_random(6);
+  if (id.length() == 0) {
+
+    // Generate MQTT random ID
+    id = gen_random(6);
+
+  }
 
   // Build topics IDs
-  String inTopic = id + String(proKey) + String("_in");
-  String outTopic = id + String(proKey) + String("_out");
+  String inTopic = id + String(api_key) + String("_in");
+  String outTopic = id + String(api_key) + String("_out");
 
   strcpy(in_topic, inTopic.c_str());
   strcpy(out_topic, outTopic.c_str());
 
   // Build client ID
+  client_id = id + String(api_key);
+
+}
+
+void setKey(char* api_key, PubSubClient& client) {
+
+  // Set
+  proKey = String(api_key);
+
+  if (id.length() == 0) {
+
+    // Generate MQTT random ID
+    id = gen_random(6);
+
+  }
+
+  // Build topics IDs
+  String inTopic = id + String(api_key) + String("_in");
+  String outTopic = id + String(api_key) + String("_out");
+
+  strcpy(in_topic, inTopic.c_str());
+  strcpy(out_topic, outTopic.c_str());
+
+  // Build client ID
+  client_id = id + String(api_key);
   client_id = id + String(proKey);
+
 }
 
 #endif
@@ -1141,39 +1106,55 @@ void process(char c) {
     #endif
   }
 
-  // Handler request received ?
+  // Variable or function request received ?
   if (command == 'u') {
 
-    // Check if handler name is registered in array
-    for (uint8_t i = 0; i < handlers_index; i++) {
-      if (answer.startsWith(handler_names[i])) {
+    // Check if variable name is in int array
+    for (uint8_t i = 0; i < variables_index; i++) {
+      if (answer.startsWith(variable_names[i])) {
 
         // End here
         pin_selected = true;
         state = 'x';
 
         // Set state
-        command = 'h';
+        command = 'v';
+        value = i;
+
+        break; // We found what we're looking for
+      }
+    }
+
+    // Check if function name is in array
+    for (uint8_t i = 0; i < functions_index; i++) {
+      if (answer.startsWith(functions_names[i])) {
+
+        // End here
+        pin_selected = true;
+        state = 'x';
+
+        // Set state
+        command = 'f';
         value = i;
 
         answer.trim();
 
-        // We're expecting a string of the form <handlerName>?xxxxx=<arguments>, where xxxxx can be almost anything as long as it's followed by an '='
+        // We're expecting a string of the form <functionName>?xxxxx=<arguments>, where xxxxx can be almost anything as long as it's followed by an '='
         // Get command -- Anything following the first '=' in answer will be put in the arguments string.
         arguments = "";
-        uint16_t header_length = strlen(handler_names[i]);
+        uint16_t header_length = strlen(functions_names[i]);
         if (answer.substring(header_length, header_length + 1) == "?") {
           uint16_t footer_start = answer.length();
           if (answer.endsWith(" HTTP/"))
             footer_start -= 6; // length of " HTTP/"
 
-          // Standard operation --> strip off anything preceeding the first "=", pass the rest to the handler
+          // Standard operation --> strip off anything preceeding the first "=", pass the rest to the function
           if(AREST_PARAMS_MODE == 0) {
             uint16_t eq_position = answer.indexOf('=', header_length); // Replacing 'magic number' 8 for fixed location of '='
             if (eq_position != -1)
               arguments = answer.substring(eq_position + 1, footer_start);
           } 
-          // All params mode --> pass all parameters, if any, to the handler.  Handler will be resonsible for parsing
+          // All params mode --> pass all parameters, if any, to the function.  Function will be resonsible for parsing
           else if(AREST_PARAMS_MODE == 1) {
             arguments = answer.substring(header_length + 1, footer_start);
           }
@@ -1442,18 +1423,35 @@ bool send_command(bool headers, bool decodeArgs) {
     }
   }
 
-  // Handler selected
-  if (command == 'h') {
-    if (decodeArgs) {
-      urldecode(arguments); // Modifies arguments
-    }
+  // Variable selected
+  if (command == 'v') {
     // Send feedback to client
     if (LIGHTWEIGHT) {
-      addHandlerToBuffer(value, arguments);
+      variables[value]->addToBuffer(this);
     } else {
       addToBufferF(F("{"));
-      addHandlerToBuffer(value, arguments);
+      addVariableToBuffer(value);
       addToBufferF(F(", "));
+    }
+  }
+
+  // Function selected
+  if (command == 'f') {
+
+    // Execute function
+    if (decodeArgs)
+      urldecode(arguments); // Modifies arguments
+
+    int result = functions[value](arguments);
+
+    // Send feedback to client
+    if (!LIGHTWEIGHT) {
+      addToBufferF(F("{\"return_value\": "));
+      addToBuffer(result, true);
+      addToBufferF(F(", "));
+      // addToBufferF(F(", \"message\": \""));
+      // addStringToBuffer(functions_names[value]);
+      // addToBufferF(F(" executed\", "));
     }
   }
 
@@ -1512,16 +1510,11 @@ virtual void root_answer() {
   else {
     addToBufferF(F("{\"variables\": {"));
 
-    bool isFirst = true;
-    for (uint8_t i = 0; i < handlers_index; i++){
-      if (handlers[i]->include_into_root_answer) {
-        // variable should be included into root answer
-        if (isFirst) {
-          isFirst = false;
-        } else {
-          addToBufferF(F(", "));
-        }
-        addHandlerToBuffer(i, String(""));
+    for (uint8_t i = 0; i < variables_index; i++){
+      addVariableToBuffer(i);
+
+      if (i < variables_index - 1) {
+        addToBufferF(F(", "));
       }
     }
 
@@ -1537,6 +1530,13 @@ virtual void root_answer() {
 }
 
 
+void function(char * function_name, int (*f)(String)){
+
+  functions_names[functions_index] = function_name;
+  functions[functions_index] = f;
+  functions_index++;
+}
+
 // Set device ID
 void set_id(const String& device_id) {
 
@@ -1544,31 +1544,34 @@ void set_id(const String& device_id) {
 
   #if defined(PubSubClient_h)
 
-  // Generate MQTT random ID
-  String randomId = gen_random(6);
+  if (proKey.length() == 0) {
 
-  // Build topics IDs
-  String inTopic = randomId + id + String("_in");
-  String outTopic = randomId + id + String("_out");
+      // Generate MQTT random ID
+      String randomId = gen_random(6);
 
-  strcpy(in_topic, inTopic.c_str());
-  strcpy(out_topic, outTopic.c_str());
+      // Build topics IDs
+      String inTopic = randomId + id + String("_in");
+      String outTopic = randomId + id + String("_out");
 
-  // inTopic.toCharArray(in_topic, inTopic.length());
-  // outTopic.toCharArray(out_topic, outTopic.length());
+      strcpy(in_topic, inTopic.c_str());
+      strcpy(out_topic, outTopic.c_str());
 
-  // Build client ID
-  client_id = randomId + id;
+      // Build client ID
+      client_id = randomId + id;
 
-  if (DEBUG_MODE) {
-    Serial.print("Input MQTT topic: ");
-    Serial.println(in_topic);
+  }
+  else {
 
-    Serial.print("Output MQTT topic: ");
-    Serial.println(out_topic);
+      // Build topics IDs
+      String inTopic = id + String(proKey) + String("_in");
+      String outTopic = id + String(proKey) + String("_out");
 
-    Serial.print("Client ID: ");
-    Serial.println(client_id);
+      strcpy(in_topic, inTopic.c_str());
+      strcpy(out_topic, outTopic.c_str());
+
+      // Build client ID
+      client_id = id + String(proKey);
+      
   }
 
   #endif
@@ -1868,8 +1871,10 @@ uint8_t esp_12_pin_map(uint8_t pin) {
 }
 
 
-void addHandlerToBuffer(uint8_t index, const String& arguments) {
-  handlers[index]->addToBuffer(this, String(handler_names[index]), arguments);
+void addVariableToBuffer(uint8_t index) {
+  addStringToBuffer(variable_names[index], true);
+  addToBufferF(F(": "));
+  variables[index]->addToBuffer(this);
 }
 
 
@@ -1921,6 +1926,7 @@ private:
 
   char name[NAME_SIZE];
   String id;
+  String proKey;
   String arguments;
 
   // Output uffer
@@ -1930,10 +1936,10 @@ private:
   // Status LED
   uint8_t status_led_pin;
 
-  // Handlers arrays
-  uint8_t handlers_index;
-  Handler* handlers[NUMBER_HANDLERS];
-  const char * handler_names[NUMBER_HANDLERS];
+  // Int variables arrays
+  uint8_t variables_index;
+  Variable* variables[NUMBER_VARIABLES];
+  const char * variable_names[NUMBER_VARIABLES];
 
   // MQTT client
   #if defined(PubSubClient_h)
@@ -1954,6 +1960,11 @@ private:
 
   #endif
 
+
+  // Functions array
+  uint8_t functions_index;
+  int (*functions[NUMBER_FUNCTIONS])(String);
+  char * functions_names[NUMBER_FUNCTIONS];
 
   // Memory debug
   #if defined(ESP8266) || defined(ESP32)
@@ -1992,7 +2003,5 @@ template <>
 void aREST::addToBuffer(char toAdd[], bool quotable) {
   addStringToBuffer(toAdd, quotable);           // Strings must be quoted
 }
-
-
 
 #endif
