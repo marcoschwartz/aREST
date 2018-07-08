@@ -453,7 +453,6 @@ void setKey(char* api_key, PubSubClient& client) {
 
   // Build client ID
   client_id = id + String(api_key);
-  client_id = id + String(proKey);
 }
 
 #endif
