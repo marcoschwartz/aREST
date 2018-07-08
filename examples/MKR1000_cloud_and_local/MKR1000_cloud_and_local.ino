@@ -35,7 +35,6 @@ String local_ip = "";
 
 // Declare functions to be exposed to the API
 int ledControl(String command);
-void aquariumController(aREST *arest, const String& name, const String& request_url);
 
 // Callback function for the cloud connection
 void callback(char* topic, byte* payload, unsigned int length);
@@ -63,9 +62,6 @@ void setup(void)
 
   // Function to be exposed
   rest.function("led",ledControl);
-
-  // API-Extension to be exposed
-  rest.api_extension("aquarium", aquariumController);
 
   // Give name and ID to device (ID should be 6 characters long)
   rest.set_id(device_id);
@@ -119,57 +115,6 @@ int ledControl(String command) {
   digitalWrite(6,state);
   return 1;
 }
-
-void aquariumController(aREST *arest, const String& name, const String& request_url) {
-  // check format of request_url
-  if (request_url == F("/aquarium")
-      || request_url == F("/aquarium/")) {
-    // Send feedback to client
-    if (LIGHTWEIGHT) {
-      bool isFirstSensor = true;
-      auto count = 5;
-      for (uint32_t i = 0; i < count; ++i) {
-        if (isFirstSensor) {
-          isFirstSensor = false;
-        } else {
-          arest->addToBufferF(F(","));
-        }
-        auto id = i + 100;
-        arest->addToBuffer(id);
-      }
-    } else {
-      arest->addToBufferF(F("\"sensor-ids\": ["));
-      bool isFirstSensor = true;
-      auto count = 5;
-      for (uint32_t i = 0; i < count; ++i) {
-        if (isFirstSensor) {
-          isFirstSensor = false;
-        } else {
-          arest->addToBufferF(F(", "));
-        }
-        arest->addToBufferF(F("\""));
-        auto id = i + 100;
-        arest->addToBuffer(id);
-        arest->addToBufferF(F("\""));
-      }
-      arest->addToBufferF(F("]"));
-    }
-  } else if (request_url.startsWith(F("/aquarium/water_limit/lower/set/"))) {
-    String args = request_url.substring(32); // 32 = length of "/aquarium/water_limit/lower/set/"
-
-    // Send feedback to client
-    if (!LIGHTWEIGHT) {
-      arest->addToBufferF(F("\"message\": \"lower water limit set to "));
-      arest->addToBuffer(args);
-      arest->addToBufferF(F("cm\""));
-    }
-  } else {
-    arest->addToBufferF(F("\"message\": \"Unknown request_url '"));
-    arest->addToBuffer(request_url);
-    arest->addToBufferF(F("'.\""));
-  }
-}
-
 
 // Handles message arrived on subscribed topic(s)
 void callback(char* topic, byte* payload, unsigned int length) {

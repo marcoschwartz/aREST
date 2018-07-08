@@ -18,7 +18,7 @@ PubSubClient client(espClient);
 // Create aREST instance
 aREST rest = aREST(client);
 
-// aREST Pro key (that you can get at dashboard.arest.io)
+// aREST API key (that you can get at dashboard.arest.io)
 char * key = "your_arest_key";
 
 // WiFi parameters
@@ -37,8 +37,8 @@ void setup(void)
   // Start Serial
   Serial.begin(115200);
 
-  // Set aREST key
-  rest.setKey(key, client);
+  // Set aREST API key
+  rest.setKey(key);
 
   // Set callback
   client.setCallback(callback);
@@ -48,6 +48,9 @@ void setup(void)
   humidity = 40;
   rest.variable("temperature",&temperature);
   rest.variable("humidity",&humidity);
+
+  // Give ID to device (optional, if not set, a device ID will be auto-assigned to the device)
+  // rest.set_id("unique_device_id");
 
   // Give name to device
   rest.set_name("esp8266");

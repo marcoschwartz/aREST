@@ -47,7 +47,7 @@ For Bluetooth Low Energy communications, the library has been tested with the Ad
 
 To use the library with Arduino boards you will need the latest version of the Arduino IDE:
 
-- [Arduino IDE 1.6.8](http://arduino.cc/en/main/software)
+- [Arduino IDE 1.8.5](http://arduino.cc/en/main/software)
 
 ### For WiFi using the ESP8266 chip
 
@@ -154,7 +154,7 @@ To install the library, simply clone this repository in the /libraries folder of
 
 ## API documentation
 
-The API currently supports five type of commands: digital, analog, and mode, variables, and user-defined functions and api-extensions.
+The API currently supports five type of commands: digital, analog, and mode, variables, and user-defined functions.
 
 ### Digital
 
@@ -189,23 +189,13 @@ You can also define your own functions in your sketch that can be called using t
   * `rest.function("led",ledControl);` declares the function in the Arduino sketch
   * `/led?params=0` executes the function
 
-### API-Extensions
+### Log data to the cloud
 
-With api-extensions you have the possibility to extend the api by your own subcommands and customized responses.
-
-You define your api extensions in your sketch that can be called using the REST API. To access an user-defined api-extension defined in your sketch, you have to declare it first, and then call it from with a REST call. Note that all api-extension functions need to have the following signature `void api_extension(aREST *arest, const String& name, const String& request_url)`. For example, if your aREST instance is called "rest" and the function "aquariumController":
-  * `rest.api_extension("aquarium",aquariumController);` declares the api extension in the Arduino sketch
-  * `/aquarium/water_limit/lower/set/65` executes the api-extension function and passes the value `"/aquarium/water_limit/lower/set/65"` as the third parameter (`request_url`) into the api-extension function
-  * You can then customize your JSON result and extend it to something like this:
-    ```
-    {
-        "sensor-ids": ["100", "101", "102", "103", "104"],
-        "id": "008",
-        "name": "dapper_drake",
-        "hardware": "arduino",
-        "connected": true
-    }
-    ```
+You can also directly tell your board to log data on our cloud server, to be stored there & retrieved later or displayed on the [aREST cloud dashboard](https://dashboard.arest.io/). This is useful when you want for example to record the data coming from a sensor at regular intervals. The data is then stored along with the current date, the ID of the device sending the data, and also an event name that is used to identifiy the data. This can be done via the following commands:
+  * `rest.publish(client, "temperature", data);` logs the value of `data` with the event name `temperature`
+  * `https://cloud.arest.io/47fd9g/events` retrieves the last events logged by the device `47fd9g`
+  * You can also use the [aREST cloud dashboard](https://dashboard.arest.io/) to then display or plot this data in real-time on your dashboards
+  * Note that for devices not protected by an API key, the server will only store the last 10 measurements
 
 ### Get data about the board
 

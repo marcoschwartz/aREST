@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.7.2
+  Version 2.7.3
   Changelog:
 
+  Version 2.7.3: Added support to set your own ID when using API key
   Version 2.7.2: Bug fixes for aREST.io
   Version 2.7.1: Additional fixes & optimisations by @eykamp 
   Version 2.7.0: Several fixes & optimisations by @eykamp 
@@ -192,7 +193,7 @@ struct Handler {
   Handler() : include_into_root_answer{false} { }
   Handler(bool include) : include_into_root_answer{include} { }
 
-  virtual void addToBuffer(aREST *arest, const String& name, const String& request_url) const = 0;
+  virtual void addToBuffer(aREST *arest, const String& name, const String& arguments) const = 0;
 };
 
 
@@ -201,7 +202,7 @@ struct Variable: Handler {
 
   virtual void addToBuffer(aREST *arest) const = 0;
 
-  void addToBuffer(aREST *arest, const String& name, const String& request_url) const override {
+  void addToBuffer(aREST *arest, const String& name, const String& arguments) const override {
     if (LIGHTWEIGHT) {
       addToBuffer(arest);
     } else {
@@ -231,8 +232,7 @@ struct FunctionHandler: Handler {
 
   FunctionHandler(int (*f)(String)) : func{f} { }
 
-  void addToBuffer(aREST *arest, const String& name, const String& request_url) const override {
-    String arguments = extractParams(name, request_url);
+  void addToBuffer(aREST *arest, const String& name, const String& arguments) const override {
     int result = func(arguments);
 
     if (!LIGHTWEIGHT) {
@@ -242,36 +242,6 @@ struct FunctionHandler: Handler {
       // arest->addStringToBuffer(name.c_str());
       // arest->addToBufferF(F(" executed\", "));
     }
-  }
-
-  String extractParams(const String& name, const String& request_url) const {
-    // We're expecting a string of the form <handlerName>?xxxxx=<arguments>, where xxxxx can be almost anything as long as it's followed by an '='
-    // Get command -- Anything following the first '=' in answer will be put in the arguments string.
-    uint16_t header_length = name.length() + 1; // +1 for the '/' at the start
-    if (request_url.substring(header_length, header_length + 1) == "?") {
-      // Standard operation --> strip off anything preceeding the first "=", pass the rest to the handler
-      if(AREST_PARAMS_MODE == 0) {
-        uint16_t eq_position = request_url.indexOf('=', header_length); // Replacing 'magic number' 8 for fixed location of '='
-        if (eq_position != -1)
-          return request_url.substring(eq_position + 1, request_url.length());
-      } 
-      // All params mode --> pass all parameters, if any, to the handler.  Handler will be resonsible for parsing
-      else if(AREST_PARAMS_MODE == 1) {
-        return request_url.substring(header_length + 1, request_url.length());
-      }
-    }
-    return String("");
-  }
-};
-
-
-struct ApiHandler: Handler {
-  void (*func)(aREST *, const String&, const String&);
-
-  ApiHandler(void (*f)(aREST *, const String&, const String&)) : func{f} { }
-
-  void addToBuffer(aREST *arest, const String& name, const String& request_url) const override {
-    func(arest, name, request_url);
   }
 };
 
@@ -308,13 +278,6 @@ void variable(const char *name, T *var) {
 
 void function(const char *name, int (*f)(String)) {
   handlers[handlers_index] = new FunctionHandler(f);
-  handler_names[handlers_index] = name;
-  handlers_index++;
-}
-
-
-void api_extension(const char *name, void (*f)(aREST *, const String&, const String&)) {
-  handlers[handlers_index] = new ApiHandler(f);
   handler_names[handlers_index] = name;
   handlers_index++;
 }
@@ -407,23 +370,51 @@ void publish(PubSubClient& client, const String& eventName, T data) {
 
 }
 
-void setKey(char* proKey, PubSubClient& client) {
+void setKey(char* api_key) {
 
-  // Assign MQTT server
-  // mqtt_server = "104.131.78.157";
-  // client.setServer(mqtt_server, 1883);
+  // Set
+  proKey = String(api_key);
 
-  // Generate MQTT random ID
-  id = gen_random(6);
+  if (id.length() == 0) {
+
+    // Generate MQTT random ID
+    id = gen_random(6);
+
+  }
 
   // Build topics IDs
-  String inTopic = id + String(proKey) + String("_in");
-  String outTopic = id + String(proKey) + String("_out");
+  String inTopic = id + String(api_key) + String("_in");
+  String outTopic = id + String(api_key) + String("_out");
 
   strcpy(in_topic, inTopic.c_str());
   strcpy(out_topic, outTopic.c_str());
 
   // Build client ID
+  client_id = id + String(api_key);
+
+}
+
+void setKey(char* api_key, PubSubClient& client) {
+
+  // Set
+  proKey = String(api_key);
+
+  if (id.length() == 0) {
+
+    // Generate MQTT random ID
+    id = gen_random(6);
+
+  }
+
+  // Build topics IDs
+  String inTopic = id + String(api_key) + String("_in");
+  String outTopic = id + String(api_key) + String("_out");
+
+  strcpy(in_topic, inTopic.c_str());
+  strcpy(out_topic, outTopic.c_str());
+
+  // Build client ID
+  client_id = id + String(api_key);
   client_id = id + String(proKey);
 }
 
@@ -495,7 +486,7 @@ void reset_status() {
 
   reset();
   answer = "";
-  request_url = "";
+  arguments = "";
 
   index = 0;
   //memset(&buffer[0], 0, sizeof(buffer));
@@ -1182,29 +1173,42 @@ void process(char c) {
   // Handler request received ?
   if (command == 'u') {
 
-    if (answer.endsWith(" HTTP/") || answer.endsWith("\r")) {
-      // Check if handler name is registered in array
-      for (uint8_t i = 0; i < handlers_index; i++) {
-        if (answer.startsWith(handler_names[i])) {
+    // Check if handler name is registered in array
+    for (uint8_t i = 0; i < handlers_index; i++) {
+      if (answer.startsWith(handler_names[i])) {
 
-          // End here
-          pin_selected = true;
-          state = 'x';
+        // End here
+        pin_selected = true;
+        state = 'x';
 
-          // Set state
-          command = 'h';
-          value = i;
+        // Set state
+        command = 'h';
+        value = i;
 
-          answer.trim();
+        answer.trim();
 
-          if (answer.endsWith(" HTTP/")) {
-            request_url = "/" + answer.substring(0, answer.length() - 6); // length of " HTTP/"
-          } else {
-            request_url = "/" + answer;
+        // We're expecting a string of the form <handlerName>?xxxxx=<arguments>, where xxxxx can be almost anything as long as it's followed by an '='
+        // Get command -- Anything following the first '=' in answer will be put in the arguments string.
+        arguments = "";
+        uint16_t header_length = strlen(handler_names[i]);
+        if (answer.substring(header_length, header_length + 1) == "?") {
+          uint16_t footer_start = answer.length();
+          if (answer.endsWith(" HTTP/"))
+            footer_start -= 6; // length of " HTTP/"
+
+          // Standard operation --> strip off anything preceeding the first "=", pass the rest to the handler
+          if(AREST_PARAMS_MODE == 0) {
+            uint16_t eq_position = answer.indexOf('=', header_length); // Replacing 'magic number' 8 for fixed location of '='
+            if (eq_position != -1)
+              arguments = answer.substring(eq_position + 1, footer_start);
+          } 
+          // All params mode --> pass all parameters, if any, to the handler.  Handler will be resonsible for parsing
+          else if(AREST_PARAMS_MODE == 1) {
+            arguments = answer.substring(header_length + 1, footer_start);
           }
-
-          break; // We found what we're looking for
         }
+
+        break; // We found what we're looking for
       }
     }
 
@@ -1239,23 +1243,19 @@ void process(char c) {
     //  Serial.print("Selected method: ");
     //  Serial.println(method);
     // }
-  } else {
-    answer = "";
   }
 
-  if (c == '\r' || answer.startsWith("GET /") || answer.startsWith("/")) {
-    answer = "";
-  }
+  answer = "";
 }
 
 
-// Modifies request_url in place
-void urldecode(String &request_url) {
+// Modifies arguments in place
+void urldecode(String &arguments) {
   char a, b;
   int j = 0;
-  for(int i = 0; i < request_url.length(); i++) {
-    // %20 ==> request_url[i] = '%', a = '2', b = '0'
-    if ((request_url[i] == '%') && ((a = request_url[i + 1]) && (b = request_url[i + 2])) && (isxdigit(a) && isxdigit(b))) {
+  for(int i = 0; i < arguments.length(); i++) {
+    // %20 ==> arguments[i] = '%', a = '2', b = '0'
+    if ((arguments[i] == '%') && ((a = arguments[i + 1]) && (b = arguments[i + 2])) && (isxdigit(a) && isxdigit(b))) {
       if (a >= 'a') a -= 'a'-'A';
       if (a >= 'A') a -= ('A' - 10);
       else          a -= '0';
@@ -1264,17 +1264,17 @@ void urldecode(String &request_url) {
       if (b >= 'A') b -= ('A' - 10);
       else          b -= '0';
 
-      request_url[j] = char(16 * a + b);
+      arguments[j] = char(16 * a + b);
       i += 2;   // Skip ahead
-    } else if (request_url[i] == '+') {
-      request_url[j] = ' ';
+    } else if (arguments[i] == '+') {
+      arguments[j] = ' ';
     } else {
-     request_url[j] = request_url[i];
+     arguments[j] = arguments[i];
     }
     j++;
   }
 
-  request_url.remove(j);    // Truncate string to new possibly reduced length
+  arguments.remove(j);    // Truncate string to new possibly reduced length
 }
 
 
@@ -1474,19 +1474,15 @@ bool send_command(bool headers, bool decodeArgs) {
   // Handler selected
   if (command == 'h') {
     if (decodeArgs) {
-      urldecode(request_url); // Modifies request_url
+      urldecode(arguments); // Modifies arguments
     }
     // Send feedback to client
     if (LIGHTWEIGHT) {
-      addHandlerToBuffer(value, request_url);
+      addHandlerToBuffer(value, arguments);
     } else {
       addToBufferF(F("{"));
-      auto bufferPos = index;
-      addHandlerToBuffer(value, request_url);
-      if (bufferPos < index) {
-        // index has changed -> the handler added some stuff to the buffer
-        addToBufferF(F(", "));
-      }
+      addHandlerToBuffer(value, arguments);
+      addToBufferF(F(", "));
     }
   }
 
@@ -1577,31 +1573,34 @@ void set_id(const String& device_id) {
 
   #if defined(PubSubClient_h)
 
-  // Generate MQTT random ID
-  String randomId = gen_random(6);
+  if (proKey.length() == 0) {
 
-  // Build topics IDs
-  String inTopic = randomId + id + String("_in");
-  String outTopic = randomId + id + String("_out");
+      // Generate MQTT random ID
+      String randomId = gen_random(6);
 
-  strcpy(in_topic, inTopic.c_str());
-  strcpy(out_topic, outTopic.c_str());
+      // Build topics IDs
+      String inTopic = randomId + id + String("_in");
+      String outTopic = randomId + id + String("_out");
 
-  // inTopic.toCharArray(in_topic, inTopic.length());
-  // outTopic.toCharArray(out_topic, outTopic.length());
+      strcpy(in_topic, inTopic.c_str());
+      strcpy(out_topic, outTopic.c_str());
 
-  // Build client ID
-  client_id = randomId + id;
+      // Build client ID
+      client_id = randomId + id;
 
-  if (DEBUG_MODE) {
-    Serial.print("Input MQTT topic: ");
-    Serial.println(in_topic);
+  }
+  else {
 
-    Serial.print("Output MQTT topic: ");
-    Serial.println(out_topic);
+      // Build topics IDs
+      String inTopic = id + String(proKey) + String("_in");
+      String outTopic = id + String(proKey) + String("_out");
 
-    Serial.print("Client ID: ");
-    Serial.println(client_id);
+      strcpy(in_topic, inTopic.c_str());
+      strcpy(out_topic, outTopic.c_str());
+
+      // Build client ID
+      client_id = id + String(proKey);
+      
   }
 
   #endif
@@ -1901,8 +1900,8 @@ uint8_t esp_12_pin_map(uint8_t pin) {
 }
 
 
-void addHandlerToBuffer(uint8_t index, const String& request_url) {
-  handlers[index]->addToBuffer(this, String(handler_names[index]), request_url);
+void addHandlerToBuffer(uint8_t index, const String& arguments) {
+  handlers[index]->addToBuffer(this, String(handler_names[index]), arguments);
 }
 
 
@@ -1954,7 +1953,8 @@ private:
 
   char name[NAME_SIZE];
   String id;
-  String request_url;
+  String proKey;
+  String arguments;
 
   // Output uffer
   char buffer[OUTPUT_BUFFER_SIZE];
@@ -2025,7 +2025,5 @@ template <>
 void aREST::addToBuffer(char toAdd[], bool quotable) {
   addStringToBuffer(toAdd, quotable);           // Strings must be quoted
 }
-
-
 
 #endif
