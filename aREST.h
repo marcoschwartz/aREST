@@ -1210,7 +1210,7 @@ void process(char c) {
   // Handler request received ?
   if (command == 'u') {
 
-    if (answer.endsWith(" HTTP/") || answer.endsWith("\r")) {
+    if (answer.endsWith(" HTTP/") || answer.endsWith(" /") || answer.endsWith("\r")) {
       // Check if handler name is registered in array
       for (uint8_t i = 0; i < handlers_index; i++) {
         if (answer.startsWith(handler_names[i])) {
@@ -1227,6 +1227,8 @@ void process(char c) {
 
           if (answer.endsWith(" HTTP/")) {
             request_url = "/" + answer.substring(0, answer.length() - 6); // length of " HTTP/"
+          } else if (answer.endsWith(" /")) {
+            request_url = "/" + answer.substring(0, answer.length() - 2); // length of " /"
           } else {
             request_url = "/" + answer;
           }
