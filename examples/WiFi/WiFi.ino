@@ -26,6 +26,9 @@ WiFiServer server(80);
 int temperature;
 int humidity;
 
+// Declare functions to be exposed to the API
+int ledControl(String command);
+
 void setup() {
 
   // Start Serial

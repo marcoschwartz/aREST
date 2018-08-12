@@ -25,6 +25,9 @@ Adafruit_BLE_UART BTLEserial = Adafruit_BLE_UART(ADAFRUITBLE_REQ, ADAFRUITBLE_RD
 int temperature;
 int humidity;
 
+// Declare functions to be exposed to the API
+int ledControl(String command);
+
 void setup(void)
 {
   // Start Serial
