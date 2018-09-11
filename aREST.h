@@ -1635,7 +1635,9 @@ String gen_random(int length) {
 // Set device name
 void set_name(char *device_name){
 
-  strcpy(name, device_name);
+  strncpy(name, device_name, NAME_SIZE);
+  // null-terminator to be used by strlen() and other functions.
+  name[NAME_SIZE-1] = 0;
 }
 
 // Set device name
