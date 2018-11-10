@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.7.3
+  Version 2.7.4
   Changelog:
 
+  Version 2.7.4: Fix for the Arduino Ethernet 2.0 library
   Version 2.7.3: Added support to set your own ID when using API key
   Version 2.7.2: Bug fixes for aREST.io
   Version 2.7.1: Additional fixes & optimisations by @eykamp 
@@ -518,7 +519,7 @@ void handle(Adafruit_BLE_UART& serial) {
 // }
 
 // Handle request for the Arduino Ethernet shield
-#elif defined(ethernet_h)
+#elif defined(ethernet_h_)
 void handle(EthernetClient& client){
 
   if (client.available()) {
@@ -1496,7 +1497,7 @@ bool send_command(bool headers, bool decodeArgs) {
 
 virtual void root_answer() {
 
-  #if defined(ADAFRUIT_CC3000_H) || defined(ESP8266) || defined(ethernet_h) || defined(WiFi_h)
+  #if defined(ADAFRUIT_CC3000_H) || defined(ESP8266) || defined(ethernet_h_) || defined(WiFi_h)
     #if !defined(PubSubClient_h)
       if (command != 'u') {
         send_http_headers();
