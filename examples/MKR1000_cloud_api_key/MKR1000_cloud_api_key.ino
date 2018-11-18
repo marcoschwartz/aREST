@@ -92,6 +92,7 @@ int ledControl(String command) {
 
   digitalWrite(6,state);
   return 1;
+
 }
 
 // Handles message arrived on subscribed topic(s)

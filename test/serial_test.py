@@ -108,7 +108,7 @@ class TestSequenceFunctions(unittest.TestCase):
     self.assertGreaterEqual(answer['temperature'],0)
     self.assertLessEqual(answer['temperature'],40)
 
-   # Function call check
+  # Function call check
   def test_function(self):
 
     # Call function
@@ -130,6 +130,20 @@ class TestSequenceFunctions(unittest.TestCase):
     self.serial.write("/digital/6\r")
     answer = json.loads(self.serial.readline())
     self.assertEqual(answer['return_value'],0)
+
+  # API-Extension call check
+  def test_api_extension(self):
+
+    # Call list of sensors
+    self.serial.write("/aquarium\r")
+    answer = json.loads(self.serial.readline())
+    l = [int(val) for val in answer['sensor-ids']]
+    self.assertEqual(l, [100, 101, 102, 103, 104])
+
+    # Call set of limit
+    self.serial.write("/aquarium/water_limit/lower/set/45\r")
+    answer = json.loads(self.serial.readline())
+    self.assertEqual(answer['message'], "lower water limit set to 45cm")
 
 if __name__ == '__main__':
     unittest.main()

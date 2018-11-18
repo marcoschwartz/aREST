@@ -67,4 +67,3 @@ int ledControl(String command) {
   return 1;
 
 }
-

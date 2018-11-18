@@ -95,6 +95,7 @@ int ledControl(String command) {
 
   digitalWrite(6,state);
   return 1;
+
 }
 
 void printWifiStatus() {
