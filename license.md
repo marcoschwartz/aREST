@@ -1,6 +1,6 @@
 The MIT License (MIT)
 
-Copyright (c) 2014-2018 Marco Schwartz
+Copyright (c) 2014-2019 Marco Schwartz
 Authors: Marco Schwartz
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

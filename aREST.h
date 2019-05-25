@@ -7,9 +7,11 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.7.4
+  Version 2.8.0
   Changelog:
 
+  Version 2.8.0: Compatibility with the new aREST cloud server
+  Version 2.7.5: Added rate-limitation for publish()
   Version 2.7.4: Fix for the Arduino Ethernet 2.0 library
   Version 2.7.3: Added support to set your own ID when using API key
   Version 2.7.2: Bug fixes for aREST.io
@@ -283,26 +285,68 @@ void subscribe(const String& device, const String& eventName) {
 template <typename T>
 void publish(PubSubClient& client, const String& eventName, T data) {
 
-  // Get event data
-  if (DEBUG_MODE) {
-    Serial.print("Publishing event " + eventName + " with data: ");
-    Serial.println(data);
+  uint32_t currentMillis = millis();
+
+  if (currentMillis - previousMillis >= interval) {
+
+    previousMillis = currentMillis;
+
+    // Get event data
+    if (DEBUG_MODE) {
+      Serial.print("Publishing event " + eventName + " with data: ");
+      Serial.println(data);
+    }
+
+    // Build message
+    String message = "{\"client_id\": \"" + id + "\", \"event_name\": \"" + eventName + "\", \"data\": \"" + String(data) + "\"}";
+
+    if (DEBUG_MODE) {
+      Serial.print("Sending message via MQTT: ");
+      Serial.println(message);
+    }
+
+    // Convert
+    char charBuf[100];
+    message.toCharArray(charBuf, 100);
+
+    // Publish
+    client.publish(publish_topic, charBuf);
+
   }
 
-  // Build message
-  String message = "{\"client_id\": \"" + id + "\", \"event_name\": \"" + eventName + "\", \"data\": \"" + String(data) + "\"}";
+}
 
-  if (DEBUG_MODE) {
-    Serial.print("Sending message via MQTT: ");
-    Serial.println(message);
+template <typename T>
+void publish(PubSubClient& client, const String& eventName, T data, uint32_t customInterval) {
+
+  uint32_t currentMillis = millis();
+
+  if (currentMillis - previousMillis >= customInterval) {
+
+    previousMillis = currentMillis;
+
+    // Get event data
+    if (DEBUG_MODE) {
+      Serial.print("Publishing event " + eventName + " with data: ");
+      Serial.println(data);
+    }
+
+    // Build message
+    String message = "{\"client_id\": \"" + id + "\", \"event_name\": \"" + eventName + "\", \"data\": \"" + String(data) + "\"}";
+
+    if (DEBUG_MODE) {
+      Serial.print("Sending message via MQTT: ");
+      Serial.println(message);
+    }
+
+    // Convert
+    char charBuf[100];
+    message.toCharArray(charBuf, 100);
+
+    // Publish
+    client.publish(publish_topic, charBuf);
+
   }
-
-  // Convert
-  char charBuf[100];
-  message.toCharArray(charBuf, 100);
-
-  // Publish
-  client.publish(publish_topic, charBuf);
 
 }
 
@@ -1937,6 +1981,10 @@ private:
   // Status LED
   uint8_t status_led_pin;
 
+  // Interval
+  uint32_t previousMillis;
+  uint32_t interval = 1000;
+
   // Int variables arrays
   uint8_t variables_index;
   Variable* variables[NUMBER_VARIABLES];
@@ -1956,7 +2004,7 @@ private:
   char * subscriptions_names[NUMBER_SUBSCRIPTIONS];
 
   // aREST.io server
-  char* mqtt_server = "104.131.78.157";
+  char* mqtt_server = "104.248.48.85";
   bool private_mqtt_server;
 
   #endif
