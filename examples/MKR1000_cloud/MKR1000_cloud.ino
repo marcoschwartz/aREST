@@ -21,8 +21,8 @@ PubSubClient client(wifiClient);
 // Create aREST instance
 aREST rest = aREST(client);
 
-// Device ID for the device on the cloud (should be 6 characters long)
-char * device_id = "20g83d";
+// aREST API key (that you can get at dashboard.arest.io)
+char * key = "your_arest_key";
 
 // WiFi parameters
 char ssid[] = "your_wifi_network_name";
@@ -43,6 +43,9 @@ void setup(void)
   // Start Serial
   Serial.begin(115200);
 
+  // Set aREST API key
+  rest.setKey(key);
+
   // Set callback
   client.setCallback(callback);
 
@@ -55,8 +58,10 @@ void setup(void)
   // Function to be exposed
   rest.function("led",ledControl);
 
-  // Give name and ID to device (ID should be 6 characters long)
-  rest.set_id(device_id);
+  // Give ID to device (optional, if not set, a device ID will be auto-assigned to the device)
+  // rest.set_id("unique_device_id");
+
+  // Give name to device
   rest.set_name("mkr1000");
 
   // Connect to WiFi
@@ -77,6 +82,9 @@ void loop() {
   // Connect to the cloud
   rest.handle(client);
 
+  // Publish data on feed temperature, with value 10, every 5 seconds
+  rest.publish(client, "temperature", 10, 5000);
+
 }
 
 // Custom function accessible by the API
@@ -88,7 +96,6 @@ int ledControl(String command) {
   digitalWrite(6,state);
   return 1;
 }
-
 
 // Handles message arrived on subscribed topic(s)
 void callback(char* topic, byte* payload, unsigned int length) {

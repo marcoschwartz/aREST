@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.8.0
+  Version 2.8.1
   Changelog:
 
+  Version 2.8.1: Updated examples with publish()
   Version 2.8.0: Compatibility with the new aREST cloud server
   Version 2.7.5: Added rate-limitation for publish()
   Version 2.7.4: Fix for the Arduino Ethernet 2.0 library
@@ -262,9 +263,9 @@ aREST(PubSubClient& client, char* new_mqtt_server) {
 }
 
 // Get topic
-char* get_topic() {
-  return out_topic;
-}
+// String get_topic() {
+//   return out_topic;
+// }
 
 // Subscribe to events
 void subscribe(const String& device, const String& eventName) {
@@ -363,41 +364,41 @@ void setKey(char* api_key) {
   }
 
   // Build topics IDs
-  String inTopic = id + String(api_key) + String("_in");
-  String outTopic = id + String(api_key) + String("_out");
+  in_topic = id + String(api_key) + String("_in");
+  out_topic = id + String(api_key) + String("_out");
 
-  strcpy(in_topic, inTopic.c_str());
-  strcpy(out_topic, outTopic.c_str());
+  // strcpy(in_topic, inTopic.c_str());
+  // strcpy(out_topic, outTopic.c_str());
 
   // Build client ID
   client_id = id + String(api_key);
 
 }
 
-void setKey(char* api_key, PubSubClient& client) {
+// void setKey(char* api_key, PubSubClient& client) {
 
-  // Set
-  proKey = String(api_key);
+//   // Set
+//   proKey = String(api_key);
 
-  if (id.length() == 0) {
+//   if (id.length() == 0) {
 
-    // Generate MQTT random ID
-    id = gen_random(6);
+//     // Generate MQTT random ID
+//     id = gen_random(6);
 
-  }
+//   }
 
-  // Build topics IDs
-  String inTopic = id + String(api_key) + String("_in");
-  String outTopic = id + String(api_key) + String("_out");
+//   // Build topics IDs
+//   String inTopic = id + String(api_key) + String("_in");
+//   String outTopic = id + String(api_key) + String("_out");
 
-  strcpy(in_topic, inTopic.c_str());
-  strcpy(out_topic, outTopic.c_str());
+//   strcpy(in_topic, inTopic.c_str());
+//   strcpy(out_topic, outTopic.c_str());
 
-  // Build client ID
-  client_id = id + String(api_key);
-  client_id = id + String(proKey);
+//   // Build client ID
+//   client_id = id + String(api_key);
+//   client_id = id + String(proKey);
 
-}
+// }
 
 #endif
 
@@ -915,7 +916,7 @@ void handle_callback(PubSubClient& client, char* topic, byte* payload, unsigned 
     int max_message_size = 128 - 20 - client_id.length();
 
     if (strlen(answer) < max_message_size) {
-      client.publish(out_topic, answer);
+      client.publish(out_topic.c_str(), answer);
     }
     else {
 
@@ -935,7 +936,7 @@ void handle_callback(PubSubClient& client, char* topic, byte* payload, unsigned 
           Serial.println(strlen(intermediate_buffer));
         }
 
-        client.publish(out_topic, intermediate_buffer);
+        client.publish(out_topic.c_str(), intermediate_buffer);
 
     }
 
@@ -985,7 +986,7 @@ void reconnect(PubSubClient& client) {
         else {
           Serial.println(F("Connected to aREST.io"));
         }
-        client.subscribe(in_topic);
+        client.subscribe(in_topic.c_str());
 
         // Subscribe to all
         // if (subscriptions_index > 0) {
@@ -1595,11 +1596,11 @@ void set_id(const String& device_id) {
       String randomId = gen_random(6);
 
       // Build topics IDs
-      String inTopic = randomId + id + String("_in");
-      String outTopic = randomId + id + String("_out");
+      in_topic = randomId + id + String("_in");
+      out_topic = randomId + id + String("_out");
 
-      strcpy(in_topic, inTopic.c_str());
-      strcpy(out_topic, outTopic.c_str());
+      // strcpy(in_topic, inTopic.c_str());
+      // strcpy(out_topic, outTopic.c_str());
 
       // Build client ID
       client_id = randomId + id;
@@ -1608,11 +1609,18 @@ void set_id(const String& device_id) {
   else {
 
       // Build topics IDs
-      String inTopic = id + String(proKey) + String("_in");
-      String outTopic = id + String(proKey) + String("_out");
+      in_topic = id + String(proKey) + String("_in");
+      out_topic = id + String(proKey) + String("_out");
 
-      strcpy(in_topic, inTopic.c_str());
-      strcpy(out_topic, outTopic.c_str());
+      // strcpy(in_topic, keyInTopic.c_str());
+      // strcpy(out_topic, keyOutTopic.c_str());
+
+      Serial.print("In topic: ");
+      Serial.println(in_topic);
+      Serial.println("");
+
+      Serial.print("Out topic: ");
+      Serial.println(out_topic);
 
       // Build client ID
       client_id = id + String(proKey);
@@ -1994,8 +2002,8 @@ private:
   #if defined(PubSubClient_h)
 
   // Topics
-  char in_topic[ID_SIZE + 17];
-  char out_topic[ID_SIZE + 17];
+  String in_topic;
+  String out_topic;
   char publish_topic[ID_SIZE + 10];
   String client_id;
 
