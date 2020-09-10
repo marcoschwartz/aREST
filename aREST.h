@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.8.1
+  Version 2.9.0
   Changelog:
 
+  Version 2.9.0: Compatibility fix for the new aREST cloud server
   Version 2.8.1: Updated examples with publish()
   Version 2.8.0: Compatibility with the new aREST cloud server
   Version 2.7.5: Added rate-limitation for publish()
@@ -2012,7 +2013,7 @@ private:
   char * subscriptions_names[NUMBER_SUBSCRIPTIONS];
 
   // aREST.io server
-  char* mqtt_server = "104.248.48.85";
+  char* mqtt_server = "142.93.194.74";
   bool private_mqtt_server;
 
   #endif
