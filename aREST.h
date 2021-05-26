@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.9.1
+  Version 2.9.2
   Changelog:
 
+  Version 2.9.2: Fixes for cloud examples
   Version 2.9.1: Compatibility fix for the new aREST cloud broker (Aedes)
   Version 2.9.0: Compatibility fix for the new aREST cloud server
   Version 2.8.1: Updated examples with publish()

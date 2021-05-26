@@ -64,9 +64,6 @@ void setup(void)
   Serial.println("");
   Serial.println("WiFi connected");
 
-  // Set output topic
-  char* out_topic = rest.get_topic();
-
 }
 
 void loop() {

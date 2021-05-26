@@ -53,9 +53,6 @@ void setup(void)
     Serial.println("Failed to configure Ethernet using DHCP");
   }
 
-  // Set output topic
-  char* out_topic = rest.get_topic();
-
 }
 
 void loop() {
