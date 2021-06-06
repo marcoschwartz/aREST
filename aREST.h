@@ -815,7 +815,7 @@ void handle(char * string) {
 
 void handle_proto(char * string) {
   // Check if there is data available to read
-  for (int i = 0; i < strlen(string); i++){
+  for (int i = 0; string[i] != 0; i++){
 
     char c = string[i];
     answer = answer + c;
@@ -906,25 +906,26 @@ void handle_callback(PubSubClient& client, char* topic, byte* payload, unsigned 
     // Read answer
     char * answer = getBuffer();
 
+    size_t answer_len = strlen(answer);
     // Send response
     if (DEBUG_MODE) {
       Serial.print("Sending message via MQTT: ");
       Serial.println(answer);
       Serial.print("Size of MQTT message: ");
-      Serial.println(strlen(answer));
+      Serial.println(answer_len);
       Serial.print("Size of client ID: ");
       Serial.println(client_id.length());
     }
 
-    int max_message_size = 128 - 20 - client_id.length();
+    size_t max_message_size = 128 - 20 - client_id.length();
 
-    if (strlen(answer) < max_message_size) {
+    if (answer_len < max_message_size) {
       client.publish(out_topic.c_str(), answer);
     }
     else {
 
       // Max iteration
-      uint8_t max_iteration = (int)(strlen(answer)/max_message_size) + 1;
+      uint8_t max_iteration = (int)(answer_len/max_message_size) + 1;
 
       // Send data
       for (uint8_t i = 0; i < max_iteration; i++) {
@@ -1731,7 +1732,7 @@ void addStringToBuffer(const char * toAdd, bool quotable){
     addQuote();
   }
 
-  for (int i = 0; i < strlen(toAdd) && index < OUTPUT_BUFFER_SIZE; i++, index++) {
+  for (int i = 0; toAdd[i] != 0 && index < OUTPUT_BUFFER_SIZE; i++, index++) {
     // Handle quoting quotes and backslashes
     if(quotable && (toAdd[i] == '"' || toAdd[i] == '\\')) {
       if(index == OUTPUT_BUFFER_SIZE - 1)   // No room!
