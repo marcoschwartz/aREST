@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.9.2
+  Version 2.9.3
   Changelog:
 
+  Version 2.9.3: Compatibility fix
   Version 2.9.2: Fixes for cloud examples
   Version 2.9.1: Compatibility fix for the new aREST cloud broker (Aedes)
   Version 2.9.0: Compatibility fix for the new aREST cloud server
@@ -266,9 +267,9 @@ aREST(PubSubClient& client, char* new_mqtt_server) {
 }
 
 // Get topic
-// String get_topic() {
-//   return out_topic;
-// }
+String get_topic() {
+  return out_topic;
+}
 
 // Subscribe to events
 void subscribe(const String& device, const String& eventName) {
