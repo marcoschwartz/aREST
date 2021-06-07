@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.9.3
+  Version 2.9.4
   Changelog:
 
+  Version 2.9.4: Publish() fixes
   Version 2.9.3: Compatibility fix
   Version 2.9.2: Fixes for cloud examples
   Version 2.9.1: Compatibility fix for the new aREST cloud broker (Aedes)
@@ -315,7 +316,7 @@ void publish(PubSubClient& client, const String& eventName, T data) {
     message.toCharArray(charBuf, 100);
 
     // Publish
-    client.publish(publish_topic, charBuf);
+    client.publish(publish_topic.c_str(), charBuf);
 
   }
 
@@ -349,7 +350,7 @@ void publish(PubSubClient& client, const String& eventName, T data, uint32_t cus
     message.toCharArray(charBuf, 100);
 
     // Publish
-    client.publish(publish_topic, charBuf);
+    client.publish(publish_topic.c_str(), charBuf);
 
   }
 
@@ -1602,6 +1603,7 @@ void set_id(const String& device_id) {
       // Build topics IDs
       in_topic = randomId + id + String("_in");
       out_topic = randomId + id + String("_out");
+      publish_topic = id + String(api_key) + String("_event");
 
       // strcpy(in_topic, inTopic.c_str());
       // strcpy(out_topic, outTopic.c_str());
@@ -2008,7 +2010,7 @@ private:
   // Topics
   String in_topic;
   String out_topic;
-  char publish_topic[ID_SIZE + 10];
+  String publish_topic;
   String client_id;
 
   // Subscribe topics & handlers
