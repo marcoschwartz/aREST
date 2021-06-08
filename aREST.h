@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.9.4
+  Version 2.9.5
   Changelog:
 
+  Version 2.9.5: Compatibility with latest ESP8266 library
   Version 2.9.4: Publish() fixes
   Version 2.9.3: Compatibility fix
   Version 2.9.2: Fixes for cloud examples
@@ -371,6 +372,7 @@ void setKey(char* api_key) {
   // Build topics IDs
   in_topic = id + String(api_key) + String("_in");
   out_topic = id + String(api_key) + String("_out");
+  publish_topic = id + String(api_key) + String("_event");
 
   // strcpy(in_topic, inTopic.c_str());
   // strcpy(out_topic, outTopic.c_str());
@@ -1603,7 +1605,7 @@ void set_id(const String& device_id) {
       // Build topics IDs
       in_topic = randomId + id + String("_in");
       out_topic = randomId + id + String("_out");
-      publish_topic = id + String(api_key) + String("_event");
+      publish_topic = randomId + id + String("_event");
 
       // strcpy(in_topic, inTopic.c_str());
       // strcpy(out_topic, outTopic.c_str());
@@ -1617,6 +1619,7 @@ void set_id(const String& device_id) {
       // Build topics IDs
       in_topic = id + String(proKey) + String("_in");
       out_topic = id + String(proKey) + String("_out");
+      publish_topic = id + String(proKey) + String("_event");
 
       // strcpy(in_topic, keyInTopic.c_str());
       // strcpy(out_topic, keyOutTopic.c_str());
