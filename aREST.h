@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.9.5
+  Version 2.9.6
   Changelog:
 
+  Version 2.9.6: Add ID generator for ESP32
   Version 2.9.5: Compatibility with latest ESP8266 library
   Version 2.9.4: Publish() fixes
   Version 2.9.3: Compatibility fix
@@ -1668,6 +1669,15 @@ String gen_random(int length) {
   #if defined(ESP8266)
 
     randomString = String(ESP.getChipId());
+    randomString = randomString.substring(0, 6);
+  #elif defined(ESP32)
+
+    uint32_t chipId = 0;
+    for(int i=0; i<17; i=i+8) {
+	    chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
+	  }
+
+    randomString = String(chipId);
     randomString = randomString.substring(0, 6);
 
   #elif defined(__arm__)
