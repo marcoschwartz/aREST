@@ -71,7 +71,7 @@
 
 // Include Arduino header
 #include "Arduino.h"
-//NEW:This line was added in order to make the linking work!
+//Merge request NEW LINE:This line was added in order to make the linking work!
 #include <Ethernet.h>
 
 // MQTT packet size
@@ -538,27 +538,8 @@ private:
 
 };
 
-
-// // Some specializations of our template
-// template <>
-// void aREST::addToBuffer(bool toAdd, bool quotable);
-
-
-// template <>
-// void aREST::addToBuffer(const char *toAdd, bool quotable);
-
-
-// template <>
-// void aREST::addToBuffer(const String *toAdd, bool quotable);
-
-
-// template <>
-// void aREST::addToBuffer(const String toAdd, bool quotable);
-
-
-// template <>
-// void aREST::addToBuffer(char toAdd[], bool quotable);
-
+//template functions have been moved to external tcc file in order to avoid the need for specific instantiation:
+//https://bytefreaks.net/programming-2/c/c-undefined-reference-to-templated-class-function
 #include <aREST.tcc>
 
 #endif

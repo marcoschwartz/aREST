@@ -1,5 +1,3 @@
-//TB:Redeclaration here?
-
 template <typename T>
 void aREST::addToBuffer(T toAdd, bool quotable=false) {
   addStringToBuffer(String(toAdd).c_str(), false);   // Except for our overrides, this will be adding numbers, which don't get quoted
@@ -319,40 +317,3 @@ void aREST::handle_proto(T& serial, bool headers, uint8_t read_delay, bool decod
    // Send command
    send_command(headers, decode);
 }
-
-
-
-
-/*
-
-// Some specializations of our template
-template <>
-void aREST::addToBuffer(bool toAdd, bool quotable) {
-  addStringToBuffer(toAdd ? "true" : "false", false);   // Booleans aren't quoted in JSON
-}
-
-
-template <>
-void aREST::addToBuffer(const char *toAdd, bool quotable) {
-  addStringToBuffer(toAdd, quotable);                       // Strings must be quoted
-}
-
-
-template <>
-void aREST::addToBuffer(const String *toAdd, bool quotable) {
-  addStringToBuffer(toAdd->c_str(), quotable);           // Strings must be quoted
-}
-
-
-template <>
-void aREST::addToBuffer(const String toAdd, bool quotable) {
-  addStringToBuffer(toAdd.c_str(), quotable);           // Strings must be quoted
-}
-
-
-template <>
-void aREST::addToBuffer(char toAdd[], bool quotable) {
-  addStringToBuffer(toAdd, quotable);           // Strings must be quoted
-}
-
-*/
