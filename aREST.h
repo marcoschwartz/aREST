@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.9.6
+  Version 2.9.7
   Changelog:
 
+  Version 2.9.7: Added URL for mqtt server
   Version 2.9.6: Add ID generator for ESP32
   Version 2.9.5: Compatibility with latest ESP8266 library
   Version 2.9.4: Publish() fixes
@@ -2031,7 +2032,7 @@ private:
   char * subscriptions_names[NUMBER_SUBSCRIPTIONS];
 
   // aREST.io server
-  char* mqtt_server = "164.90.147.20";
+  char* mqtt_server = "mqtt.arest.io";
   bool private_mqtt_server;
 
   #endif

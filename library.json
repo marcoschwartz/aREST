@@ -7,7 +7,7 @@
         "url": "https://github.com/marcoschwartz/aREST.git"
     },
     "frameworks": "arduino",
-    "version": "2.9.6",
+    "version": "2.9.7",
     "platforms": [
         "atmelavr",
         "atmelsam",
