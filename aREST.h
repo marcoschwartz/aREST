@@ -1497,12 +1497,12 @@ bool send_command(bool headers, bool decodeArgs) {
     if (decodeArgs)
       urldecode(arguments); // Modifies arguments
 
-    int result = functions[value](arguments);
+    String result = functions[value](arguments);
 
     // Send feedback to client
     if (!LIGHTWEIGHT) {
       addToBufferF(F("{\"return_value\": "));
-      addToBuffer(result, true);
+      addStringResultToBuffer(result.c_str(), true);
       addToBufferF(F(", "));
       // addToBufferF(F(", \"message\": \""));
       // addStringToBuffer(functions_names[value]);
@@ -1585,7 +1585,7 @@ virtual void root_answer() {
 }
 
 
-void function(char * function_name, int (*f)(String)){
+void function(char * function_name, String (*f)(String)){
 
   functions_names[functions_index] = function_name;
   functions[functions_index] = f;
@@ -1779,6 +1779,11 @@ void addToBuffer(T(*toAdd)(), bool quotable=true) {
   addToBuffer(toAdd(), quotable);
 } 
 
+// Register a function that allows the functions registered in the code to return String instead of int. It is more useful as a String can contain JSON or XML
+template <typename T>
+void addStringResultToBuffer(T toAdd, bool quotable=false) {
+  addStringToBuffer(String(toAdd).c_str(), false);   // Except for our overrides, this will be adding numbers, which don't get quoted
+}
 
 // // Add to output buffer
 // void addToBuffer(const __FlashStringHelper *toAdd, bool quotable){
@@ -2040,7 +2045,7 @@ private:
 
   // Functions array
   uint8_t functions_index;
-  int (*functions[NUMBER_FUNCTIONS])(String);
+  String (*functions[NUMBER_FUNCTIONS])(String);
   char * functions_names[NUMBER_FUNCTIONS];
 
   // Memory debug
