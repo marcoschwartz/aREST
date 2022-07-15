@@ -154,7 +154,7 @@ To install the library, simply clone this repository in the /libraries folder of
 
 ## API documentation
 
-The API currently supports five type of commands: digital, analog, and mode, variables, and user-defined functions.
+The API currently supports five types of commands: digital, analog, and mode, variables, and user-defined functions.
 
 ### Digital
 
@@ -185,13 +185,13 @@ To access a variable in your sketch, you have to declare it first, and then call
 
 ### Functions
 
-You can also define your own functions in your sketch that can be called using the REST API. To access a function defined in your sketch, you have to declare it first, and then call it from with a REST call. Note that all functions needs to take a String as the unique argument (for parameters to be passed to the function) and return an integer. For example, if your aREST instance is called "rest" and the function "ledControl":
+You can also define your own functions in your sketch that can be called using the REST API. To access a function defined in your sketch, you have to declare it first, and then call it from with a REST call. Note that all functions need to take a String as the unique argument (for parameters to be passed to the function) and return an integer. For example, if your aREST instance is called "rest" and the function "ledControl":
   * `rest.function("led",ledControl);` declares the function in the Arduino sketch
   * `/led?params=0` executes the function
 
 ### Log data to the cloud
 
-You can also directly tell your board to log data on our cloud server, to be stored there & retrieved later or displayed on the [aREST cloud dashboard](https://dashboard.arest.io/). This is useful when you want for example to record the data coming from a sensor at regular intervals. The data is then stored along with the current date, the ID of the device sending the data, and also an event name that is used to identifiy the data. This can be done via the following commands:
+You can also directly tell your board to log data on our cloud server, to be stored there & retrieved later or displayed on the [aREST cloud dashboard](https://dashboard.arest.io/). This is useful when you want for example to record the data coming from a sensor at regular intervals. The data is then stored along with the current date, the ID of the device sending the data, and also an event name that is used to identify the data. This can be done via the following commands:
   * `rest.publish(client, "temperature", data);` logs the value of `data` with the event name `temperature`
   * `https://cloud.arest.io/47fd9g/events` retrieves the last events logged by the device `47fd9g`
   * You can also use the [aREST cloud dashboard](https://dashboard.arest.io/) to then display or plot this data in real-time on your dashboards
