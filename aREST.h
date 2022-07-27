@@ -1662,7 +1662,7 @@ String getChipId() {
 }
 #endif
 
-#if defined(PubSubClient_h)
+// #if defined(PubSubClient_h)
 String gen_random(int length) {
 
   String randomString;
@@ -1702,16 +1702,25 @@ String gen_random(int length) {
 
   return randomString;
 }
-#endif
+// #endif
 
 // Set device name
 void set_name(char *device_name){
 
+  // Set unique ID for local client
+  if (id.length() == 0) {
+    id = gen_random(6);
+  }
   strcpy(name, device_name);
 }
 
 // Set device name
 void set_name(const String& device_name){
+
+  // Set unique ID for local client
+  if (id.length() == 0) {
+    id = gen_random(6);
+  }
 
   device_name.toCharArray(name, NAME_SIZE);
 }
