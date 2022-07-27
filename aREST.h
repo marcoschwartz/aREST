@@ -1579,9 +1579,7 @@ virtual void root_answer() {
   // End
   addHardwareToBuffer();
 
-  #ifndef PubSubClient_h
-    addToBufferF(F("\r\n"));
-  #endif
+  addToBufferF(F("\r\n"));
 }
 
 
