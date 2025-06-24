@@ -7,9 +7,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 2.9.7
+  Version 3.0.0
   Changelog:
 
+  Version 3.0.0: Major update - Migrated from MQTT to WebSocket protocol for cloud connectivity
   Version 2.9.7: Added URL for mqtt server
   Version 2.9.6: Add ID generator for ESP32
   Version 2.9.5: Compatibility with latest ESP8266 library
@@ -80,13 +81,26 @@
 // Include Arduino header
 #include "Arduino.h"
 
-// MQTT packet size
-#undef MQTT_MAX_PACKET_SIZE
-#define MQTT_MAX_PACKET_SIZE 512
+// WebSocket packet size
+#define WS_MAX_PACKET_SIZE 4096
 
 // Using ESP8266 ?
 #if defined(ESP8266) || defined(ESP32)
 #include "stdlib_noniso.h"
+#endif
+
+// WebSocket support for cloud connectivity
+#if defined(ESP8266) || defined(ESP32)
+  #include <ArduinoWebsockets.h>
+  #include <ArduinoJson.h>
+  using namespace websockets;
+  
+  // WiFi includes for status LED
+  #if defined(ESP8266)
+    #include <ESP8266WiFi.h>
+  #elif defined(ESP32)
+    #include <WiFi.h>
+  #endif
 #endif
 
 // Which board?
@@ -119,12 +133,18 @@
 
 // Size of name & ID
 #define NAME_SIZE 20
-#define ID_SIZE 10
+#define ID_SIZE 64  // Increased to support longer device IDs
 
 // Subscriptions
 #define NUMBER_SUBSCRIPTIONS 4
 
 // Debug mode
+// Set to 1 to enable detailed WebSocket debugging output
+// This will show:
+// - Raw WebSocket messages received
+// - JSON parsing steps
+// - Command processing flow
+// - REST command execution
 #ifndef DEBUG_MODE
 #define DEBUG_MODE 0
 #endif
@@ -178,11 +198,68 @@
   #define OUTPUT_BUFFER_SIZE AREST_BUFFER_SIZE
 #endif
 
+#if defined(ESP8266) || defined(ESP32)
+
+// Forward declaration
+class aREST;
+
+// WebSocket client wrapper for cloud connectivity
+class CloudClient {
+public:
+  WebsocketsClient wsClient;
+  String wsHost;
+  uint16_t wsPort;
+  String deviceId;
+  String apiKey;
+  String lastCommandId;
+  void (*messageCallback)(char*, byte*, unsigned int);
+  unsigned long lastPingTime;
+  unsigned long pingInterval = 30000;
+  bool isConnected = false;
+  aREST* arest = nullptr;
+  
+  // Status LED variables
+  int statusLedPin = -1;  // -1 means disabled
+  unsigned long lastLedUpdate = 0;
+  int ledBrightness = 0;
+  int ledDirection = 5;
+  const long ledBlinkInterval = 500;
+  const long ledPulseInterval = 20;
+
+  void setServer(const char* host, uint16_t port);
+  
+  void setStatusLED(int pin);
+
+  void setCallback(void (*callback)(char*, uint8_t*, unsigned int));
+
+  bool connect(const String& clientId);
+
+  bool connected();
+
+  void loop();
+
+  bool publish(const String& topic, const char* payload);
+
+  bool subscribe(const String& topic);
+
+private:
+  void handleWebSocketMessage(const String& data);
+  void sendWebSocketResponse(const String& commandId, const String& status, const String& message);
+  void sendWebSocketResponse(const String& commandId, const String& status, const String& message, int value);
+  void sendPing();
+  void updateStatusLED();
+};
+
+#endif // ESP8266 || ESP32
 
 class aREST {
 
+friend class CloudClient;
+
 private:
 struct Variable {
+  char type;  // 'i' for int, 'f' for float, 's' for string
+  void* ptr;  // Pointer to the actual variable
   virtual void addToBuffer(aREST *arest) const = 0;
 };
 
@@ -192,7 +269,11 @@ struct TypedVariable: Variable {
   T *var;
   bool quotable;
 
-  TypedVariable(T *v, bool q) : var{v} { quotable = q; }
+  TypedVariable(T *v, bool q, char t) : var{v} { 
+    quotable = q; 
+    type = t;
+    ptr = v;
+  }
 
   void addToBuffer(aREST *arest) const override { 
     arest->addToBuffer(*var, quotable);
@@ -217,9 +298,45 @@ aREST(char* rest_remote_server, int rest_port) {
 }
 
 
+// Generic template - defaults to integer type
 template<typename T>
 void variable(const char *name, T *var, bool quotable) { 
-  variables[variables_index] = new TypedVariable<T>(var, quotable);
+  variables[variables_index] = new TypedVariable<T>(var, quotable, 'i');
+  variable_names[variables_index] = name;
+  variables_index++;
+}
+
+// Specialization for int
+void variable(const char *name, int *var, bool quotable) { 
+  variables[variables_index] = new TypedVariable<int>(var, quotable, 'i');
+  variable_names[variables_index] = name;
+  variables_index++;
+}
+
+// Specialization for float
+void variable(const char *name, float *var, bool quotable) { 
+  variables[variables_index] = new TypedVariable<float>(var, quotable, 'f');
+  variable_names[variables_index] = name;
+  variables_index++;
+}
+
+// Specialization for double
+void variable(const char *name, double *var, bool quotable) { 
+  variables[variables_index] = new TypedVariable<double>(var, quotable, 'f');
+  variable_names[variables_index] = name;
+  variables_index++;
+}
+
+// Specialization for String
+void variable(const char *name, String *var, bool quotable) { 
+  variables[variables_index] = new TypedVariable<String>(var, quotable, 's');
+  variable_names[variables_index] = name;
+  variables_index++;
+}
+
+// Specialization for char arrays
+void variable(const char *name, char *var, bool quotable) { 
+  variables[variables_index] = new TypedVariable<char>(var, quotable, 's');
   variable_names[variables_index] = name;
   variables_index++;
 }
@@ -247,27 +364,13 @@ void reset() {
 public:
 
 
-#if defined(PubSubClient_h)
-
-// With default server
-aREST(PubSubClient& client) {
-
+// Constructor that accepts CloudClient for cloud connectivity
+aREST(CloudClient& client) {
   initialize();
-
-  private_mqtt_server = false;
-  client.setServer(mqtt_server, 1883);
-
-}
-
-// With another server
-aREST(PubSubClient& client, char* new_mqtt_server) {
-
-  initialize();
-
-  private_mqtt_server = true;
-  setMQTTServer(new_mqtt_server);
-  client.setServer(new_mqtt_server, 1883);
-
+  cloudClient = &client;
+  
+  // Set up automatic callback handling
+  client.arest = this;
 }
 
 // Get topic
@@ -290,9 +393,9 @@ void subscribe(const String& device, const String& eventName) {
 
 }
 
-// Publish to cloud
+
 template <typename T>
-void publish(PubSubClient& client, const String& eventName, T data) {
+void publish(CloudClient& client, const String& eventName, T data) {
 
   uint32_t currentMillis = millis();
 
@@ -306,27 +409,28 @@ void publish(PubSubClient& client, const String& eventName, T data) {
       Serial.println(data);
     }
 
-    // Build message
-    String message = "{\"client_id\": \"" + id + "\", \"event_name\": \"" + eventName + "\", \"data\": \"" + String(data) + "\"}";
+    // Build telemetry message
+    StaticJsonDocument<512> doc;
+    doc[eventName] = data;
+    
+    String message;
+    serializeJson(doc, message);
 
     if (DEBUG_MODE) {
-      Serial.print("Sending message via MQTT: ");
+      Serial.print("Sending telemetry via WebSocket: ");
       Serial.println(message);
     }
 
-    // Convert
-    char charBuf[100];
-    message.toCharArray(charBuf, 100);
-
-    // Publish
-    client.publish(publish_topic.c_str(), charBuf);
+    // Publish via WebSocket
+    client.publish("", message.c_str());
 
   }
 
 }
 
+
 template <typename T>
-void publish(PubSubClient& client, const String& eventName, T data, uint32_t customInterval) {
+void publish(CloudClient& client, const String& eventName, T data, uint32_t customInterval) {
 
   uint32_t currentMillis = millis();
 
@@ -340,35 +444,38 @@ void publish(PubSubClient& client, const String& eventName, T data, uint32_t cus
       Serial.println(data);
     }
 
-    // Build message
-    String message = "{\"client_id\": \"" + id + "\", \"event_name\": \"" + eventName + "\", \"data\": \"" + String(data) + "\"}";
+    // Build telemetry message
+    StaticJsonDocument<512> doc;
+    doc[eventName] = data;
+    
+    String message;
+    serializeJson(doc, message);
 
     if (DEBUG_MODE) {
-      Serial.print("Sending message via MQTT: ");
+      Serial.print("Sending telemetry via WebSocket: ");
       Serial.println(message);
     }
 
-    // Convert
-    char charBuf[100];
-    message.toCharArray(charBuf, 100);
-
-    // Publish
-    client.publish(publish_topic.c_str(), charBuf);
+    // Publish via WebSocket
+    client.publish("", message.c_str());
 
   }
 
 }
 
 void setKey(char* api_key) {
-
+  Serial.print(F("[aREST] Setting API key: "));
+  Serial.println(api_key);
+  
   // Set
   proKey = String(api_key);
 
   if (id.length() == 0) {
-
-    // Generate MQTT random ID
+    Serial.println(F("[aREST] No device ID set, generating random ID"));
+    // Generate random ID
     id = gen_random(6);
-
+    Serial.print(F("[aREST] Generated ID: "));
+    Serial.println(id);
   }
 
   // Build topics IDs
@@ -376,12 +483,11 @@ void setKey(char* api_key) {
   out_topic = id + String(api_key) + String("_out");
   publish_topic = id + String(api_key) + String("_event");
 
-  // strcpy(in_topic, inTopic.c_str());
-  // strcpy(out_topic, outTopic.c_str());
-
   // Build client ID
   client_id = id + String(api_key);
-
+  
+  Serial.print(F("[aREST] Client ID: "));
+  Serial.println(client_id);
 }
 
 // void setKey(char* api_key, PubSubClient& client) {
@@ -408,8 +514,6 @@ void setKey(char* api_key) {
 //   client_id = id + String(proKey);
 
 // }
-
-#endif
 
 // Set status LED
 void set_status_led(uint8_t pin){
@@ -821,6 +925,11 @@ void handle(char * string) {
 
 void handle_proto(char * string) {
   // Check if there is data available to read
+  if (DEBUG_MODE) {
+    Serial.print("[HANDLE_PROTO] Processing string: ");
+    Serial.println(string);
+  }
+  
   for (int i = 0; i < strlen(string); i++){
 
     char c = string[i];
@@ -829,6 +938,15 @@ void handle_proto(char * string) {
     // Process data
     process(c);
 
+  }
+
+  if (DEBUG_MODE) {
+    Serial.print("[HANDLE_PROTO] Final answer: ");
+    Serial.println(answer);
+    Serial.print("[HANDLE_PROTO] Command: ");
+    Serial.println(command);
+    Serial.print("[HANDLE_PROTO] State: ");
+    Serial.println(state);
   }
 
   // Send command
@@ -882,144 +1000,156 @@ void handle_proto(T& serial, bool headers, uint8_t read_delay, bool decode)
    send_command(headers, decode);
 }
 
-#if defined(PubSubClient_h)
+#if defined(ESP8266) || defined(ESP32)
 
-// Process callback
-void handle_callback(PubSubClient& client, char* topic, byte* payload, unsigned int length) {
+// Process callback for WebSocket
+void handle_callback(CloudClient& client, char* topic, byte* payload, unsigned int length) {
 
   // Process received message
   int i;
-  char mqtt_msg[100];
-  for(i = 0; i < length; i++) {
-    mqtt_msg[i] = payload[i];
+  char ws_msg[WS_MAX_PACKET_SIZE];
+  for(i = 0; i < length && i < WS_MAX_PACKET_SIZE - 1; i++) {
+    ws_msg[i] = payload[i];
   }
-  mqtt_msg[i] = '\0';
-  String msgString = String(mqtt_msg);
+  ws_msg[i] = '\0';
+  String msgString = String(ws_msg);
 
   if (DEBUG_MODE) {
-    Serial.print("Received message via MQTT: ");
+    Serial.println("[CB] === handle_callback called ===");
+    Serial.print("[CB] Topic: ");
+    Serial.println(topic);
+    Serial.print("[CB] Payload: ");
     Serial.println(msgString);
+    Serial.print("[CB] Length: ");
+    Serial.println(length);
   }
 
   // Process aREST commands
-    String modified_message = String(msgString) + " /";
-    char char_message[100];
-    modified_message.toCharArray(char_message, 100);
+  String modified_message = String(msgString) + " /";
+  char char_message[WS_MAX_PACKET_SIZE];
+  modified_message.toCharArray(char_message, WS_MAX_PACKET_SIZE);
 
-    // Handle command with aREST
-    handle(char_message);
-
-    // Read answer
-    char * answer = getBuffer();
-
-    // Send response
-    if (DEBUG_MODE) {
-      Serial.print("Sending message via MQTT: ");
-      Serial.println(answer);
-      Serial.print("Size of MQTT message: ");
-      Serial.println(strlen(answer));
-      Serial.print("Size of client ID: ");
-      Serial.println(client_id.length());
-    }
-
-    int max_message_size = 128 - 20 - client_id.length();
-
-    if (strlen(answer) < max_message_size) {
-      client.publish(out_topic.c_str(), answer);
-    }
-    else {
-
-      // Max iteration
-      uint8_t max_iteration = (int)(strlen(answer)/max_message_size) + 1;
-
-      // Send data
-      for (uint8_t i = 0; i < max_iteration; i++) {
-        char intermediate_buffer[max_message_size+1];
-        memcpy(intermediate_buffer, buffer + i*max_message_size, max_message_size);
-        intermediate_buffer[max_message_size] = '\0';
-
-        if (DEBUG_MODE) {
-          Serial.print("Intermediate buffer: ");
-          Serial.println(intermediate_buffer);
-          Serial.print("Intermediate buffer size: ");
-          Serial.println(strlen(intermediate_buffer));
-        }
-
-        client.publish(out_topic.c_str(), intermediate_buffer);
-
-    }
-
-   }
-
-    // Send message
-    // client.publish(out_topic, answer);
-
-    // Reset buffer
-    resetBuffer();
-
-
-}
-
-// Handle request on the Serial port
-void loop(PubSubClient& client){
-
-  // Connect to cloud
-  if (!client.connected()) {
-    reconnect(client);
+  if (DEBUG_MODE) {
+    Serial.print("[CB] Modified message for processing: ");
+    Serial.println(char_message);
   }
-  client.loop();
 
-}
+  // Handle command with aREST
+  handle(char_message);
 
-void handle(PubSubClient& client){
-
-  // Connect to cloud
-  if (!client.connected()) {
-    reconnect(client);
+  // Read answer
+  char * answer = getBuffer();
+  
+  if (DEBUG_MODE) {
+    Serial.print("[CB] Buffer content after handle(): ");
+    Serial.println(answer);
+    Serial.print("[CB] Buffer length: ");
+    Serial.println(strlen(answer));
   }
-  client.loop();
 
+  // Send response via WebSocket (no need for chunking)
+  if (DEBUG_MODE) {
+    Serial.print("Sending response via WebSocket: ");
+    Serial.println(answer);
+  }
+
+  // Send command response
+  if (client.lastCommandId.length() > 0) {
+    StaticJsonDocument<1024> doc;
+    doc["type"] = "command_response";
+    doc["command_id"] = client.lastCommandId;
+    doc["status"] = "completed";
+    
+    // Parse response
+    StaticJsonDocument<512> responseDoc;
+    DeserializationError error = deserializeJson(responseDoc, answer);
+    if (!error) {
+      doc["response"] = responseDoc;
+    } else {
+      doc["response"]["raw"] = answer;
+    }
+    
+    String message;
+    serializeJson(doc, message);
+    client.wsClient.send(message);
+  }
+
+  // Reset buffer
+  resetBuffer();
 }
 
-void reconnect(PubSubClient& client) {
 
-  // Loop until we're reconnected
-  while (!client.connected()) {
-    Serial.print(F("Attempting MQTT connection..."));
-
-      // Attempt to connect
-      if (client.connect(client_id.c_str())) {
-        if (private_mqtt_server) {
-          Serial.println(F("Connected to MQTT server"));
-        }
-        else {
-          Serial.println(F("Connected to aREST.io"));
-        }
-        client.subscribe(in_topic.c_str());
-
-        // Subscribe to all
-        // if (subscriptions_index > 0) {
-        //
-        //   for (int i = 0; i < subscriptions_index; i++) {
-        //     if (DEBUG_MODE) {
-        //       Serial.print(F("Subscribing to additional topic: "));
-        //       Serial.println(subscriptions_names[i]);
-        //     }
-        //
-        //     client.subscribe(subscriptions_names[i]);
-        //   }
-        //
-        // }
-
-      } else {
-        Serial.print(F("failed, rc="));
-        Serial.print(client.state());
-        Serial.println(F(" try again in 5 seconds"));
-
-        // Wait 5 seconds before retrying
-        delay(5000);
+// Handle request for WebSocket
+void handle(CloudClient& client){
+  // Set up callback if not already set
+  if (!client.messageCallback) {
+    // Store pointer to this instance in a static variable
+    static aREST* instance = nullptr;
+    instance = this;
+    
+    // Set callback using static lambda
+    client.setCallback([](char* topic, uint8_t* payload, unsigned int length) {
+      if (instance && instance->cloudClient) {
+        instance->handle_callback(*(instance->cloudClient), topic, payload, length);
       }
+    });
+  }
+  
+  // Connect to cloud if needed
+  if (!client.connected()) {
+    reconnect(client);
+  }
+  client.loop();
+}
 
+
+void reconnect(CloudClient& client) {
+  // Attempt to connect
+  if (!client.connected()) {
+    Serial.println(F("\n[RECONNECT] Starting reconnection process..."));
+    
+    // Set default server if not set
+    if (client.wsHost.length() == 0) {
+      Serial.println(F("[RECONNECT] No server set, using defaults"));
+      client.wsHost = String(ws_server);
+      client.wsPort = ws_port;
+      Serial.print(F("[RECONNECT] Default server: "));
+      Serial.print(client.wsHost);
+      Serial.print(F(":"));
+      Serial.println(client.wsPort);
+    } else {
+      Serial.print(F("[RECONNECT] Using configured server: "));
+      Serial.print(client.wsHost);
+      Serial.print(F(":"));
+      Serial.println(client.wsPort);
+    }
+    
+    // Set device info
+    if (client.deviceId != id) {
+      Serial.print(F("[RECONNECT] Setting device ID from '"));
+      Serial.print(client.deviceId);
+      Serial.print(F("' to '"));
+      Serial.print(id);
+      Serial.println(F("'"));
+      client.deviceId = id;
+    }
+    
+    if (client.apiKey != proKey) {
+      Serial.println(F("[RECONNECT] Updating API key"));
+      client.apiKey = proKey;
+    }
+    
+    Serial.print(F("[RECONNECT] Using client_id for connection: "));
+    Serial.println(client_id);
+    
+    // Attempt to connect
+    if (client.connect(client_id)) {
+      Serial.println(F("[RECONNECT] ✓ Connected to WebSocket server"));
+    } else {
+      Serial.println(F("[RECONNECT] ✗ Connection failed, will retry in 5 seconds"));
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
   }
 }
 #endif
@@ -1145,16 +1275,19 @@ void process(char c) {
   // Digital command received ?
   if (answer.startsWith("digital")) {
     command = 'd';
+    if (DEBUG_MODE) Serial.println("[PROCESS] Digital command detected");
   }
 
   // Mode command received ?
   if (answer.startsWith("mode")) {
     command = 'm';
+    if (DEBUG_MODE) Serial.println("[PROCESS] Mode command detected");
   }
 
   // Analog command received ?
   if (answer.startsWith("analog")) {
     command = 'a';
+    if (DEBUG_MODE) Serial.println("[PROCESS] Analog command detected");
 
     #if defined(ESP8266)
       analogWriteRange(255);
@@ -1552,11 +1685,9 @@ bool send_command(bool headers, bool decodeArgs) {
 virtual void root_answer() {
 
   #if defined(ADAFRUIT_CC3000_H) || defined(ESP8266) || defined(ethernet_h_) || defined(WiFi_h)
-    #if !defined(PubSubClient_h)
-      if (command != 'u') {
-        send_http_headers();
-      }
-    #endif
+    if (command != 'u') {
+      send_http_headers();
+    }
   #endif
 
   if (LIGHTWEIGHT) {
@@ -1579,9 +1710,7 @@ virtual void root_answer() {
   // End
   addHardwareToBuffer();
 
-  #ifndef PubSubClient_h
-    addToBufferF(F("\r\n"));
-  #endif
+  addToBufferF(F("\r\n"));
 }
 
 
@@ -1594,14 +1723,20 @@ void function(char * function_name, int (*f)(String)){
 
 // Set device ID
 void set_id(const String& device_id) {
+  Serial.print(F("[aREST] Setting device ID: "));
+  Serial.println(device_id);
+  
+  // Store full device ID without truncation
+  id = device_id;
+  Serial.print(F("[aREST] ID stored as: "));
+  Serial.println(id);
 
-  id = device_id.substring(0, ID_SIZE);
-
-  #if defined(PubSubClient_h)
+  #if defined(ESP8266) || defined(ESP32)
 
   if (proKey.length() == 0) {
-
-      // Generate MQTT random ID
+      Serial.println(F("[aREST] No API key set yet, using random prefix"));
+      
+      // Generate random ID
       String randomId = gen_random(6);
 
       // Build topics IDs
@@ -1662,7 +1797,7 @@ String getChipId() {
 }
 #endif
 
-#if defined(PubSubClient_h)
+#if defined(ESP8266) || defined(ESP32)
 String gen_random(int length) {
 
   String randomString;
@@ -1680,23 +1815,6 @@ String gen_random(int length) {
 
     randomString = String(chipId);
     randomString = randomString.substring(0, 6);
-
-  #elif defined(__arm__)
-
-    randomString = getChipId();
-    randomString = randomString.substring(0, 6);
-
-  #else
-
-  String charset = "abcdefghijklmnopqrstuvwxyz0123456789";
-
-  // Generate
-  int l = charset.length();
-  int key;
-  for (int n = 0; n < length; n++) {
-    key = random(0, l - 1);
-    randomString += charset[key];
-  }
 
   #endif
 
@@ -1979,9 +2097,14 @@ void initFreeMemory(){
 }
 #endif
 
-#if defined(PubSubClient_h)
-void setMQTTServer(char* new_mqtt_server){
-  mqtt_server = new_mqtt_server;
+#if defined(ESP8266) || defined(ESP32)
+// Deprecated - use setServer instead
+void setMQTTServer(char* new_server){
+  ws_server = new_server;
+}
+
+void setServer(char* new_server){
+  ws_server = new_server;
 }
 #endif
 
@@ -2018,10 +2141,10 @@ private:
   Variable* variables[NUMBER_VARIABLES];
   const char * variable_names[NUMBER_VARIABLES];
 
-  // MQTT client
-  #if defined(PubSubClient_h)
+  // Cloud connectivity
+  #if defined(ESP8266) || defined(ESP32)
 
-  // Topics
+  // Topics (kept for compatibility)
   String in_topic;
   String out_topic;
   String publish_topic;
@@ -2031,9 +2154,10 @@ private:
   uint8_t subscriptions_index;
   char * subscriptions_names[NUMBER_SUBSCRIPTIONS];
 
-  // aREST.io server
-  char* mqtt_server = "mqtt.arest.io";
-  bool private_mqtt_server;
+  // WebSocket server
+  char* ws_server = "socket.arest.io";
+  uint16_t ws_port = 443; // WSS port
+  CloudClient* cloudClient = nullptr;
 
   #endif
 
@@ -2050,6 +2174,579 @@ private:
 
 };
 
+#if defined(ESP8266) || defined(ESP32)
+// CloudClient method implementations
+void CloudClient::setServer(const char* host, uint16_t port) {
+  wsHost = String(host);
+  wsPort = port;
+}
+
+void CloudClient::setStatusLED(int pin) {
+  statusLedPin = pin;
+  if (pin >= 0) {
+    pinMode(statusLedPin, OUTPUT);
+    digitalWrite(statusLedPin, LOW);
+  }
+}
+
+void CloudClient::setCallback(void (*callback)(char*, uint8_t*, unsigned int)) {
+  messageCallback = callback;
+  
+  wsClient.onMessage([this](WebsocketsMessage message) {
+    this->handleWebSocketMessage(message.data());
+  });
+  
+  wsClient.onEvent([this](WebsocketsEvent event, String data) {
+    if (event == WebsocketsEvent::ConnectionClosed) {
+      isConnected = false;
+      if (DEBUG_MODE) Serial.println("[WS] Disconnected");
+    }
+  });
+}
+
+bool CloudClient::connect(const String& clientId) {
+  // Determine if we're using secure WebSocket based on port
+  // Common secure ports: 443, 8443
+  // Common non-secure ports: 80, 3000, 8080
+  bool useSSL = (wsPort == 443 || wsPort == 8443);
+  
+  // Build WebSocket URL
+  String url = (useSSL ? "wss://" : "ws://") + wsHost + ":" + String(wsPort) + "/iot/devices/" + deviceId + "/ws?api_key=" + apiKey;
+  
+  Serial.println("[WS] === WebSocket Connection Debug ===");
+  Serial.print("[WS] Host: ");
+  Serial.println(wsHost);
+  Serial.print("[WS] Port: ");
+  Serial.println(wsPort);
+  Serial.print("[WS] Device ID: ");
+  Serial.println(deviceId);
+  Serial.print("[WS] API Key: ");
+  Serial.println(apiKey.substring(0, 10) + "...");  // Show only first 10 chars for security
+  Serial.print("[WS] Protocol: ");
+  Serial.println(useSSL ? "wss (secure)" : "ws (non-secure)");
+  Serial.print("[WS] Full URL: ");
+  Serial.println(url);
+  Serial.println("[WS] Attempting connection...");
+  
+  isConnected = wsClient.connect(url);
+  
+  if (isConnected) {
+    lastPingTime = millis();
+    Serial.println("[WS] ✓ Connected successfully!");
+  } else {
+    Serial.println("[WS] ✗ Connection failed!");
+    Serial.println("[WS] Possible reasons:");
+    Serial.println("[WS] - Server not running or not accessible");
+    Serial.println("[WS] - Wrong IP address or port");
+    Serial.println("[WS] - Firewall blocking connection");
+    Serial.println("[WS] - Server not accepting WebSocket at this path");
+    Serial.println("[WS] - API key not valid");
+  }
+  
+  return isConnected;
+}
+
+bool CloudClient::connected() {
+  return wsClient.available() && isConnected;
+}
+
+void CloudClient::loop() {
+  if (isConnected) {
+    wsClient.poll();
+    
+    // Send ping periodically
+    if (millis() - lastPingTime > pingInterval) {
+      sendPing();
+      lastPingTime = millis();
+    }
+  }
+  
+  // Update status LED
+  updateStatusLED();
+}
+
+bool CloudClient::publish(const String& topic, const char* payload) {
+  if (!isConnected) return false;
+  
+  StaticJsonDocument<1024> doc;
+  doc["type"] = "telemetry";
+  
+  // Parse payload JSON
+  StaticJsonDocument<512> payloadDoc;
+  deserializeJson(payloadDoc, payload);
+  doc["payload"] = payloadDoc;
+  
+  String message;
+  serializeJson(doc, message);
+  
+  return wsClient.send(message);
+}
+
+bool CloudClient::subscribe(const String& topic) {
+  // WebSocket automatically receives all messages for the device
+  return true;
+}
+
+void CloudClient::handleWebSocketMessage(const String& data) {
+  // Debug: Log raw message
+  if (DEBUG_MODE) {
+    Serial.println("[WS] === Received WebSocket Message ===");
+    Serial.print("[WS] Raw data: ");
+    Serial.println(data);
+    Serial.print("[WS] Message length: ");
+    Serial.println(data.length());
+  }
+  
+  StaticJsonDocument<1024> doc;
+  DeserializationError error = deserializeJson(doc, data);
+  
+  if (error) {
+    if (DEBUG_MODE) {
+      Serial.println("[WS] JSON parse error!");
+      Serial.print("[WS] Error: ");
+      Serial.println(error.c_str());
+    }
+    return;
+  }
+  
+  // Debug: Log parsed JSON
+  if (DEBUG_MODE) {
+    Serial.println("[WS] JSON parsed successfully");
+    String jsonStr;
+    serializeJson(doc, jsonStr);
+    Serial.print("[WS] Parsed JSON: ");
+    Serial.println(jsonStr);
+  }
+  
+  // Check for command field (new format) or command_type field (old format)
+  const char* commandType = doc["command"] | doc["command_type"];
+  if (!commandType) {
+    if (DEBUG_MODE) Serial.println("[WS] Error: No command or command_type field");
+    return;
+  }
+  
+  const char* commandId = doc["command_id"] | "";
+  lastCommandId = String(commandId);
+  
+  if (DEBUG_MODE) {
+    Serial.print("[WS] Command type: ");
+    Serial.println(commandType);
+    Serial.print("[WS] Command ID: ");
+    Serial.println(commandId);
+  }
+  
+  // Process different command types
+  if (strcmp(commandType, "digital_write") == 0) {
+    // Check for parameters field (new format) or payload field (old format)
+    JsonObject params;
+    if (doc.containsKey("parameters")) {
+      params = doc["parameters"];
+    } else {
+      params = doc["payload"];
+    }
+    int pin = params["pin"] | 0;
+    const char* valueStr = params["value"] | "LOW";
+    
+    if (DEBUG_MODE) {
+      Serial.println("[WS] Processing digital_write command");
+      Serial.print("[WS] Pin: ");
+      Serial.println(pin);
+      Serial.print("[WS] Value string: ");
+      Serial.println(valueStr);
+    }
+    
+    // Convert HIGH/LOW to 1/0
+    int value = (strcmp(valueStr, "HIGH") == 0) ? 1 : 0;
+    
+    // Execute the command directly
+    #if defined(ESP8266)
+      analogWrite(pin, 0);  // Disable PWM
+    #endif
+    pinMode(pin, OUTPUT);
+    digitalWrite(pin, value);
+    
+    if (DEBUG_MODE) {
+      Serial.print("[WS] digitalWrite(");
+      Serial.print(pin);
+      Serial.print(", ");
+      Serial.print(value);
+      Serial.println(") executed");
+    }
+    
+    // Send response
+    sendWebSocketResponse(commandId, "success", "Pin D" + String(pin) + " set to " + String(value));
+  }
+  else if (strcmp(commandType, "digital_read") == 0) {
+    JsonObject params;
+    if (doc.containsKey("parameters")) {
+      params = doc["parameters"];
+    } else {
+      params = doc["payload"];
+    }
+    int pin = params["pin"] | 0;
+    
+    if (DEBUG_MODE) {
+      Serial.println("[WS] Processing digital_read command");
+      Serial.print("[WS] Pin: ");
+      Serial.println(pin);
+    }
+    
+    // Execute the command directly
+    pinMode(pin, INPUT);
+    int value = digitalRead(pin);
+    
+    if (DEBUG_MODE) {
+      Serial.print("[WS] digitalRead(");
+      Serial.print(pin);
+      Serial.print(") = ");
+      Serial.println(value);
+    }
+    
+    // Send response with value
+    sendWebSocketResponse(commandId, "success", "Pin D" + String(pin) + " is " + String(value), value);
+  }
+  else if (strcmp(commandType, "analog_write") == 0) {
+    JsonObject params;
+    if (doc.containsKey("parameters")) {
+      params = doc["parameters"];
+    } else {
+      params = doc["payload"];
+    }
+    int pin = params["pin"] | 0;
+    int value = params["value"] | 0;
+    
+    if (DEBUG_MODE) {
+      Serial.println("[WS] Processing analog_write command");
+      Serial.print("[WS] Pin: ");
+      Serial.println(pin);
+      Serial.print("[WS] Value: ");
+      Serial.println(value);
+    }
+    
+    // Execute the command directly
+    #if defined(ESP8266)
+      analogWriteRange(255);
+    #endif
+    analogWrite(pin, value);
+    
+    if (DEBUG_MODE) {
+      Serial.print("[WS] analogWrite(");
+      Serial.print(pin);
+      Serial.print(", ");
+      Serial.print(value);
+      Serial.println(") executed");
+    }
+    
+    // Send response
+    sendWebSocketResponse(commandId, "success", "Pin A" + String(pin) + " set to " + String(value));
+  }
+  else if (strcmp(commandType, "analog_read") == 0) {
+    JsonObject params;
+    if (doc.containsKey("parameters")) {
+      params = doc["parameters"];
+    } else {
+      params = doc["payload"];
+    }
+    int pin = params["pin"] | 0;
+    
+    if (DEBUG_MODE) {
+      Serial.println("[WS] Processing analog_read command");
+      Serial.print("[WS] Pin: ");
+      Serial.println(pin);
+    }
+    
+    // Execute the command directly
+    int value = analogRead(pin);
+    
+    if (DEBUG_MODE) {
+      Serial.print("[WS] analogRead(");
+      Serial.print(pin);
+      Serial.print(") = ");
+      Serial.println(value);
+    }
+    
+    // Send response with value
+    sendWebSocketResponse(commandId, "success", "Pin A" + String(pin) + " is " + String(value), value);
+  }
+  else if (strcmp(commandType, "get_variable") == 0) {
+    JsonObject params;
+    if (doc.containsKey("parameters")) {
+      params = doc["parameters"];
+    } else {
+      params = doc["payload"];
+    }
+    const char* variable = params["variable"] | "";
+    
+    if (DEBUG_MODE) {
+      Serial.println("[WS] Processing get_variable command");
+      Serial.print("[WS] Variable: ");
+      Serial.println(variable);
+    }
+    
+    // Find and read the variable
+    bool found = false;
+    for (uint8_t i = 0; i < arest->variables_index; i++) {
+      if (strcmp(arest->variable_names[i], variable) == 0) {
+        found = true;
+        
+        // Get variable value based on type
+        String value;
+        if (arest->variables[i]->type == 'i') {
+          value = String(*((int*)arest->variables[i]->ptr));
+        } else if (arest->variables[i]->type == 'f') {
+          value = String(*((float*)arest->variables[i]->ptr), 2);
+        } else if (arest->variables[i]->type == 's') {
+          value = String((char*)arest->variables[i]->ptr);
+        }
+        
+        if (DEBUG_MODE) {
+          Serial.print("[WS] Variable found: ");
+          Serial.print(variable);
+          Serial.print(" = ");
+          Serial.println(value);
+        }
+        
+        // Send response with value
+        StaticJsonDocument<512> responseDoc;
+        responseDoc["type"] = "command_response";
+        responseDoc["command_id"] = commandId;
+        responseDoc["status"] = "success";
+        responseDoc["variable"] = variable;
+        responseDoc["value"] = value;
+        
+        String response;
+        serializeJson(responseDoc, response);
+        
+        if (DEBUG_MODE) {
+          Serial.print("[WS] Sending response: ");
+          Serial.println(response);
+        }
+        
+        wsClient.send(response);
+        break;
+      }
+    }
+    
+    if (!found) {
+      sendWebSocketResponse(commandId, "error", "Variable not found: " + String(variable));
+    }
+  }
+  else if (strcmp(commandType, "call_function") == 0) {
+    JsonObject params;
+    if (doc.containsKey("parameters")) {
+      params = doc["parameters"];
+    } else {
+      params = doc["payload"];
+    }
+    const char* functionName = params["function"] | "";
+    const char* args = params["args"] | "";
+    
+    if (DEBUG_MODE) {
+      Serial.println("[WS] Processing call_function command");
+      Serial.print("[WS] Function: ");
+      Serial.println(functionName);
+      Serial.print("[WS] Args: ");
+      Serial.println(args);
+    }
+    
+    // Find and call the function
+    bool found = false;
+    for (uint8_t i = 0; i < arest->functions_index; i++) {
+      if (strcmp(arest->functions_names[i], functionName) == 0) {
+        found = true;
+        
+        // Call the function
+        int result = arest->functions[i](String(args));
+        
+        if (DEBUG_MODE) {
+          Serial.print("[WS] Function called: ");
+          Serial.print(functionName);
+          Serial.print(" returned: ");
+          Serial.println(result);
+        }
+        
+        // Send response with result
+        StaticJsonDocument<512> responseDoc;
+        responseDoc["type"] = "command_response";
+        responseDoc["command_id"] = commandId;
+        responseDoc["status"] = "success";
+        responseDoc["function"] = functionName;
+        responseDoc["return_value"] = result;
+        
+        String response;
+        serializeJson(responseDoc, response);
+        
+        if (DEBUG_MODE) {
+          Serial.print("[WS] Sending response: ");
+          Serial.println(response);
+        }
+        
+        wsClient.send(response);
+        break;
+      }
+    }
+    
+    if (!found) {
+      sendWebSocketResponse(commandId, "error", "Function not found: " + String(functionName));
+    }
+  }
+  else if (strcmp(commandType, "get_info") == 0) {
+    if (DEBUG_MODE) {
+      Serial.println("[WS] Processing get_info command");
+    }
+    
+    // Send device info response
+    StaticJsonDocument<512> responseDoc;
+    responseDoc["type"] = "command_response";
+    responseDoc["command_id"] = commandId;
+    responseDoc["status"] = "success";
+    responseDoc["id"] = arest->id;
+    responseDoc["name"] = arest->name;
+    responseDoc["hardware"] = HARDWARE;
+    
+    // Add variables info
+    JsonArray vars = responseDoc.createNestedArray("variables");
+    for (uint8_t i = 0; i < arest->variables_index; i++) {
+      vars.add(arest->variable_names[i]);
+    }
+    
+    // Add functions info
+    JsonArray funcs = responseDoc.createNestedArray("functions");
+    for (uint8_t i = 0; i < arest->functions_index; i++) {
+      funcs.add(arest->functions_names[i]);
+    }
+    
+    String response;
+    serializeJson(responseDoc, response);
+    
+    if (DEBUG_MODE) {
+      Serial.print("[WS] Sending response: ");
+      Serial.println(response);
+    }
+    
+    wsClient.send(response);
+  }
+  else if (strcmp(commandType, "set_temperature") == 0) {
+    JsonObject params;
+    if (doc.containsKey("parameters")) {
+      params = doc["parameters"];
+    } else {
+      params = doc["payload"];
+    }
+    float temperature = params["temperature"] | 0.0;
+    const char* unit = params["unit"] | "celsius";
+    
+    if (DEBUG_MODE) {
+      Serial.println("[WS] Processing set_temperature command");
+      Serial.print("[WS] Temperature: ");
+      Serial.print(temperature);
+      Serial.print(" ");
+      Serial.println(unit);
+    }
+    
+    // This is a placeholder - users should implement their own temperature handling
+    // For now, just send a success response
+    sendWebSocketResponse(commandId, "success", "Temperature command received: " + String(temperature) + " " + String(unit));
+  }
+  else {
+    if (DEBUG_MODE) {
+      Serial.print("[WS] Unknown command type: ");
+      Serial.println(commandType);
+    }
+  }
+}
+
+void CloudClient::sendWebSocketResponse(const String& commandId, const String& status, const String& message) {
+  StaticJsonDocument<512> doc;
+  doc["type"] = "command_response";
+  doc["command_id"] = commandId;
+  doc["status"] = status;
+  doc["message"] = message;
+  
+  String response;
+  serializeJson(doc, response);
+  
+  if (DEBUG_MODE) {
+    Serial.print("[WS] Sending response: ");
+    Serial.println(response);
+  }
+  
+  wsClient.send(response);
+}
+
+void CloudClient::sendWebSocketResponse(const String& commandId, const String& status, const String& message, int value) {
+  StaticJsonDocument<512> doc;
+  doc["type"] = "command_response";
+  doc["command_id"] = commandId;
+  doc["status"] = status;
+  doc["message"] = message;
+  doc["value"] = value;
+  
+  String response;
+  serializeJson(doc, response);
+  
+  if (DEBUG_MODE) {
+    Serial.print("[WS] Sending response: ");
+    Serial.println(response);
+  }
+  
+  wsClient.send(response);
+}
+
+void CloudClient::sendPing() {
+  StaticJsonDocument<64> doc;
+  doc["type"] = "ping";
+  String message;
+  serializeJson(doc, message);
+  wsClient.send(message);
+}
+
+void CloudClient::updateStatusLED() {
+  if (statusLedPin < 0) return;  // LED disabled
+  
+  unsigned long now = millis();
+  bool wifiConnected = false;
+  
+  #if defined(ESP8266)
+    wifiConnected = (WiFi.status() == WL_CONNECTED);
+  #elif defined(ESP32)
+    wifiConnected = (WiFi.status() == WL_CONNECTED);
+  #endif
+  
+  if (!wifiConnected) {
+    // No WiFi - LED off
+    if (now - lastLedUpdate >= 100) {
+      lastLedUpdate = now;
+      analogWrite(statusLedPin, 0);
+    }
+  }
+  else if (wifiConnected && !isConnected) {
+    // WiFi connected but no WebSocket - fast blinking
+    if (now - lastLedUpdate >= ledBlinkInterval) {
+      lastLedUpdate = now;
+      ledBrightness = (ledBrightness == 0) ? 255 : 0;
+      analogWrite(statusLedPin, ledBrightness);
+    }
+  }
+  else if (wifiConnected && isConnected) {
+    // Both connected - slow pulsing
+    if (now - lastLedUpdate >= ledPulseInterval) {
+      lastLedUpdate = now;
+      
+      ledBrightness += ledDirection;
+      if (ledBrightness >= 255) {
+        ledBrightness = 255;
+        ledDirection = -5;
+      } else if (ledBrightness <= 0) {
+        ledBrightness = 0;
+        ledDirection = 5;
+      }
+      
+      analogWrite(statusLedPin, ledBrightness);
+    }
+  }
+}
+#endif // ESP8266 || ESP32
 
 // Some specializations of our template
 template <>

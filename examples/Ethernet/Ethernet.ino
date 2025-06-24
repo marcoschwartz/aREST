@@ -45,9 +45,8 @@ void setup(void)
   // Function to be exposed
   rest.function("led",ledControl);
 
-  // Give name & ID to the device (ID should be 6 characters long)
+  // Give ID to the device (ID should be 6 characters long)
   rest.set_id("008");
-  rest.set_name("dapper_drake");
 
   // Start the Ethernet connection and the server
   if (Ethernet.begin(mac) == 0) {

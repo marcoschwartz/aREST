@@ -1,11 +1,15 @@
 <h1>aREST</h1>
 
+<span>Version 3.0.0</span>
+
 <span>[![Build Status](https://travis-ci.org/marcoschwartz/aREST.svg?branch=master)](https://travis-ci.org/marcoschwartz/aREST)</span>
 <span>[![Backers on Open Collective](https://opencollective.com/arest/backers/badge.svg)](#backers) [![Sponsors on Open Collective](https://opencollective.com/arest/sponsors/badge.svg)](#sponsors) [![Donate](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3Q73345CWMYE8)</span>
 
 ## Overview
 
 A simple library that implements a REST API for Arduino & the ESP8266 WiFi chip.
+
+**Version 3.0.0 - Major Update**: This version migrates from MQTT to WebSocket protocol for cloud connectivity, providing improved reliability, real-time communication, and better support for large payloads.
 
 It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip, the Arduino WiFi library or the Ethernet shield), via the Serial port (using the USB serial connection, Bluetooth, and XBee) and also via Bluetooth Low Energy. The library is also compatible with the Arduino MKR1000 board.
 
@@ -86,7 +90,8 @@ To use aREST with the MKR1000 board, you first need to install the MKR1000 board
 
 ### For Cloud Access
 
-- [PubSub Library](https://github.com/knolleary/pubsubclient)
+- [ArduinoWebsockets](https://github.com/gilmaimon/ArduinoWebsockets) - For WebSocket connectivity (required for v3.0.0+)
+- [ArduinoJson](https://github.com/bblanchon/ArduinoJson) - For JSON parsing
 
 ## Setup
 

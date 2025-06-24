@@ -47,9 +47,8 @@ void setup(void)
   // Function to be exposed
   rest.function("led",ledControl);
 
-  // Give name and ID to device (ID should be 6 characters long)
+  // Give ID to device (ID should be 6 characters long)
   rest.set_id("1");
-  rest.set_name("mkr1000");
 
   // Connect to WiFi
   while (status != WL_CONNECTED) {

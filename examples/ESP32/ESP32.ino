@@ -42,9 +42,8 @@ void setup()
   // Function to be exposed
   rest.function("led",ledControl);
 
-  // Give name & ID to the device (ID should be 6 characters long)
+  // Give ID to the device (ID should be 6 characters long)
   rest.set_id("1");
-  rest.set_name("esp32");
 
   // Connect to WiFi
   WiFi.begin(ssid, password);

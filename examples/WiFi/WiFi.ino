@@ -42,9 +42,8 @@ void setup() {
 
   rest.function("led",ledControl);
 
-  // Give name and ID to device (ID should be 6 characters long)
+  // Give ID to device (ID should be 6 characters long)
   rest.set_id("008");
-  rest.set_name("dapper_drake");
 
   // Function to be exposed
   rest.function("led",ledControl);

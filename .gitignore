@@ -1,1 +1,10 @@
 .DS_Store
+CLAUDE.md
+WEBSOCKET_MIGRATION.md
+aREST.h.backup
+examples/ESP32_cloud/ESP32_cloud_debug.ino
+examples/ESP32_cloud/ESP32_cloud_local_test.ino
+examples/ESP32_cloud/ESP32_cloud_long_id_test.ino
+examples/ESP32_cloud/ESP32_cloud_variable_test.ino
+examples/ESP32_cloud/LOCAL_TESTING.md
+test_compile.ino
