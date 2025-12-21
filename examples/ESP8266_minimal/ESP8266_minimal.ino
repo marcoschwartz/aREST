@@ -30,9 +30,6 @@ void setup() {
   rest.set_name("ESP8266");
   rest.setKey(device_api_key);
 
-  // Optional: custom server (default: mqtt.arest.io)
-  // client.setServer("91.99.200.48", 1883);
-
   // Connect WiFi
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) delay(500);

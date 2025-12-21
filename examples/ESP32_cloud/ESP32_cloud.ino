@@ -60,9 +60,7 @@ void setup(void)
   // Start Serial
   Serial.begin(115200);
 
-  // Configure MQTT client
-  // Default server: mqtt.arest.io:1883
-  // For custom server: client.setServer("91.99.200.48", 1883);
+  // Configure MQTT client (connects to mqtt.arest.io by default)
   client.deviceId = String(device_id);
   client.apiKey = String(device_api_key);
 
