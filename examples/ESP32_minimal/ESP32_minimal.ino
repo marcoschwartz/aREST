@@ -1,0 +1,44 @@
+/*
+  aREST Minimal Example for ESP32
+
+  Just connects to WiFi and the aREST cloud. Nothing else.
+
+  Get your Device ID and API Key from dashboard.arest.io
+*/
+
+#include <WiFi.h>
+#include <aREST.h>
+
+MQTTClient client;
+aREST rest = aREST(client);
+
+// WiFi
+const char* ssid = "your_wifi";
+const char* password = "your_password";
+
+// Device credentials from dashboard.arest.io
+const char* device_id = "your_device_id";
+const char* device_api_key = "your_device_api_key";
+
+void setup() {
+  Serial.begin(115200);
+
+  // Set credentials
+  client.deviceId = String(device_id);
+  client.apiKey = String(device_api_key);
+  rest.set_id(device_id);
+  rest.set_name("ESP32");
+  rest.setKey(device_api_key);
+
+  // Optional: custom server (default: mqtt.arest.io)
+  // client.setServer("91.99.200.48", 1883);
+
+  // Connect WiFi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) delay(500);
+  Serial.println("WiFi connected");
+}
+
+void loop() {
+  rest.handle(client);
+}
