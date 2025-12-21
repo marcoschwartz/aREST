@@ -8,10 +8,10 @@
   This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License:
   http://creativecommons.org/licenses/by-sa/4.0/
 
-  Version 3.1.1
+  Version 3.1.2
   Changelog:
 
-  Version 3.1.1: Migrated to MQTT protocol for cloud connectivity
+  Version 3.1.2: Migrated to MQTT protocol for cloud connectivity
                  Uses PubSubClient for MQTT
                  Topic structure: devices/{device_id}/commands, /response, /telemetry, /state
                  Authentication: username=device_id, password=api_key

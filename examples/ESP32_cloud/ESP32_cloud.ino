@@ -1,10 +1,13 @@
 /*
-  This a simple example of the aREST Library for the ESP32 WiFi chip.
-  This example illustrates the cloud part of aREST using MQTT
-  with automatic status LED showing connection state:
-  - LED off: No WiFi
-  - LED blinking: WiFi connected, connecting to MQTT broker
-  - LED pulsing: Connected to MQTT broker
+  aREST Cloud Example for ESP32
+
+  This example connects your ESP32 to the aREST cloud via MQTT.
+
+  Setup:
+  1. Go to dashboard.arest.io and create an account
+  2. Click "Add Device" to create a new device
+  3. Copy your Device ID and Device API Key
+  4. Replace the placeholders below with your credentials
 
   Topic structure:
   - devices/{device_id}/commands   - Receives commands from server
@@ -14,11 +17,14 @@
 
   Authentication:
   - MQTT username = device_id
-  - MQTT password = api_key
+  - MQTT password = device_api_key
+
+  Status LED:
+  - LED off: No WiFi
+  - LED blinking: WiFi connected, connecting to MQTT broker
+  - LED pulsing: Connected to cloud
 
   See the README file for more details.
-
-  Written in 2024 - MQTT implementation
 */
 
 // Import required libraries
@@ -31,15 +37,13 @@ MQTTClient client;
 // Create aREST instance
 aREST rest = aREST(client);
 
-// WiFi parameters
-const char* ssid = "your_wifi_network_name";
-const char* password = "your_wifi_network_password";
+// WiFi credentials
+const char* ssid = "your_wifi_network";
+const char* password = "your_wifi_password";
 
-// aREST API key (your device secret key)
-const char* key = "your_arest_key";
-
-// Device ID (unique identifier for this device)
-const char* device_id = "unique_device_id";
+// Device credentials from dashboard.arest.io
+const char* device_id = "your_device_id";           // e.g., "esp32_living_room_a1b2c3"
+const char* device_api_key = "your_device_api_key"; // e.g., "k8f92j4kd8f7g6h5j4k3l2m1"
 
 // Status LED pin (built-in LED on most ESP32 boards)
 const int STATUS_LED = 2;
@@ -50,37 +54,34 @@ int humidity;
 
 // Function prototypes
 int ledControl(String command);
-int blink(String command);
 
 void setup(void)
 {
   // Start Serial
   Serial.begin(115200);
 
-  // Configure MQTT client (server defaults to mqtt.arest.io:1883)
-  // To use a custom server: client.setServer("your.server.com", 1883);
+  // Configure MQTT client
+  // Default server: mqtt.arest.io:1883
+  // For custom server: client.setServer("91.99.200.48", 1883);
   client.deviceId = String(device_id);
-  client.apiKey = String(key);
+  client.apiKey = String(device_api_key);
 
   // Set up status LED
   client.setStatusLED(STATUS_LED);
 
-  // Set aREST API key
-  rest.setKey(key);
+  // Set device credentials for aREST
+  rest.set_id(device_id);
+  rest.set_name("ESP32 Sensor");
+  rest.setKey(device_api_key);
 
-  // Init variables and expose them to REST API
+  // Expose variables to REST API
   temperature = 24;
   humidity = 40;
   rest.variable("temperature", &temperature);
   rest.variable("humidity", &humidity);
 
-  // Functions to be exposed
+  // Expose functions to REST API
   rest.function("led", ledControl);
-  rest.function("blink", blink);
-
-  // Give ID and name to device
-  rest.set_id(device_id);
-  rest.set_name("ESP32 Sensor");
 
   // Connect to WiFi
   WiFi.begin(ssid, password);
@@ -89,23 +90,18 @@ void setup(void)
     delay(500);
     Serial.print(".");
   }
-  Serial.println("");
-  Serial.println("WiFi connected");
-
-  // Print IP address
+  Serial.println("\nWiFi connected!");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
-
-  Serial.println("Device ready!");
   Serial.print("Device ID: ");
   Serial.println(device_id);
 }
 
 void loop() {
-  // Connect to the MQTT broker and handle commands
+  // Handle cloud connection and commands
   rest.handle(client);
 
-  // Update sensor values (simulate sensor readings)
+  // Update sensor values (replace with real sensor readings)
   temperature = 20 + random(10);
   humidity = 40 + random(20);
 
@@ -113,18 +109,14 @@ void loop() {
   rest.publish(client, "temperature", temperature, 5000);
   rest.publish(client, "humidity", humidity, 5000);
 
-  // Small delay
   delay(100);
 }
 
-// Custom function accessible by the API
-// Called via: POST /arest/devices/{device_id}/command
-// Body: { "command_type": "function", "function": "led", "args": "1" }
+// Custom function accessible via cloud
+// Call via: https://cloud.arest.io/{device_id}/led?params=1
 int ledControl(String command) {
-  // Get state from command
   int state = command.toInt();
 
-  // Control LED on pin 5
   pinMode(5, OUTPUT);
   digitalWrite(5, state);
 
@@ -132,32 +124,4 @@ int ledControl(String command) {
   Serial.println(state);
 
   return state;
-}
-
-// Blink function
-// Called via: POST /arest/devices/{device_id}/command
-// Body: { "command_type": "function", "function": "blink", "params": { "times": 3 } }
-int blink(String command) {
-  // Default to 3 blinks
-  int times = 3;
-
-  if (command.length() > 0) {
-    times = command.toInt();
-    if (times <= 0) times = 3;
-  }
-
-  pinMode(5, OUTPUT);
-
-  for (int i = 0; i < times; i++) {
-    digitalWrite(5, HIGH);
-    delay(200);
-    digitalWrite(5, LOW);
-    delay(200);
-  }
-
-  Serial.print("Blinked ");
-  Serial.print(times);
-  Serial.println(" times");
-
-  return times;
 }

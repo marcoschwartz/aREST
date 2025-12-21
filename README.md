@@ -1,6 +1,6 @@
 # aREST
 
-**Version 3.1.1**
+**Version 3.1.2**
 
 [![Build Status](https://travis-ci.org/marcoschwartz/aREST.svg?branch=master)](https://travis-ci.org/marcoschwartz/aREST)
 
@@ -8,7 +8,7 @@
 
 A simple library that implements a REST API for Arduino & the ESP8266/ESP32 WiFi chips.
 
-**Version 3.1.1**: This version migrates to MQTT protocol for cloud connectivity, providing lightweight, reliable IoT communication with automatic reconnection and status LED feedback.
+**Version 3.1.2**: This version migrates to MQTT protocol for cloud connectivity, providing lightweight, reliable IoT communication with automatic reconnection and status LED feedback.
 
 It is designed to be universal and currently supports REST calls via HTTP (using the CC3000 WiFi chip, the Arduino WiFi library or the Ethernet shield), via the Serial port (using the USB serial connection, Bluetooth, and XBee) and also via Bluetooth Low Energy.
 
@@ -327,7 +327,7 @@ If upgrading from version 3.0.x:
 // Old (v3.0.x)
 CloudClient client;
 
-// New (v3.1.1)
+// New (v3.1.2)
 MQTTClient client;
 ```
 
